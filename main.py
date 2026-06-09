@@ -1,7 +1,7 @@
 """main.py — Entry point for the Savanna Capital Quant OS platform.
 
 Usage:
-python main.py --dashboard-only  # dashboard only (no MT5)
+python main.py --dashboard-only # dashboard only (no MT5)
 python main.py --login 12345678 --password yourpass --server JustMarkets-Live
 """
 from __future__ import annotations
@@ -248,16 +248,16 @@ def _engine_loop(
                             trade.ticket,
                         )
 
-                # Periodic account snapshot + heartbeat
-                now = time.time()
-                if (
-                    now - last_snapshot
-                    > cfg.engine.snapshot_interval_seconds
-                ):
-                    _snapshot_account(db, adapter)
-                    last_snapshot = now
+            # Periodic account snapshot + heartbeat
+            now = time.time()
+            if (
+                now - last_snapshot
+                > cfg.engine.snapshot_interval_seconds
+            ):
+                _snapshot_account(db, adapter)
+                last_snapshot = now
 
-                _write_heartbeat()
+            _write_heartbeat()
 
         except Exception:
             log.exception("Engine loop error")
@@ -343,8 +343,15 @@ def main() -> None:
 
     import uvicorn
 
+    # ── Existing v1 dashboard (never touch) ───────────────────────────
+    v1_app = __import__("dashboard.app", fromlist=["app"]).app
+
+    # ── New v2 API (all new features go here) ─────────────────────────
+    v2_app = __import__("dashboard.v2.app", fromlist=["app"]).app
+    v1_app.mount("/api/v2", v2_app)
+
     uvicorn.run(
-        "dashboard.app:app",
+        v1_app,
         host=cfg.dashboard.host,
         port=cfg.dashboard.port,
         log_level="info",
