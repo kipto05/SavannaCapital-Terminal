@@ -1,0 +1,86 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Strategy Library{% endblock %}
+
+{% set page_title = "Strategy Library" %}
+
+{% set active = "strategies" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+<!-- Top actions -->
+<div class="flex items-center gap-2 mb-unit*4">
+<a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">Deploy Strategy</a>
+<a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">+ New Strategy</a>
+</div>
+
+<div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+<h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Strategy Library</h3>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+<th class="px-cell-padding-x py-cell-padding-y">Name</th>
+<th class="px-cell-padding-x py-cell-padding-y">Label</th>
+<th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+<th class="px-cell-padding-x py-cell-padding-y">TF</th>
+<th class="px-cell-padding-x py-cell-padding-y">Active</th>
+<th class="px-cell-padding-x py-cell-padding-y">Version</th>
+<th class="px-cell-padding-x py-cell-padding-y">Trades</th>
+<th class="px-cell-padding-x py-cell-padding-y">Win Rate</th>
+<th class="px-cell-padding-x py-cell-padding-y">Avg PnL</th>
+<th class="px-cell-padding-x py-cell-padding-y">Actions</th>
+</tr></thead>
+<tbody id="strats-tbody" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+<tr><td colspan="10" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "strategies";</script>
+
+<script>
+async function initStrats() {
+const r = await apiFetch('/api/strategies/library');
+renderStrats(r);
+}
+function renderStrats(list) {
+const tb = document.getElementById('strats-tbody');
+if (!tb) return;
+tb.innerHTML = list.map(function(s) {
+var wr = (s.win_rate * 100).toFixed(1);
+var pnlc = (s.avg_pnl_r || 0) > 0 ? '#10b981' : (s.avg_pnl_r || 0) < 0 ? '#ef4444' : '#64748b';
+return '<tr>' +
+'<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface">' + s.name + '</td>' +
+'<td class="px-cell-padding-x py-cell-padding-y text-on-surface">' + s.label + '</td>' +
+'<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface-variant">' + s.symbol + '</td>' +
+'<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant">' + s.timeframe + '</td>' +
+'<td class="px-cell-padding-x py-cell-padding-y"><span class="px-1 py-0.5 text-label-sm rounded ' + (s.is_active ? 'bg-primary/15 text-primary' : 'bg-surface-variant text-outline') + '">' + (s.is_active ? 'Active' : 'Inactive') + '</span></td>' +
+'<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface-variant">v' + s.version + '</td>' +
+'<td class="px-cell-padding-x py-cell-padding-y text-right">' + s.total_trades + '</td>' +
+'<td class="px-cell-padding-x py-cell-padding-y text-right font-mono">' + wr + '%</td>' +
+'<td class="px-cell-padding-x py-cell-padding-y text-right font-mono" style="color:' + pnlc + '">' + (s.avg_pnl_r != null ? parseFloat(s.avg_pnl_r).toFixed(2) : '—') + '</td>' +
+'<td class="px-cell-padding-x py-cell-padding-y"><div class="flex gap-1">' +
+'<button class="px-2 py-0.5 text-label-sm border border-outline-variant" onclick="toggleStrat(\'' + s.name + '\',' + !s.is_active + ')">Toggle</button>' +
+'<button class="px-2 py-0.5 text-label-sm border border-outline-variant" onclick="deployStrat(\'' + s.name + '\')">Deploy</button>' +
+'</div></td></tr>';
+}).join('');
+}
+async function toggleStrat(name, active) {
+await apiFetch('/api/strategies/' + name + '/toggle', {method: 'PATCH', body: JSON.stringify({is_active: active})});
+initStrats();
+}
+async function deployStrat(name) {
+if (!confirm('Deploy ' + name + '? Version will increment.')) return;
+await apiFetch('/api/strategies/' + name + '/deploy', {method: 'POST', body: JSON.stringify({reason: 'Dashboard deploy'})});
+initStrats();
+}
+document.addEventListener('DOMContentLoaded', function() { if (window.__PAGE_INIT__ === 'strategies') initStrats(); });
+</script>
+
+{% endblock scripts %}

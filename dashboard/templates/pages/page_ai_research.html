@@ -1,0 +1,88 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — AI Research Assistant{% endblock %}
+{% set page_title = "AI Research Assistant" %}
+{% set active = "ai_research" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Top actions -->
+  <div class="flex items-center gap-2 mb-unit*4">
+    <button onclick="loadAI()" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">Refresh</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4 flex flex-wrap gap-x-4 gap-y-2 items-end">
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Confidence Threshold</label>
+      <input type="number" id="ai-min-conf" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="0.70" step="0.05" min="0" max="1">
+    </div>
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Result count</label>
+      <select id="ai-limit" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
+        <option>10</option><option>25</option><option>50</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Active AI Suggestions</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Direction</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Conf %</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Zone (E/S/T)</th>
+        </tr></thead>
+        <tbody id="ai-sugg-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "ai_research";</script>
+<script>
+(function() {
+  if (window.__PAGE_INIT__ !== 'ai_research') return;
+
+  window.loadAI = function() {
+    var minConf = parseFloat(document.getElementById('ai-min-conf').value || 0);
+    var limit = parseInt(document.getElementById('ai-limit').value || 10);
+    var tb = document.getElementById('ai-sugg-tbl');
+    apiFetch('/api/ai_advisor/suggestions')
+      .then(function(suggs) {
+        if (!suggs || !suggs.length) {
+          tb.innerHTML = '<tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">No AI suggestions yet.</td></tr>';
+          return;
+        }
+        var filtered = suggs.filter(function(s){ return (s.confidence||0) >= minConf; }).slice(0, limit);
+        if (!filtered.length) {
+          tb.innerHTML = '<tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">No suggestions meet confidence threshold.</td></tr>';
+          return;
+        }
+        tb.innerHTML = filtered.map(function(s) {
+          var sc = (s.side==='BUY') ? '#10B981' : (s.side==='SELL') ? '#EF4444' : '#6B7280';
+          var zone = (s.market_context && s.market_context.zone) ? esc(s.market_context.zone) : '—';
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(s.symbol||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y" style="color:'+sc+'">' + esc(s.side||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (s.confidence!=null ? parseFloat(s.confidence*100).toFixed(0)+'%' : '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + zone + '</td>'
+            + '</tr>';
+        }).join('');
+      })
+      .catch(function() { tb.innerHTML = '<tr><td colspan="4" class="px-cell-padding-x py-3 text-error">Error loading suggestions.</td></tr>'; });
+  };
+
+  loadAI();
+  setInterval(loadAI, 30000);
+})();
+</script>
+{% endblock scripts %}

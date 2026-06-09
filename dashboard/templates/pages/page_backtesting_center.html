@@ -1,0 +1,136 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Backtesting Center{% endblock %}
+
+{% set page_title = "Backtesting Center" %}
+
+{% set active = "backtesting_center" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Top actions -->
+  <div class="flex items-center gap-2 mb-unit*4">
+    <a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">+ New Backtest</a>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4 flex flex-wrap gap-x-4 gap-y-2 items-end">
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Strategy Template</label>
+      <select class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
+        <option>Momentum Reversion</option>
+        <option>Band Reversion</option>
+        <option>Stochastic Trend</option>
+        <option>Session Breakout</option>
+      </select>
+    </div>
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Selected Symbols</label>
+      <select class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
+        <option>EURUSD</option>
+        <option>GBPUSD</option>
+        <option>XAUUSD</option>
+        <option>BTCUSD</option>
+        <option>XAGUSD</option>
+        <option>AAPL</option>
+        <option>TSLA</option>
+      </select>
+    </div>
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Timeframe</label>
+      <select class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
+        <option>M1</option>
+        <option>M5</option>
+        <option>M15</option>
+        <option>H1</option>
+        <option>H4</option>
+        <option>D1</option>
+      </select>
+    </div>
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Execution</label>
+      <select class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
+        <option>Market</option>
+        <option>Limit</option>
+        <option>Stop</option>
+      </select>
+    </div>
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Date Range</label>
+      <input type="text" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="2024-01-01 → 2024-12-31">
+    </div>
+    <div class="flex-1">
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Parameter Overrides</label>
+      <textarea class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded h-16"></textarea>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Equity & Drawdown Curve</h3>
+    <canvas id="btEquityChart" height="200"></canvas>
+  </div>
+
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Trade Distribution</h3>
+    <canvas id="btDistChart" height="200"></canvas>
+  </div>
+
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Run History</h3>
+    <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+        <th class="px-cell-padding-x py-cell-padding-y">ID</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+        <th class="px-cell-padding-x py-cell-padding-y">TF</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Strategy</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Trades</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Win Rate</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Net PnL</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Created</th>
+      </tr></thead>
+      <tbody id="bt-run-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+        <tr><td colspan="9" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "backtesting_center";</script>
+
+<script>
+async function initBT() {
+  const r = await apiFetch('/api/quant/backtests?page_size=20');
+  const tb = document.getElementById('bt-run-tbody');
+  if (!tb) return;
+  const items = r.items || [];
+  if (!items.length) {
+    tb.innerHTML = '<tr><td colspan="9" class="px-cell-padding-x py-4 text-outline text-center">No backtest runs yet</td></tr>';
+    return;
+  }
+  tb.innerHTML = items.map(function(run) {
+    var sc = run.status === 'complete' ? '#10b981' : run.status === 'running' ? '#8b5cf6' : '#849396';
+    return '<tr>' +
+      '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + run.id + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface">' + run.symbol + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant">' + run.timeframe + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y">' + run.strategy_name + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y"><span class="px-1 py-0.5 text-label-sm rounded" style="background:rgba(0,229,255,0.12);color:' + sc + '">' + run.status + '</span></td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono">' + (run.n_trades != null ? run.n_trades : '—') + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono">' + (run.win_rate != null ? (run.win_rate * 100).toFixed(1) + '%' : '—') + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono">' + (run.net_pnl_r != null ? parseFloat(run.net_pnl_r).toFixed(2) + ' R' : '—') + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant text-label-sm">' + (run.created_at ? new Date(run.created_at).toLocaleDateString() : '—') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+document.addEventListener('DOMContentLoaded', function() { if (window.__PAGE_INIT__ === 'backtesting_center') initBT(); });
+</script>
+
+{% endblock scripts %}

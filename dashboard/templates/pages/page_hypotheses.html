@@ -1,0 +1,93 @@
+
+{% extends "partials/_base.html" %}
+{% block title %}Savanna Capital — Hypotheses Center{% endblock %}
+{% set page_title = "Hypotheses Center" %}
+{% set active = "hypotheses" %}
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+  <div class="flex items-center justify-between mb-unit*4">
+    <div>
+      <span class="font-headline-md text-headline-md font-bold text-on-surface">Hypotheses Center</span>
+      <p class="font-label-sm text-label-sm text-outline mt-0.5">Draft &rarr; Research &rarr; Backtest &rarr; Validate &rarr; Deploy</p>
+    </div>
+    <div class="flex gap-2">
+      <button class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant" onclick="setHypoView('kanban')">Kanban</button>
+      <button class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant" onclick="setHypoView('table')">Table</button>
+      <a href="#" class="px-3 py-1.5 bg-primary text-on-primary-fixed text-label-sm font-medium rounded">+ New Hypothesis</a>
+    </div>
+  </div>
+  <div id="kanban-board" class="grid grid-cols-5 gap-panel-gap">
+    {% for st in ['DRAFT','RESEARCHING','BACKTESTING','VALIDATED','DEPLOYED'] %}
+    <div class="bg-surface-container-low border border-outline-variant">
+      <div class="px-cell-padding-x py-2 border-b border-outline-variant flex items-center justify-between">
+        <span class="font-label-sm text-label-sm font-medium text-primary uppercase">{{ st }}</span>
+        <span class="font-label-sm text-label-sm text-outline" id="cnt-{{ st|lower }}">0</span>
+      </div>
+      <div id="col-{{ st|lower }}" class="p-cell-padding-x py-2 space-y-2 min-h-64">
+        <div class="text-label-sm text-outline text-center py-8">Loading&hellip;</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div id="hypo-table" class="hidden bg-surface-container-low border border-outline-variant p-3 mt-unit*4">
+    <table class="w-full text-left border-collapse">
+      <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+        <th class="px-cell-padding-x py-cell-padding-y">ID</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Strategy Name</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Asset</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Timeframe</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Confidence</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+      </tr></thead>
+      <tbody id="hypo-table-body" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+        <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading&hellip;</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+async function initHyp() {
+  const r = await apiFetch('/api/quant/hypotheses');
+  renderHyp(r, 'kanban');
+}
+function renderHyp(list, view) {
+  var statuses = {DRAFT:'draft',RESEARCHING:'researching',BACKTESTING:'backtesting',VALIDATED:'validated',DEPLOYED:'deployed'};
+  for (var st in statuses) {
+    var sl = statuses[st];
+    var items = list.filter(function(h){ return h.status === st; });
+    var cnt = document.getElementById('cnt-' + sl); if (cnt) cnt.textContent = items.length;
+    var col = document.getElementById('col-' + sl); if (!col) continue;
+    if (!items.length) { col.innerHTML = '<div class="text-label-sm text-outline text-center py-4">No items</div>'; continue; }
+    col.innerHTML = items.map(function(h) {
+      return '<div class="bg-surface-container border border-outline-variant p-2 cursor-pointer hover:border-primary/40 transition-colors">' +
+        '<div class="font-body-md text-on-surface mb-1">' + esc(h.title) + '</div>' +
+        '<div class="flex gap-2 font-mono text-label-sm text-outline"><span>' + (h.symbol||'—') + '</span><span>' + (h.timeframe||'—') + '</span></div>' +
+        '<div class="flex gap-1 mt-2 justify-end">' +
+          '<button class="px-2 py-0.5 text-label-sm border border-outline-variant" onclick="updateHyp(' + h.id + ',{status:'RESEARCHING'})">Research</button>' +
+          '<button class="px-2 py-0.5 text-label-sm border border-outline-variant" onclick="updateHyp(' + h.id + ',{status:'BACKTESTING'})">Backtest</button>' +
+          '<button class="px-2 py-0.5 text-label-sm border border-outline-variant text-error" onclick="delHyp(' + h.id + ')">✕</button>' +
+        '</div></div>';
+    }).join('');
+  }
+  var tb = document.getElementById('hypo-table-body');
+  if (tb) tb.innerHTML = list.map(function(h) {
+    return '<tr><td class="px-cell-padding-x py-cell-padding-y font-mono">' + h.id + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y">' + esc(h.title) + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y">' + (h.symbol||'—') + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y">' + (h.timeframe||'—') + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y">' + ((h.confidence||0)*100).toFixed(0) + '%</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y"><span class="px-1 py-0.5 text-label-sm rounded bg-primary/15 text-primary">' + h.status + '</span></td></tr>';
+  }).join('');
+}
+function setHypoView(v) {
+  document.getElementById('kanban-board').classList.toggle('hidden', v !== 'kanban');
+  document.getElementById('hypo-table').classList.toggle('hidden', v !== 'table');
+}
+async function updateHyp(id, body) { await apiFetch('/api/quant/hypotheses/' + id, {method: 'PATCH', body: JSON.stringify(body)}); initHyp(); }
+async function delHyp(id) { if (!confirm('Delete hypothesis ' + id + '?')) return; await apiFetch('/api/quant/hypotheses/' + id, {method: 'DELETE'}); initHyp(); }
+document.addEventListener('DOMContentLoaded', function() { if (window.__PAGE_INIT__ === 'hypotheses') initHyp(); });
+</script>
+{% endblock scripts %}

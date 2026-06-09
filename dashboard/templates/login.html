@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Savanna Capital | Institutional Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
+<script id="tailwind-config">
+tailwind.config = {
+darkMode: "class",
+theme: {
+ extend: {
+ colors: {
+ "tertiary": "#ffecad",
+ "primary-fixed": "#9cf0ff",
+ "on-secondary-fixed": "#111c2d",
+ "secondary-container": "#3e495d",
+ "background": "#101419",
+ "secondary-fixed": "#d8e3fb",
+ "surface-container-low": "#181c21",
+ "surface-dim": "#101419",
+ "on-primary-fixed": "#001f24",
+ "surface": "#101419",
+ "on-surface": "#e0e2ea",
+ "surface-variant": "#31353b",
+ "surface-container-lowest": "#0a0e13",
+ "on-error": "#690005",
+ "primary-fixed-dim": "#00daf3",
+ "outline-variant": "#3b494c",
+ "tertiary-fixed-dim": "#e9c400",
+ "surface-container-highest": "#31353b",
+ "on-primary-fixed-variant": "#004f58",
+ "inverse-on-surface": "#2d3136",
+ "on-surface-variant": "#bac9cc",
+ "on-error-container": "#ffdad6",
+ "on-secondary": "#263143",
+ "inverse-primary": "#006875",
+ "on-tertiary-container": "#695800",
+ "secondary": "#bcc7de",
+ "error-container": "#93000a",
+ "tertiary-container": "#f4ce00",
+ "surface-tint": "#00daf3",
+ "on-secondary-container": "#aeb9d0",
+ "surface-bright": "#36393f",
+ "on-tertiary-fixed": "#221b00",
+ "outline": "#849396",
+ "inverse-surface": "#e0e2ea",
+ "secondary-fixed-dim": "#bcc7de",
+ "on-primary": "#00363d",
+ "surface-container-high": "#262a30",
+ "on-tertiary-fixed-variant": "#544600",
+ "on-secondary-fixed-variant": "#3c475a",
+ "on-background": "#e0e2ea",
+ "primary": "#c3f5ff",
+ "on-tertiary": "#3a3000",
+ "error": "#ffb4ab",
+ "surface-container": "#1c2025",
+ "on-primary-container": "#00626e",
+ "tertiary-fixed": "#ffe16d",
+ "primary-container": "#00e5ff"
+ },
+ borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+ spacing: {"cell-padding-y": "4px", "panel-gap": "1px", "unit": "4px", "container-padding": "12px", "sidebar-width": "240px", "cell-padding-x": "8px"},
+ fontFamily: {"headline-md": ["Geist"], "body-md": ["Geist"], "label-sm": ["JetBrains Mono"], "data-lg": ["JetBrains Mono"], "display-lg": ["Geist"], "data-md": ["JetBrains Mono"]},
+ fontSize: {"headline-md": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}], "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}], "label-sm": ["11px", {"lineHeight": "1.2", "fontWeight": "500"}], "data-lg": ["16px", {"lineHeight": "1.4", "fontWeight": "500"}], "display-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}], "data-md": ["13px", {"lineHeight": "1.4", "fontWeight": "400"}]}
+ }
+ }
+};
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; }
+.glass-panel { background: rgba(22, 27, 34, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(48, 54, 61, 0.8); }
+.ambient-glow { background: radial-gradient(circle at 50% 50%, rgba(0, 229, 255, 0.05) 0%, transparent 70%); }
+.grid-bg { background-image: linear-gradient(rgba(48, 54, 61, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(48, 54, 61, 0.2) 1px, transparent 1px); background-size: 40px 40px; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #101419; }
+::-webkit-scrollbar-thumb { background: #3b494c; }
+</style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md min-h-screen overflow-hidden flex items-center justify-center">
+
+<div class="fixed inset-0 grid-bg opacity-40 z-0"></div>
+<div class="fixed inset-0 ambient-glow z-0"></div>
+<div class="fixed inset-0 pointer-events-none z-0">
+<div class="w-full h-[1px] bg-primary/10 absolute top-0 shadow-[0_0_15px_rgba(0,229,255,0.3)]" id="scanner"></div>
+</div>
+
+<main class="relative z-10 w-full max-w-[420px] px-6">
+<div class="glass-panel p-container-padding flex flex-col gap-6 shadow-2xl">
+
+<div class="flex flex-col items-center justify-center pt-4 pb-2 border-b border-outline-variant/30 gap-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">terminal</span>
+<h1 class="font-headline-md text-headline-md tracking-tighter text-primary">SAVANNA CAPITAL</h1>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Quantum Terminal v4.2.0</p>
+</div>
+
+<form class="flex flex-col gap-5" id="login-form">
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant flex justify-between items-center">TERMINAL_ID<span class="text-[9px] opacity-40">REQUIRED</span></label>
+<div class="relative group">
+<input id="username-input" class="w-full h-8 bg-surface-container-lowest border border-outline-variant px-cell-padding-x font-data-md text-data-md text-primary-fixed focus:outline-none focus:border-primary-container transition-all group-hover:border-outline" placeholder="SC-QNT-XXXX" type="text" autocomplete="username"/>
+<span class="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-[16px]">fingerprint</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-on-surface-variant flex justify-between items-center">ENCRYPTION_KEY<span class="text-primary-fixed-dim hover:underline cursor-pointer opacity-80" id="forgot-link">FORGOT?</span></label>
+<div class="relative group">
+<input id="password-input" class="w-full h-8 bg-surface-container-lowest border border-outline-variant px-cell-padding-x font-data-md text-data-md text-primary-fixed focus:outline-none focus:border-primary-container transition-all group-hover:border-outline" placeholder="••••••••••••" type="password" autocomplete="current-password"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant text-[18px] hover:text-primary transition-colors" id="toggle-pw" type="button">visibility</button>
+</div>
+</div>
+<div class="bg-surface-container-low border border-outline-variant/50 p-3 flex items-center justify-between gap-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed-dim text-[18px]" style="font-variation-settings: 'FILL' 1;">key_visualizer</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface">HARDWARE TOKEN</span>
+<span class="text-[9px] text-on-surface-variant font-data-md">YubiKey or RSA SecurID Required</span>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked class="sr-only peer" type="checkbox" value=""/>
+<div class="w-8 h-4 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary-container"></div>
+</label>
+</div>
+<button type="submit" class="w-full h-10 bg-primary-container text-on-primary-fixed font-headline-md text-headline-md tracking-tight hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 border-b-2 border-black/20" id="connect-btn">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">power_settings_new</span>
+CONNECT TERMINAL
+</button>
+<p id="login-error" class="font-label-sm text-label-sm text-error hidden text-center mt-1"></p>
+</form>
+
+<div class="bg-surface-container-lowest border border-outline-variant/30 flex items-center justify-between px-3 h-8 mt-2">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">GATEWAY: <span class="text-on-surface font-data-md">LD4-PRIME</span></span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant">speed</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">LATENCY: <span class="text-on-surface font-data-md">14ms</span></span>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">SECURE</span>
+<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+</div>
+</div>
+</main>
+
+<div class="fixed bottom-0 w-full z-50 flex justify-center gap-6 px-container-padding h-8 border-t border-outline-variant bg-surface-container-lowest">
+<a class="font-label-sm text-label-sm text-secondary hover:text-primary transition-colors cursor-pointer" href="#">Network Status</a>
+<a class="font-label-sm text-label-sm text-secondary hover:text-primary transition-colors cursor-pointer" href="#">Compliance Desk</a>
+<a class="font-label-sm text-label-sm text-secondary hover:text-primary transition-colors cursor-pointer" href="#">System Logs</a>
+</div>
+
+<script>
+document.getElementById('toggle-pw').addEventListener('click', function() {
+const inp = document.getElementById('password-input');
+if (inp.type === 'password') { inp.type = 'text'; this.innerText = 'visibility_off'; }
+else { inp.type = 'password'; this.innerText = 'visibility'; }
+});
+
+const scanner = document.getElementById('scanner');
+let pos = 0, dir = 1;
+(function anim(){ pos += 0.4*dir; if(pos>=100||pos<=0) dir*=-1; scanner.style.top=pos+'%'; requestAnimationFrame(anim); })();
+
+const inp = document.getElementById('username-input');
+const ph = 'SC-QNT-XXXX';
+inp.placeholder = '';
+let ci = 0;
+(function(){ function ty(){ if(ci<ph.length){ inp.placeholder+=ph[ci++]; setTimeout(ty,100); } } setTimeout(ty,1000); })();
+
+document.getElementById('forgot-link').addEventListener('click', function(e){ e.preventDefault(); alert('Contact security administrator for LD4 access resets.'); });
+
+document.getElementById('login-form').addEventListener('submit', function(e) {
+e.preventDefault();
+const errEl = document.getElementById('login-error');
+errEl.classList.add('hidden');
+const btn = document.getElementById('connect-btn');
+btn.disabled = true;
+btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-variation-settings: FILL 1;">progress_activity</span> CONNECTING...';
+
+const username = document.getElementById('username-input').value.trim();
+const password = document.getElementById('password-input').value;
+console.log('Login attempt:', username, 'password length:', password.length);
+
+fetch('/auth/login', {
+method: 'POST',
+headers: {'Content-Type': 'application/json'},
+body: JSON.stringify({username: username, password: password})
+})
+.then(r => {
+console.log('Login response status:', r.status);
+if (!r.ok) {
+console.log('Login failed, reading error body...');
+return r.json().then(e => {
+console.log('Login error body:', e);
+throw e;
+});
+}
+return r.json();
+})
+.then(data => {
+console.log('Login success, token received');
+sessionStorage.setItem('access_token', data.access_token);
+sessionStorage.setItem('refresh_token', data.refresh_token);
+window.location.href = '/';
+})
+.catch(err => {
+console.error('Login catch error:', err);
+const msg = (err && err.detail) ? JSON.stringify(err.detail)
+: (err && err.error) ? err.error
+: (err && err.message) ? err.message
+: 'Authentication failed - open DevTools (F12) Console for details';
+errEl.textContent = msg;
+errEl.classList.remove('hidden');
+btn.disabled = false;
+btn.innerHTML = '<span class="material-symbols-outlined" style="font-variation-settings: FILL 1;">power_settings_new</span> CONNECT TERMINAL';
+});
+});
+</script>
+</body>
+</html>

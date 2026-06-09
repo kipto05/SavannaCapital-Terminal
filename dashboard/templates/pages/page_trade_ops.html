@@ -1,0 +1,158 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Trade Operations & Journaling{% endblock %}
+{% set page_title = "Trade Operations & Journaling" %}
+{% set active = "trade_ops" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Top actions -->
+  <div class="flex items-center gap-2 mb-unit*4">
+    <a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">EXPORT CSV</a>
+  </div>
+
+  <!-- Live Executions -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Live Executions & Pending Orders</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Account</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Type</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Price</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Size</th>
+          <th class="px-cell-padding-x py-cell-padding-y">TP/SL</th>
+          <th class="px-cell-padding-x py-cell-padding-y">U.PnL</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Action</th>
+        </tr></thead>
+        <tbody id="orders-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="9" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Execution Quality Log (recent closed trades) -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Execution Quality Log</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Time (UTC)</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Side</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Profit</th>
+          <th class="px-cell-padding-x py-cell-padding-y">R:R</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Strategy</th>
+        </tr></thead>
+        <tbody id="exec-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Journal & Annotations -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Journal & Annotations</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Trade</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Time</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Context</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Notes</th>
+        </tr></thead>
+        <tbody id="journal-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "trade_ops";</script>
+<script>
+(function() {
+  if (window.__PAGE_INIT__ !== 'trade_ops') return;
+
+  async function loadExecs() {
+    var tb = document.getElementById('orders-tbl');
+    try {
+      var positions = await apiFetch('/api/mt5/positions');
+      var acct = await apiFetch('/api/mt5/account');
+      if (positions && positions.length) {
+        tb.innerHTML = positions.map(function(p) {
+          var pnlC = (p.profit||0)>0 ? '#10B981' : (p.profit||0)<0 ? '#EF4444' : '#6B7280';
+          var sc = (p.type==='BUY'||p.type===0) ? '#10B981' : '#EF4444';
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(p.account||String(acct.login||'—')) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(p.symbol||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y" style="color:'+sc+'">' + esc(p.type||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + badge('active') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat(p.price_current||0).toFixed(5) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y text-right">' + parseFloat(p.volume||0).toFixed(2) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono text-outline text-label-sm">' + parseFloat(p.sl||0).toFixed(5) + ' / ' + parseFloat(p.tp||0).toFixed(5) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono text-right" style="color:'+pnlC+'">' + parseFloat(p.profit||0).toFixed(2) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">—</td>'
+            + '</tr>';
+        }).join('');
+      } else {
+        tb.innerHTML = '<tr><td colspan="9" class="px-cell-padding-x py-3 text-outline">No open positions.</td></tr>';
+      }
+    } catch(e) { tb.innerHTML = '<tr><td colspan="9" class="px-cell-padding-x py-3 text-error">Error loading positions.</td></tr>'; }
+  }
+
+  async function loadExecQuality() {
+    var tb = document.getElementById('exec-tbl');
+    try {
+      var trades = await apiFetch('/api/trades/recent?limit=30');
+      if (trades && trades.length) {
+        tb.innerHTML = trades.map(function(t) {
+          var pnlc = (t.pnl_r!=null && t.pnl_r>0) ? '#10B981' : (t.pnl_r!=null && t.pnl_r<0) ? '#EF4444' : '#6B7280';
+          var rr = (t.sl && t.entry && t.tp) ? parseFloat(Math.abs((t.tp-t.entry)/Math.abs(t.entry-t.sl))).toFixed(2) : '—';
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + (t.opened_at ? fmtDateTime(t.opened_at) : '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(t.symbol||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y" style="color:' + ((t.side==='BUY')?'#10B981':'#EF4444') + '">' + esc(t.side||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono text-right" style="color:'+pnlc+'">' + (t.pnl_r!=null ? parseFloat(t.pnl_r).toFixed(2)+' R' : '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + rr + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(t.strategy_name||'—') + '</td>'
+            + '</tr>';
+        }).join('');
+      } else {
+        tb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No trade history yet.</td></tr>';
+      }
+    } catch(e) { tb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-error">Error.</td></tr>'; }
+  }
+
+  async function loadJournal() {
+    var tb = document.getElementById('journal-tbl');
+    try {
+      var anns = await apiFetch('/api/transcription/history');
+      if (anns && anns.length) {
+        tb.innerHTML = anns.map(function(a) {
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">#' + esc(a.trade_id||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + (a.created_at ? fmtDateTime(a.created_at) : '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(a.context||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(a.notes||'—') + '</td>'
+            + '</tr>';
+        }).join('');
+      } else {
+        tb.innerHTML = '<tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">No annotations yet.</td></tr>';
+      }
+    } catch(e) { tb.innerHTML = '<tr><td colspan="4" class="px-cell-padding-x py-3 text-error">Error.</td></tr>'; }
+  }
+
+  Promise.all([loadExecs(), loadExecQuality(), loadJournal()]).catch(function(e){ console.error(e); });
+  setInterval(function(){ loadExecs(); loadExecQuality(); }, 10000);
+})();
+</script>
+{% endblock scripts %}

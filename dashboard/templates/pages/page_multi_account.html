@@ -1,0 +1,131 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Multi-Account MT5{% endblock %}
+{% set page_title = "Multi-Account MT5" %}
+{% set active = "multi_account" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Top actions -->
+  <div class="flex items-center gap-2 mb-unit*4">
+    <a href="#" onclick="loadAll()" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">Refresh</a>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4 flex flex-wrap gap-x-4 gap-y-2 items-end">
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Symbol</label>
+      <input type="text" id="ma-symbol" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="XAUUSD">
+    </div>
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Lot Size</label>
+      <input type="number" id="ma-lot" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="0.1" step="0.01">
+    </div>
+  </div>
+
+  <!-- MT5 Instance Matrix -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">MT5 Instance Matrix</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Account ID</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Broker</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Server</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Equity</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Margin %</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Load</th>
+          <th class="px-cell-padding-x py-cell-padding-y"></th>
+        </tr></thead>
+        <tbody id="accounts-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="8" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Orders -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Recent Orders</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Time</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Account</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Side</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Lot</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+        </tr></thead>
+        <tbody id="sync-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "multi_account";</script>
+<script>
+(function() {
+  if (window.__PAGE_INIT__ !== 'multi_account') return;
+
+  window.loadAll = function() { loadAccounts(); loadOrders(); };
+
+  async function loadAccounts() {
+    var tb = document.getElementById('accounts-tbl');
+    try {
+      var acct = await apiFetch('/api/mt5/account');
+      var positions = await apiFetch('/api/mt5/positions');
+      var login = acct.login || acct.account || '—';
+      var server = acct.server || acct.company || '—';
+      var equity = parseFloat(acct.equity || 0).toFixed(2);
+      var marginPct = acct.margin > 0 ? parseFloat((acct.margin / (acct.margin + (acct.margin_free||0)) * 100)).toFixed(1) : '—';
+      var statusCls = acct.connected !== false ? 'text-green-300' : 'text-red-300';
+      var statusTxt = acct.connected !== false ? 'Connected' : 'Disconnected';
+      tb.innerHTML = '<tr>'
+        + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(login) + '</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y">JustMarkets</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(server) + '</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y ' + statusCls + '">' + statusTxt + '</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + equity + '</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + marginPct + '</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y">' + (positions?positions.length:0) + ' pos</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y">—</td>'
+        + '</tr>';
+    } catch(e) {
+      tb.innerHTML = '<tr><td colspan="8" class="px-cell-padding-x py-3 text-outline">MT5 disconnected — check credentials in .env. Dashboard continues without live data.</td></tr>';
+    }
+  }
+
+  async function loadOrders() {
+    var tb = document.getElementById('sync-tbl');
+    try {
+      var orders = await apiFetch('/api/mt5/orders');
+      var trades = await apiFetch('/api/trades/recent?limit=10');
+      var rows = (orders && orders.length ? orders : trades || []).map(function(o) {
+        var sc = (o.type==='BUY'||o.type===0||o.side==='BUY') ? '#10B981' : '#EF4444';
+        var timeStr = o.opened_at ? fmtDateTime(o.opened_at) : (o.closed_at ? fmtDateTime(o.closed_at) : (o.time_set ? fmtDateTime(o.time_set*1000) : '—'));
+        return '<tr>'
+          + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + timeStr + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(o.account||'—') + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(o.symbol||'—') + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y" style="color:'+sc+'">' + esc(o.side||o.type||'—') + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y text-right">' + (o.lot_size||o.volume_initial||0) + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y">' + badge('active') + '</td>'
+          + '</tr>';
+      }).join('');
+      tb.innerHTML = rows || '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No orders or trades yet.</td></tr>';
+    } catch(e) { tb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-error">Failed to load orders.</td></tr>'; }
+  }
+
+  loadAll();
+  setInterval(loadAll, 15000);
+})();
+</script>
+{% endblock scripts %}

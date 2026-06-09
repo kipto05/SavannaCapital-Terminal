@@ -1,0 +1,38 @@
+# ============================================================
+# TWFA - Python Dependencies
+# Python 3.11+ required (for metatrader5 compatibility)
+# ============================================================
+
+# Trading APIs
+metatrader5>=5.0.36
+ccxt>=4.4.0
+
+# Data & Numerics
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Machine Learning
+scikit-learn>=1.5.0
+xgboost>=2.1.0
+
+# Technical Indicators
+ta>=0.11.0
+
+# Plotting & Visualization
+matplotlib>=3.9.0
+plotly>=6.0.0
+
+# Data Sources
+requests>=2.32.0
+websockets>=14.0.0
+
+# Scheduling
+apscheduler>=3.11.0
+
+# Database
+sqlalchemy>=2.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+loguru>=0.7.0
+pytest>=8.0.0

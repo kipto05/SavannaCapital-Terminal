@@ -1,0 +1,114 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Portfolio Risk Monitor{% endblock %}
+{% set page_title = "Portfolio Risk Monitor" %}
+{% set active = "portfolio_risk" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Open Positions -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Open Positions</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Account</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Dir</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Entry</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Price</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Size</th>
+          <th class="px-cell-padding-x py-cell-padding-y">SL / TP</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Unreal PnL</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Risk %</th>
+        </tr></thead>
+        <tbody id="positions-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="9" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Risk Alerts (from recent trades + positions) -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Risk Alerts</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Severity</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Account</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Message</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Updated</th>
+        </tr></thead>
+        <tbody id="alerts-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="5" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "portfolio_risk";</script>
+<script>
+(function() {
+  if (window.__PAGE_INIT__ !== 'portfolio_risk') return;
+
+  async function loadPositions() {
+    var tb = document.getElementById('positions-tbl');
+    try {
+      var pos = await apiFetch('/api/mt5/positions');
+      var acct = await apiFetch('/api/mt5/account');
+      if (pos && pos.length) {
+        tb.innerHTML = pos.map(function(p) {
+          var pnlC = (p.profit||0)>0 ? '#10B981' : (p.profit||0)<0 ? '#EF4444' : '#6B7280';
+          var sc = (p.type==='BUY'||p.type===0) ? '#10B981' : '#EF4444';
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(p.account||String(acct.login||'—')) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(p.symbol||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y" style="color:'+sc+'">' + esc(p.type||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat(p.price_open||0).toFixed(5) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat(p.price_current||0).toFixed(5) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y text-right">' + parseFloat(p.volume||0).toFixed(2) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono text-outline text-label-sm">' + parseFloat(p.sl||0).toFixed(5) + ' / ' + parseFloat(p.tp||0).toFixed(5) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono text-right" style="color:'+pnlC+'">' + parseFloat(p.profit||0).toFixed(2) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">—</td>'
+            + '</tr>';
+        }).join('');
+      } else {
+        tb.innerHTML = '<tr><td colspan="9" class="px-cell-padding-x py-3 text-outline">No open positions (MT5 may be disconnected).</td></tr>';
+      }
+    } catch(e) { tb.innerHTML = '<tr><td colspan="9" class="px-cell-padding-x py-3 text-error">Failed to load positions.</td></tr>'; }
+  }
+
+  async function loadAlerts() {
+    var tb = document.getElementById('alerts-tbl');
+    try {
+      var trades = await apiFetch('/api/trades/recent?limit=20');
+      if (trades && trades.length) {
+        var sevCol = function(pnl){ return pnl>0 ? 'text-green-300' : pnl<0 ? 'text-red-300' : 'text-outline'; };
+        tb.innerHTML = trades.map(function(t) {
+          var sev = (t.pnl_r||0) < -1 ? 'High' : (t.pnl_r||0) < 0 ? 'Medium' : 'Low';
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y ' + sevCol(t.pnl_r||0) + '">' + esc(sev) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(t.account||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(t.symbol||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(t.closed_reason||t.strategy_name||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + (t.opened_at ? fmtDateTime(t.opened_at) : '—') + '</td>'
+            + '</tr>';
+        }).join('');
+      } else {
+        tb.innerHTML = '<tr><td colspan="5" class="px-cell-padding-x py-3 text-outline">No alerts.</td></tr>';
+      }
+    } catch(e) { tb.innerHTML = '<tr><td colspan="5" class="px-cell-padding-x py-3 text-error">Failed to load alerts.</td></tr>'; }
+  }
+
+  Promise.all([loadPositions(), loadAlerts()]).catch(function(e){ console.error(e); });
+  setInterval(function(){ loadPositions(); loadAlerts(); }, 10000);
+})();
+</script>
+{% endblock scripts %}

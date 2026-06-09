@@ -1,0 +1,65 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+*.egg
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Backups and temp files
+*.bak
+*_patch_symbol.py
+*_run_dashboard.py
+*.tmp
+
+# Archives
+*.zip
+*.7z
+*.rar
+
+# Extracted reference material
+stitch_savanna_extracted/
+
+# Reference / scratch files
+TWFA1.md
+quant-build.md
+login.zip
+login_code.html
+
+# Embedded repos (if not intentional)
+QuantDinger/
+stitch_savanna_quant_os/
+
+# Alembic migrations are tracked, but not the cache
+alembic/script.py.mako
+
+# Database (never commit local DB files)
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs and runtime data
+logs/
+*.log
+engine_heartbeat
+
+# WIP model artifacts
+ml_models/*.joblib
+ml_models/
+
+# Uploaded files
+uploads/
+
+# Credentials
+.env
+
+# Claude agent config
+.claude/

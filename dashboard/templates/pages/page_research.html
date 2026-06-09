@@ -1,0 +1,97 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Research Lab{% endblock %}
+
+{% set page_title = "Research Lab" %}
+
+{% set active = "research" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Top actions -->
+  <div class="flex items-center gap-2 mb-unit*4">
+    <a href="/strategies" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">Deploy Strategy</a>
+  </div>
+
+  <!-- Charts -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">OHLCV Chart</h3>
+    <canvas id="ohlcvChart" height="200"></canvas>
+  </div>
+
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Datasets (MT5 Symbol Pool)</h3>
+    <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+        <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Asset Class</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Supported TFs</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Cached Bars</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+        <th class="px-cell-padding-x py-cell-padding-y">Action</th>
+      </tr></thead>
+      <tbody id="datasets-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+        <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "research";</script>
+
+<script>
+async function initResearch() {
+  const r = await apiFetch('/api/data/datasets');
+  renderDatasets(r);
+  if (r.datasets && r.datasets.length > 0) loadOHLCV(r.datasets[0].symbol);
+}
+function renderDatasets(data) {
+  const tb = document.getElementById('datasets-tbody');
+  if (!tb) return;
+  tb.innerHTML = data.map(function(d) {
+    return '<tr><td class="px-cell-padding-x py-cell-padding-y font-mono font-medium text-on-surface">' + d.symbol + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant">' + d.asset_class + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant">' + (d.supported_timeframes||[]).slice(0,3).join(', ') + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface">' + (d.cached_bars||0).toLocaleString() + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y"><span class="px-1 py-0.5 text-label-sm rounded ' + (d.cached_bars > 0 ? 'bg-primary/15 text-primary' : 'bg-surface-variant text-outline') + '">' + (d.cached_bars > 0 ? 'Available' : 'No cache') + '</span></td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y"><button class="px-2 py-0.5 text-label-sm border border-outline-variant" onclick="loadOHLCV(\'' + d.symbol + '\', \'' + d.timeframe + '\')">Inspect</button></td></tr>';
+  }).join('');
+}
+async function loadOHLCV(symbol, tf) {
+  tf = tf || 'H1';
+  const r = await apiFetch('/api/data/datasets/' + symbol + '/ohlcv?timeframe=' + tf + '&limit=200');
+  drawOHLCV(r);
+}
+function drawOHLCV(data) {
+  const canvas = document.getElementById('ohlcvChart');
+  if (!canvas) return;
+  if (canvas._chart) canvas._chart.destroy();
+  const bars = data.bars || [];
+  const labels = bars.map(function(b) { return new Date(b.timestamp).toLocaleDateString(); });
+  const closes = bars.map(function(b) { return b.close; });
+  const c = '#00e5ff';
+  canvas._chart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{ label: data.symbol + ' ' + data.timeframe, data: closes, borderColor: c, borderWidth: 2, pointRadius: 0, tension: 0.15, fill: true, backgroundColor: 'rgba(0,229,255,0.08)' }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#bac9cc' } } },
+      scales: { x: { ticks: { color: '#849396', maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { ticks: { color: '#bac9cc' }, grid: { color: 'rgba(255,255,255,0.04)' } } },
+    }
+  });
+  const sum = document.getElementById('ohlcv-summary');
+  if (sum && bars.length) { sum.textContent = bars.length + ' bars — last close: ' + bars[bars.length - 1].close; }
+}
+document.addEventListener('DOMContentLoaded', function() { if (window.__PAGE_INIT__ === 'research') initResearch(); });
+</script>
+
+{% endblock scripts %}

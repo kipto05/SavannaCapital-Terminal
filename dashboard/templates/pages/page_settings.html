@@ -1,0 +1,194 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Settings{% endblock %}
+{% set page_title = "Settings" %}
+{% set active = "settings" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <div class="mb-unit*4">
+    <span id="settings-status" class="px-2 py-1 text-label-sm rounded border border-outline-variant text-on-surface-variant">
+      Loading settings…
+    </span>
+  </div>
+
+  <form id="settings-form" onsubmit="return false;" class="space-y-unit*4">
+
+    <!-- ── Dashboard ──────────────────────────────────────────────────────── -->
+    <div class="bg-surface-container-low border border-outline-variant p-3">
+      <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-3">Dashboard</h3>
+      <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Poll interval (ms)</label>
+          <input type="number" name="dashboard.poll_interval_ms" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="5000" min="1000" step="500">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Recent trades count</label>
+          <input type="number" name="dashboard.recent_trades_count" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="50" min="1" max="500">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Heartbeat stale (s)</label>
+          <input type="number" name="dashboard.heartbeat_stale_seconds" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="120" min="30">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Risk ──────────────────────────────────────────────────────────── -->
+    <div class="bg-surface-container-low border border-outline-variant p-3">
+      <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-3">Risk Management</h3>
+      <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Risk per trade (fraction)</label>
+          <input type="number" name="risk.risk_per_trade" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="0.01" min="0.001" max="0.1" step="0.001">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Max daily drawdown</label>
+          <input type="number" name="risk.max_daily_drawdown" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="0.03" min="0.01" max="0.5" step="0.01">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Max total drawdown</label>
+          <input type="number" name="risk.max_total_drawdown" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="0.10" min="0.05" max="0.5" step="0.01">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Max open trades</label>
+          <input type="number" name="risk.max_open_trades" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="5" min="1" max="50">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Max lot size</label>
+          <input type="number" name="risk.max_lot_size" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="1.0" min="0.01" step="0.1">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SL/TP ─────────────────────────────────────────────────────────── -->
+    <div class="bg-surface-container-low border border-outline-variant p-3">
+      <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-3">SL/TP Model</h3>
+      <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">ATR period</label>
+          <input type="number" name="sltp.atr_period" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="14" min="1" max="200">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">SL mult (trending)</label>
+          <input type="number" name="sltp.sl_atr_mult_trending" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="1.2" min="0.1" step="0.1">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">SL mult (ranging)</label>
+          <input type="number" name="sltp.sl_atr_mult_ranging" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="1.8" min="0.1" step="0.1">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">TP1 RR (trending)</label>
+          <input type="number" name="sltp.tp1_rr_trending" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="1.0" min="0.1" step="0.1">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">TP2 RR (trending)</label>
+          <input type="number" name="sltp.tp2_rr_trending" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="2.5" min="0.1" step="0.1">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AI Advisor ────────────────────────────────────────────────────── -->
+    <div class="bg-surface-container-low border border-outline-variant p-3">
+      <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-3">AI Advisor</h3>
+      <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Enabled</label>
+          <select name="ai.enabled" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Min confidence to show</label>
+          <input type="number" name="ai.min_confidence_to_show" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="0.7" min="0" max="1" step="0.05">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Cooldown (minutes)</label>
+          <input type="number" name="ai.cooldown_minutes" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="15" min="1" max="1440">
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Model</label>
+          <input type="text" name="ai.model" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="claude-sonnet-4-20250514">
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-3">
+      <button type="button" id="save-btn" class="px-4 py-2 bg-primary text-on-primary-fixed font-label-sm font-medium rounded hover:bg-primary-fixed transition-colors">Save All Settings</button>
+      <span id="save-feedback" class="font-label-sm text-outline"></span>
+    </div>
+
+  </form>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "settings";</script>
+<script>
+(function() {
+  if (window.__PAGE_INIT__ !== 'settings') return;
+
+  var statusEl = document.getElementById('settings-status');
+  var saveBtn = document.getElementById('save-btn');
+  var feedback = document.getElementById('save-feedback');
+
+  function setStatus(msg, ok) {
+    statusEl.textContent = msg;
+    statusEl.className = 'px-2 py-1 text-label-sm rounded border '
+      + (ok ? 'border-green-700 text-green-300 bg-green-900/30' : 'border-red-700 text-red-300 bg-red-900/30');
+  }
+
+  // Load current effective settings and populate form
+  apiFetch('/api/settings')
+    .then(function(data) {
+      setStatus('Settings loaded · ' + new Date().toLocaleTimeString(), true);
+      // Populate each input whose name matches a key
+      var form = document.getElementById('settings-form');
+      var inputs = form.querySelectorAll('input, select');
+      inputs.forEach(function(el) {
+        var key = el.getAttribute('name');
+        if (!key || data[key] === undefined) return;
+        el.value = data[key];
+      });
+    })
+    .catch(function() { setStatus('Failed to load settings', false); });
+
+  // Save all form values
+  saveBtn.addEventListener('click', function() {
+    var form = document.getElementById('settings-form');
+    var inputs = form.querySelectorAll('input, select');
+    var updates = {};
+    inputs.forEach(function(el) {
+      var key = el.getAttribute('name');
+      if (!key) return;
+      var val = el.value;
+      // Coerce to correct type based on existing value
+      if (el.type === 'number') {
+        val = el.step && parseFloat(el.step) < 1 ? parseFloat(val) : parseInt(val, 10);
+      } else if (el.tagName === 'SELECT' && key === 'ai.enabled') {
+        val = val === 'true';
+      }
+      updates[key] = val;
+    });
+    apiFetch('/api/settings', {
+      method: 'POST',
+      body: JSON.stringify(updates),
+    })
+    .then(function() {
+      feedback.textContent = 'Saved ' + new Date().toLocaleTimeString();
+      feedback.className = 'font-label-sm text-green-300';
+      setStatus('Settings saved · ' + new Date().toLocaleTimeString(), true);
+      setTimeout(function(){ feedback.textContent = ''; }, 3000);
+    })
+    .catch(function() {
+      feedback.textContent = 'Save failed';
+      feedback.className = 'font-label-sm text-red-300';
+      setStatus('Save failed', false);
+    });
+  });
+})();
+</script>
+{% endblock scripts %}
+''')

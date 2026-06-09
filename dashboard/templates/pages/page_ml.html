@@ -1,0 +1,112 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Machine Learning Center{% endblock %}
+{% set page_title = "Machine Learning Center" %}
+{% set active = "ml" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Filters -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4 flex flex-wrap gap-x-4 gap-y-2 items-end">
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Search / filter</label>
+      <input type="text" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="">
+    </div>
+  </div>
+
+  <!-- Model Registry (renamed from Training Jobs Queue) -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Model Registry</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Model ID</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Type</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Created</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+        </tr></thead>
+        <tbody id="ml-queue-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="5" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- AI Advisor Suggestions (renamed from Live Prediction Stream) -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">AI Advisor Suggestions</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Direction</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Conf %</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Timeframe</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Timestamp</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Reasoning</th>
+        </tr></thead>
+        <tbody id="ml-pred-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "ml";</script>
+<script>
+(function() {
+  if (window.__PAGE_INIT__ !== 'ml') return;
+
+  async function loadModels() {
+    var tb = document.getElementById('ml-queue-tbl');
+    try {
+      var models = await apiFetch('/api/ml/models');
+      if (models && models.length) {
+        tb.innerHTML = models.map(function(m) {
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(m.id || m.name || '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(m.model_type || m.type || '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(m.symbol||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + (m.created_at ? fmtDate(m.created_at) : '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + badge(m.status || 'pending') + '</td>'
+            + '</tr>';
+        }).join('');
+      } else {
+        tb.innerHTML = '<tr><td colspan="5" class="px-cell-padding-x py-3 text-outline">No trained models yet.</td></tr>';
+      }
+    } catch(e) { tb.innerHTML = '<tr><td colspan="5" class="px-cell-padding-x py-3 text-error">Error loading models.</td></tr>'; }
+  }
+
+  async function loadSuggestions() {
+    var tb = document.getElementById('ml-pred-tbl');
+    try {
+      var suggs = await apiFetch('/api/ai_advisor/suggestions');
+      if (suggs && suggs.length) {
+        tb.innerHTML = suggs.map(function(s) {
+          var sideC = (s.side==='BUY') ? '#10B981' : (s.side==='SELL') ? '#EF4444' : '#6B7280';
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-medium" style="color:'+sideC+'">' + esc(s.side||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(s.symbol||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (s.confidence!=null ? parseFloat(s.confidence*100).toFixed(0)+'%' : '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(s.timeframe||'—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + (s.created_at ? fmtDateTime(s.created_at) : '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y text-outline text-label-sm" title="' + esc(s.reasoning||'') + '">' + esc((s.reasoning||'').slice(0,80)) + '</td>'
+            + '</tr>';
+        }).join('');
+      } else {
+        tb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No AI suggestions yet. Enable AI advisor in Settings.</td></tr>';
+      }
+    } catch(e) { tb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-error">Error loading suggestions.</td></tr>'; }
+  }
+
+  Promise.all([loadModels(), loadSuggestions()]).catch(function(e){ console.error(e); });
+  setInterval(function(){ loadModels(); loadSuggestions(); }, 30000);
+})();
+</script>
+{% endblock scripts %}

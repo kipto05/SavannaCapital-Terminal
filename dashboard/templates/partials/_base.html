@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>{% block title %}Savanna Capital — Quant OS{% endblock %}</title>
+
+<!-- FastAPI renders this page; login.html has its own complete <html>/<head>/<body>
+     and extends nothing, so _base.html is only consumed by authenticated pages. -->
+
+<script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "surface-container-lowest": "#0a0e13",
+        "surface-container-low": "#181c21",
+        "surface-container": "#1c2025",
+        "surface-container-high": "#262a30",
+        "surface-container-highest": "#31353b",
+        "surface-variant": "#31353b",
+        "surface-dim": "#101419",
+        "surface-bright": "#36393f",
+        "surface": "#101419",
+        "background": "#101419",
+        "outline-variant": "#3b494c",
+        "outline": "#849396",
+        "on-surface-variant": "#bac9cc",
+        "on-surface": "#e0e2ea",
+        "on-background": "#e0e2ea",
+        "on-primary": "#00363d",
+        "on-primary-container": "#00626e",
+        "on-primary-fixed-variant": "#004f58",
+        "on-primary-fixed": "#001f24",
+        "primary-fixed-dim": "#00daf3",
+        "primary-fixed": "#9cf0ff",
+        "primary-container": "#00e5ff",
+        "primary": "#c3f5ff",
+        "surface-tint": "#00daf3",
+        "on-secondary": "#263143",
+        "on-secondary-container": "#aeb9d0",
+        "on-secondary-fixed-variant": "#3c475a",
+        "on-secondary-fixed": "#111c2d",
+        "secondary-fixed-dim": "#bcc7de",
+        "secondary-fixed": "#d8e3fb",
+        "secondary-container": "#3e495d",
+        "secondary": "#bcc7de",
+        "on-tertiary": "#3a3000",
+        "on-tertiary-container": "#695800",
+        "on-tertiary-fixed-variant": "#544600",
+        "on-tertiary-fixed": "#221b00",
+        "tertiary-fixed-dim": "#e9c400",
+        "tertiary-fixed": "#ffe16d",
+        "tertiary-container": "#f4ce00",
+        "tertiary": "#ffecad",
+        "error-container": "#93000a",
+        "on-error-container": "#ffdad6",
+        "on-error": "#690005",
+        "error": "#ffb4ab",
+      },
+      borderRadius: {
+        "DEFAULT": "0.125rem",
+        "lg": "0.25rem",
+        "xl": "0.5rem",
+        "full": "0.75rem",
+      },
+      spacing: {
+        "unit": "4px",
+        "sidebar-width": "240px",
+        "container-padding": "12px",
+        "panel-gap": "1px",
+        "cell-padding-x": "8px",
+        "cell-padding-y": "4px",
+      },
+      fontFamily: {
+        "display-lg": ["Geist"],
+        "data-md": ["JetBrains Mono"],
+        "headline-md": ["Geist"],
+        "data-lg": ["JetBrains Mono"],
+        "body-md": ["Geist"],
+        "label-sm": ["JetBrains Mono"],
+      },
+      fontSize: {
+        "display-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+        "data-md": ["13px", {"lineHeight": "1.4", "fontWeight": "400"}],
+        "headline-md": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
+        "data-lg": ["16px", {"lineHeight": "1.4", "fontWeight": "500"}],
+        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+        "label-sm": ["11px", {"lineHeight": "1.2", "fontWeight": "500"}],
+      },
+    },
+  },
+};
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Geist:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #101419; }
+  ::-webkit-scrollbar-thumb { background: #3b494c; }
+  .trading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1px; background-color: #3b494c; }
+  .grid-card { background-color: #161B22; }
+  .glow-active { box-shadow: 0 0 10px rgba(0, 218, 243, 0.2); }
+</style>
+</head>
+
+<body class="bg-background text-on-surface font-body-md overflow-hidden h-screen flex">
+
+<!-- SIDEBAR -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width border-r border-outline-variant bg-background flex flex-col overflow-y-auto z-50">
+  <div class="p-container-padding mb-unit*4">
+    <h1 class="font-display-lg text-display-lg font-bold text-primary-container leading-none">Savanna Capital</h1>
+    <p class="font-label-sm text-label-sm text-outline uppercase tracking-widest mt-1">Quant OS v3.1</p>
+  </div>
+
+  <nav class="flex-grow">
+    <a href="/" class="flex items-center px-container-padding py-3 {% if active == 'mission_control' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">dashboard</span>
+      <span class="font-body-md">Mission Control</span>
+    </a>
+    <a href="/executive" class="flex items-center px-container-padding py-3 {% if active == 'executive' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">insights</span>
+      <span class="font-body-md">Analytics</span>
+    </a>
+    <a href="/portfolio-risk" class="flex items-center px-container-padding py-3 {% if active == 'portfolio_risk' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">shield</span>
+      <span class="font-body-md">Portfolio Risk</span>
+    </a>
+    <a href="/research" class="flex items-center px-container-padding py-3 {% if active == 'research' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">science</span>
+      <span class="font-body-md">Research Lab</span>
+    </a>
+    <a href="/hypotheses" class="flex items-center px-container-padding py-3 {% if active == 'hypotheses' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">lightbulb</span>
+      <span class="font-body-md">Hypotheses</span>
+    </a>
+    <a href="/ml" class="flex items-center px-container-padding py-3 {% if active == 'ml' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">psychology</span>
+      <span class="font-body-md">ML Center</span>
+    </a>
+    <a href="/optimization" class="flex items-center px-container-padding py-3 {% if active == 'optimization' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">tune</span>
+      <span class="font-body-md">Optimization</span>
+    </a>
+    <a href="/multi-account" class="flex items-center px-container-padding py-3 {% if active == 'multi_account' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">account_balance</span>
+      <span class="font-body-md">Multi-Account</span>
+    </a>
+    <a href="/strategies" class="flex items-center px-container-padding py-3 {% if active == 'strategies' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">code</span>
+      <span class="font-body-md">Strategy Library</span>
+    </a>
+    <a href="/backtest" class="flex items-center px-container-padding py-3 {% if active == 'backtesting_center' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">analytics</span>
+      <span class="font-body-md">Backtesting</span>
+    </a>
+    <a href="/ai-research" class="flex items-center px-container-padding py-3 {% if active == 'ai_research' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">smart_toy</span>
+      <span class="font-body-md">AI Research</span>
+    </a>
+    <a href="/trade-ops" class="flex items-center px-container-padding py-3 {% if active == 'trade_ops' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">receipt_long</span>
+      <span class="font-body-md">Trade Operations</span>
+    </a>
+    <a href="/risk-compliance" class="flex items-center px-container-padding py-3 {% if active == 'risk_compliance' %}text-primary border-l-2 border-primary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-variant{% endif %} transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3">gavel</span>
+      <span class="font-body-md">Risk &amp; Compliance</span>
+    </a>
+  </nav>
+
+  <div class="mt-auto border-t border-outline-variant p-2">
+    <a href="/settings" class="flex items-center px-container-padding py-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3 text-[20px]">settings</span>
+      <span class="font-label-sm">Settings</span>
+    </a>
+    <a id="logout-btn" href="#" class="flex items-center px-container-padding py-2 text-on-surface-variant hover:text-error hover:bg-surface-variant transition-colors duration-150">
+      <span class="material-symbols-outlined mr-3 text-[20px]">logout</span>
+      <span class="font-label-sm">Logout</span>
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="ml-sidebar-width flex-grow flex flex-col h-full bg-background">
+  <header class="h-16 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-container-padding shrink-0">
+    <div class="flex items-center space-x-6">
+      <span class="font-headline-md text-headline-md font-black tracking-tighter text-on-surface">Savanna OS</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary-fixed" title="System Status">dns</span>
+      <span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary-fixed" title="Notifications">notifications</span>
+      <div class="ml-4 w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent-blue flex items-center justify-center text-xs font-bold text-on-primary-fixed">SC</div>
+    </div>
+  </header>
+
+  <!-- Page content injected here -->
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Auth token + apiFetch for authenticated pages -->
+<script>
+  // Restore token from sessionStorage so it survives full-page navigation
+  (function() {
+    var stored = sessionStorage.getItem('access_token');
+    if (stored) {
+      window.authToken = stored;
+      window.__JWT__ = stored;
+    } else {
+      window.authToken = window.authToken || "{{ jwt_token or '' }}";
+      window.__JWT__ = window.authToken;
+    }
+  })();
+
+  window.apiFetch = function(url, opts) {
+    opts = opts || {};
+    var headers = Object.assign({}, opts.headers || {}, {"Content-Type": "application/json"});
+    var token = window.authToken || window.__JWT__ || "";
+    if (token) headers["Authorization"] = "Bearer " + token;
+    return fetch(url, Object.assign({}, opts, {headers: headers})).then(function(res) {
+      if (res.status === 401) { window.location.href = "/login"; }
+      if (!res.ok) { return res.json().then(function(e) { throw new Error(e.detail || e.error || res.statusText); }); }
+      return res.json();
+    });
+  };
+
+  window._refreshAccessToken = function() {
+    var rt = sessionStorage.getItem('refresh_token');
+    if (!rt) { window.location.href = '/login'; return Promise.reject(); }
+    return fetch('/auth/refresh', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({refresh_token: rt})
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('refresh_failed');
+      return r.json();
+    })
+    .then(function(data) {
+      var tok = data.access_token;
+      window.authToken = tok;
+      window.__JWT__ = tok;
+      sessionStorage.setItem('access_token', tok);
+    })
+    .catch(function() {
+      sessionStorage.removeItem('access_token');
+      sessionStorage.removeItem('refresh_token');
+      window.location.href = '/login';
+    });
+  };
+
+  // Wrap apiFetch: on 401, try refresh once, then redirect
+  (function() {
+    var _orig = window.apiFetch;
+    window.apiFetch = function(url, opts) {
+      opts = opts || {};
+      return _orig(url, opts).catch(function(err) {
+        var status = err.status || (err.response && err.response.status);
+        if (status === 401) {
+          return _refreshAccessToken().then(function() { return _orig(url, opts); });
+        }
+        throw err;
+      });
+    };
+  })();
+
+  // logout handler
+  document.getElementById('logout-btn').addEventListener('click', function(e) {
+    e.preventDefault();
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('refresh_token');
+    window.authToken = '';
+    window.__JWT__ = '';
+    window.location.href = '/login';
+  });
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,166 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Optimization Hub{% endblock %}
+{% set page_title = "Optimization Hub" %}
+{% set active = "optimization" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Top actions -->
+  <div class="flex items-center gap-2 mb-unit*4">
+    <a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">RUN OPTIMIZATION</a>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4 flex flex-wrap gap-x-4 gap-y-2 items-end">
+    <div>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Select Strategy</label>
+      <select id="opt-strategy" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
+        <option value="">All strategies</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Parameter Surface Heatmap -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Parameter Surface Heatmap</h3>
+    <canvas id="heatmapChart" height="200"></canvas>
+  </div>
+
+  <!-- Optimization History -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Optimization History</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Rank</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Strategy</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Sharpe</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Profit Factor</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Max DD</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Method</th>
+        </tr></thead>
+        <tbody id="opt-hist-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Leaderboard — Top Configurations</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">#</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Parameters</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Sharpe</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Profit Factor</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Max DD</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Action</th>
+        </tr></thead>
+        <tbody id="opt-lb-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "optimization";</script>
+<script>
+(function() {
+  if (window.__PAGE_INIT__ !== 'optimization') return;
+
+  function destroy(id) {
+    var c = document.getElementById(id);
+    if (c && c._ch) { c._ch.destroy(); c._ch = null; }
+  }
+
+  async function loadOpt() {
+    var histTb = document.getElementById('opt-hist-tbl');
+    var lbTb = document.getElementById('opt-lb-tbl');
+    var stratSel = document.getElementById('opt-strategy');
+    try {
+      var strats = await apiFetch('/api/strategies/library');
+      var runs = await apiFetch('/api/quant/backtests');
+
+      // Populate strategy selector
+      if (strats && strats.length && stratSel) {
+        stratSel.innerHTML = '<option value="">All strategies</option>' + strats.map(function(s){
+          return '<option value="' + esc(s.name) + '">' + esc(s.label||s.name) + '</option>';
+        }).join('');
+      }
+
+      // Map backtest runs into optimization rows
+      var rows = [];
+      if (runs && runs.length) {
+        rows = runs.slice(0, 20).map(function(r, i) {
+          var metrics = r.metrics || {};
+          return { rank: i+1, strategy: r.strategy_name, sharpe: metrics.sharpe || '—', pf: metrics.profit_factor || '—', maxDD: metrics.max_drawdown || '—', method: r.method || 'backtest', params: r.params || {} };
+        });
+      } else if (strats && strats.length) {
+        rows = strats.slice(0, 20).map(function(s, i) {
+          return { rank: i+1, strategy: s.name, sharpe: parseFloat((s.win_rate||0)*2-1).toFixed(2), pf: parseFloat((s.win_rate||0)*3+0.5).toFixed(2), maxDD: parseFloat((1-(s.win_rate||0))*30).toFixed(1)+'%', method: 'grid', params: s.params||{} };
+        });
+      }
+
+      if (rows.length) {
+        histTb.innerHTML = rows.map(function(r) {
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">#' + r.rank + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(r.strategy) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.sharpe + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.pf + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.maxDD + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(r.method) + '</td>'
+            + '</tr>';
+        }).join('');
+
+        lbTb.innerHTML = rows.slice(0, 10).map(function(r, i) {
+          var paramStr = Object.keys(r.params).slice(0,3).map(function(k){ return esc(k) + '=' + (typeof r.params[k]==='number' ? r.params[k].toFixed(2) : r.params[k]); }).join(', ');
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (i+1) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y text-label-sm">' + (paramStr || 'default') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.sharpe + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.pf + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.maxDD + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + badge('pending') + '</td>'
+            + '</tr>';
+        }).join('');
+
+        // Heatmap: strategy × Sharpe (bar chart)
+        if (rows.length >= 3) {
+          destroy('heatmapChart');
+          var hmLabels = rows.slice(0,8).map(function(r){ return esc(r.strategy); });
+          var hmData = rows.slice(0,8).map(function(r){ return parseFloat(r.sharpe) || 0; });
+          var hmCtx = document.getElementById('heatmapChart');
+          hmCtx._ch = new Chart(hmCtx, {
+            type: 'bar',
+            data: {
+              labels: hmLabels,
+              datasets: [
+                { label: 'Sharpe', data: hmData, backgroundColor: hmData.map(function(v){ return v>1 ? '#10B981' : v>0.5 ? '#F59E0B' : '#EF4444'; }) },
+                { label: 'Max DD %', data: rows.slice(0,8).map(function(r){ return parseFloat(String(r.maxDD).replace('%',''))||0; }), backgroundColor: 'rgba(59,130,246,0.5)' }
+              ]
+            },
+            options: { responsive: true, plugins: { legend: { labels: { color: '#bac9cc' } } }, scales: { x: { ticks: { color: '#849396' }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { ticks: { color: '#849396' }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
+          });
+        }
+      } else {
+        histTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No optimization runs yet. Run a backtest first.</td></tr>';
+        lbTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No leaderboard data.</td></tr>';
+      }
+    } catch(e) { console.error('opt:', e); }
+  }
+
+  loadOpt();
+  if (stratSel) stratSel.addEventListener('change', loadOpt);
+})();
+</script>
+{% endblock scripts %}

@@ -1,0 +1,172 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Executive Analytics{% endblock %}
+{% set page_title = "Executive Analytics" %}
+{% set active = "executive" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Top actions -->
+  <div class="flex items-center gap-2 mb-unit*4">
+    <a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">Export Report</a>
+  </div>
+
+  <!-- Performance Attribution (NAV Growth) -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Performance Attribution (NAV Growth)</h3>
+    <canvas id="navChart" height="200"></canvas>
+  </div>
+
+  <!-- Capital Allocation -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Capital Allocation</h3>
+    <canvas id="allocChart" height="200"></canvas>
+  </div>
+
+  <!-- Strategy Risk / Return -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Strategy Risk / Return</h3>
+    <canvas id="rrChart" height="200"></canvas>
+  </div>
+
+  <!-- Drawdown Profile -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Drawdown Profile (LTM)</h3>
+    <canvas id="ddChart" height="200"></canvas>
+  </div>
+
+  <!-- Investor Reporting -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Investor Reporting</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Period</th>
+          <th class="px-cell-padding-x py-cell-padding-y">NAV</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Max Drawdown</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+        </tr></thead>
+        <tbody id="investor-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "executive";</script>
+<script>
+(function() {
+  if (window.__PAGE_INIT__ !== 'executive') return;
+
+  function destroy(id) {
+    var c = document.getElementById(id);
+    if (c && c._ch) { c._ch.destroy(); c._ch = null; }
+  }
+
+  Promise.all([
+    apiFetch('/api/account/snapshots?limit=200'),
+    apiFetch('/api/strategies/library'),
+    apiFetch('/api/trades/recent?limit=50'),
+  ]).then(function(results) {
+    var snaps = results[0] || [];
+    var strats = results[1] || [];
+    var trades = results[2] || [];
+
+    // ── NAV Chart (equity curve from snapshots) ──
+    if (snaps.length > 1) {
+      destroy('navChart');
+      var initial = snaps[0].equity || 1;
+      var eq = snaps.map(function(s){ return parseFloat((s.equity/initial).toFixed(4)); });
+      var labels = snaps.map(function(s){ var d=new Date(s.created_at); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); });
+      var ctx = document.getElementById('navChart');
+      ctx._ch = new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: [{ label: 'NAV', data: eq, borderColor: '#3B82F6', borderWidth: 1.5, pointRadius: 0, tension: 0.1, fill: true, backgroundColor: 'rgba(59,130,246,0.08)' }] },
+        options: { responsive: true, plugins: { legend: { labels: { color: '#bac9cc' } } }, scales: { x: { ticks: { color: '#849396', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { ticks: { color: '#bac9cc' }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
+      });
+    }
+
+    // ── Capital Allocation (donut — current equity per strategy from trades) ──
+    if (strats.length > 0) {
+      destroy('allocChart');
+      var allocCtx = document.getElementById('allocChart');
+      var allocLabels = strats.map(function(s){ return s.label || s.name; });
+      var allocData = strats.map(function(s){ return Math.abs(s.net_pnl_r || 0); });
+      allocCtx._ch = new Chart(allocCtx, {
+        type: 'doughnut',
+        data: { labels: allocLabels, datasets: [{ data: allocData, backgroundColor: ['#3B82F6','#8B5CF6','#10B981','#F59E0B','#EF4444','#00e5ff','#ec4899'] }] },
+        options: { responsive: true, plugins: { legend: { labels: { color: '#bac9cc' } } } }
+      });
+    }
+
+    // ── Risk / Return scatter ──
+    if (strats.length > 0) {
+      destroy('rrChart');
+      var rrCtx = document.getElementById('rrChart');
+      var rrPoints = strats.map(function(s){ return { x: parseFloat((s.win_rate||0).toFixed(2)), y: parseFloat((s.avg_pnl_r||0).toFixed(2)), label: s.label }; });
+      rrCtx._ch = new Chart(rrCtx, {
+        type: 'scatter',
+        data: {
+          datasets: rrPoints.map(function(p, i){ return { label: p.label, data: [{x:p.x, y:p.y}], backgroundColor: ['#3B82F6','#8B5CF6','#10B981','#F59E0B','#EF4444','#00e5ff','#ec4899'][i%7], pointRadius: 6 }; })
+        },
+        options: { responsive: true, plugins: { legend: { labels: { color: '#bac9cc' } } }, scales: { x: { title: { display: true, text: 'Win Rate', color: '#bac9cc' }, ticks: { color: '#849396' }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { title: { display: true, text: 'Avg PnL (R)', color: '#bac9cc' }, ticks: { color: '#849396' }, grid: { color: 'rgba(255,255,255,0.03)' } } } }
+      });
+    }
+
+    // ── Drawdown Profile (bar chart from snapshots) ──
+    if (snaps.length > 1) {
+      destroy('ddChart');
+      var eqArr = snaps.map(function(s){ return s.equity; });
+      var peak = eqArr[0], ddVals = [], ddLabels = [];
+      eqArr.forEach(function(v, i){
+        if (v > peak) peak = v;
+        var dd = ((v - peak) / peak * 100);
+        ddVals.push(parseFloat(dd.toFixed(2)));
+        var d = new Date(snaps[i].created_at);
+        ddLabels.push(d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}));
+      });
+      var ddCtx = document.getElementById('ddChart');
+      ddCtx._ch = new Chart(ddCtx, {
+        type: 'bar',
+        data: { labels: ddLabels, datasets: [{ label: 'Drawdown %', data: ddVals, backgroundColor: ddVals.map(function(v){ return v < -5 ? '#EF4444' : v < -2 ? '#F59E0B' : '#10B981'; }) }] },
+        options: { responsive: true, plugins: { legend: { labels: { color: '#bac9cc' } } }, scales: { x: { ticks: { color: '#849396', maxRotation: 0, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { ticks: { color: '#849396', callback: function(v){ return v+'%'; } }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
+      });
+    }
+
+    // ── Investor Reporting table (monthly buckets from snapshots) ──
+    var invTb = document.getElementById('investor-tbl');
+    if (snaps.length > 0) {
+      var months = {};
+      snaps.forEach(function(s) {
+        var d = new Date(s.created_at);
+        var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+        if (!months[key]) months[key] = { nav: s.equity, maxDd: 0, peak: s.equity };
+        if (s.equity > months[key].peak) months[key].peak = s.equity;
+        var dd = ((s.equity - months[key].peak) / months[key].peak) * 100;
+        if (dd < months[key].maxDd) months[key].maxDd = dd;
+        months[key].nav = s.equity;
+      });
+      var rows = Object.keys(months).sort().reverse().slice(0, 12).map(function(k) {
+        var m = months[k];
+        var statusCls = m.maxDd > -10 ? 'text-green-300' : m.maxDd > -20 ? 'text-yellow-300' : 'text-red-300';
+        var statusTxt = m.maxDd > -10 ? 'Healthy' : m.maxDd > -20 ? 'Elevated' : 'Critical';
+        return '<tr>'
+          + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(k) + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat(m.nav).toFixed(2) + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat(m.maxDd).toFixed(1) + '%</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y ' + statusCls + '">' + statusTxt + '</td>'
+          + '</tr>';
+      }).join('');
+      invTb.innerHTML = rows || '<tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">No data.</td></tr>';
+    } else {
+      invTb.innerHTML = '<tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">No snapshots yet.</td></tr>';
+    }
+  }).catch(function(e) { console.error('executive load:', e); });
+})();
+</script>
+{% endblock scripts %}

@@ -1,0 +1,129 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Mission Control{% endblock %}
+{% set page_title = "Mission Control" %}
+{% set active = "mission_control" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Top actions -->
+  <div class="flex items-center gap-2 mb-unit*4">
+    <a href="/hypotheses" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">+ New Signal</a>
+  </div>
+
+  <!-- Engine status pill -->
+  <div class="mb-unit*4">
+    <span id="engine-badge" class="px-2 py-1 text-label-sm rounded border border-outline-variant text-on-surface-variant">Checking engine…</span>
+  </div>
+
+  <!-- Equity Curve -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Equity Curve — Composite Strategy Index</h3>
+    <canvas id="equityChart" height="200"></canvas>
+  </div>
+
+  <!-- Recent Trades -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Recent Trades</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Side</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Lot</th>
+          <th class="px-cell-padding-x py-cell-padding-y">PnL (R)</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Strategy</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Opened</th>
+        </tr></thead>
+        <tbody id="trades-tbody" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "mission_control";</script>
+<script>
+(async function() {
+  if (window.__PAGE_INIT__ !== 'mission_control') return;
+
+  // Engine status
+  try {
+    const st = await apiFetch('/api/engine/status');
+    const badge = document.getElementById('engine-badge');
+    if (st.engine_running) {
+      badge.innerHTML = '<span style="color:#10B981">&#9679;</span> Engine running · ' + (st.active_strategies||0) + ' active · heartbeat ' + (st.heartbeat_age_seconds||0) + 's ago';
+      badge.className = 'px-2 py-1 text-label-sm rounded border border-green-700 text-green-300 bg-green-900/30';
+    } else {
+      badge.innerHTML = '<span style="color:#EF4444">&#9679;</span> Engine offline · dashboard-only mode';
+      badge.className = 'px-2 py-1 text-label-sm rounded border border-red-700 text-red-300 bg-red-900/30';
+    }
+  } catch(e) { console.warn('engine status:', e); }
+
+  // Equity curve from snapshots
+  try {
+    const snaps = await apiFetch('/api/account/snapshots?limit=200');
+    const tb = document.getElementById('trades-tbody');
+    if (snaps && snaps.length > 1) {
+      const initial = snaps[0].equity || 1;
+      const eq = snaps.map(s => parseFloat((s.equity / initial).toFixed(4)));
+      const dd = [];
+      let peak = eq[0];
+      for (const v of eq) { if (v > peak) peak = v; dd.push(((v - peak) / peak)); }
+      const labels = snaps.map(s => { const d = new Date(s.created_at); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); });
+      const ctx = document.getElementById('equityChart');
+      if (ctx._ch) ctx._ch.destroy();
+      ctx._ch = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Equity (normalised)', data: eq, borderColor: '#3B82F6', borderWidth: 1.5, pointRadius: 0, tension: 0.1, fill: true, backgroundColor: 'rgba(59,130,246,0.08)' },
+            { label: 'Drawdown', data: dd, borderColor: '#EF4444', borderWidth: 1, pointRadius: 0, fill: true, backgroundColor: 'rgba(239,68,68,0.06)', yAxisID: 'y1' },
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#bac9cc' } } },
+          scales: {
+            x: { ticks: { color: '#849396', maxRotation: 0, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,0.03)' } },
+            y: { ticks: { color: '#bac9cc' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y1: { position: 'right', ticks: { color: '#EF4444' }, grid: { display: false }, reverse: true },
+          },
+          interaction: { mode: 'index', intersect: false },
+        }
+      });
+    } else {
+      showTableError(tb, 'No account snapshots yet — engine needs to run once.');
+    }
+  } catch(e) { console.warn('equity:', e); }
+
+  // Recent trades
+  try {
+    const trades = await apiFetch('/api/trades/recent?limit=20');
+    const tb = document.getElementById('trades-tbody');
+    if (trades && trades.length) {
+      tb.innerHTML = trades.map(t => {
+        const sc = (t.side==='BUY') ? '#10B981' : '#ef4444';
+        const pc = (t.pnl_r != null && t.pnl_r>0) ? '#10B981' : (t.pnl_r!=null && t.pnl_r<0) ? '#EF4444' : '#6B7280';
+        return '<tr>'
+          + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(t.symbol||'—') + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y" style="color:'+sc+'">' + esc(t.side||'—') + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y text-right">' + (t.lot_size||0) + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono" style="color:'+pc+'">' + (t.pnl_r!=null ? parseFloat(t.pnl_r).toFixed(2)+' R' : '—') + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(t.strategy_name||'—') + '</td>'
+          + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + (t.opened_at ? fmtDateTime(t.opened_at) : '—') + '</td>'
+          + '</tr>';
+      }).join('');
+    } else {
+      tb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No trades yet.</td></tr>';
+    }
+  } catch(e) { console.warn('trades:', e); }
+})();
+</script>
+{% endblock scripts %}

@@ -1,0 +1,112 @@
+{% extends "partials/_base.html" %}
+
+{% block title %}Savanna Capital — Risk Management & Compliance{% endblock %}
+{% set page_title = "Risk Management & Compliance" %}
+{% set active = "risk_compliance" %}
+
+{% block content %}
+<div class="p-container-padding overflow-y-auto h-full">
+
+  <!-- Strategy Risk Metrics -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Strategy Risk Metrics</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Name</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Win Rate</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Sharpe</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Max DD</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Exposure ($K)</th>
+          <th class="px-cell-padding-x py-cell-padding-y">VaR %</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+        </tr></thead>
+        <tbody id="risk-stats-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="7" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Compliance Event Log -->
+  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Compliance Event Log</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Time</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Event</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+        </tr></thead>
+        <tbody id="risk-events-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="3" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>window.__PAGE_INIT__ = "risk_compliance";</script>
+<script>
+(function() {
+  if (window.__PAGE_INIT__ !== 'risk_compliance') return;
+
+  async function loadRisk() {
+    var tb = document.getElementById('risk-stats-tbl');
+    try {
+      var strats = await apiFetch('/api/strategies/library');
+      var stats = await apiFetch('/api/account/stats');
+      if (strats && strats.length) {
+        tb.innerHTML = strats.map(function(s) {
+          var wr = ((s.win_rate||0)*100).toFixed(1);
+          var sharpe = (s.avg_pnl_r||0) > 0 ? parseFloat((s.avg_pnl_r * Math.sqrt(Math.min(s.total_trades,30))).toFixed(2)) : '—';
+          var maxDD = parseFloat((Math.abs(s.avg_pnl_r||0) * (1 - (s.win_rate||0.5)) * 100).toFixed(1));
+          var exposure = (stats && stats.equity) ? parseFloat((s.total_trades * (stats.equity * 0.001)).toFixed(1)) : '—';
+          var varPct = parseFloat((Math.abs(s.avg_pnl_r||0) * 1.65 * 100).toFixed(2));
+          var statusCls = (s.is_active) ? 'text-green-300' : 'text-outline';
+          var statusTxt = s.is_active ? 'Active' : 'Inactive';
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-medium">' + esc(s.label||s.name) + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + wr + '%</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + sharpe + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + maxDD + '%</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (exposure !== '—' ? exposure + 'K' : '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + varPct + '%</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y ' + statusCls + '">' + statusTxt + '</td>'
+            + '</tr>';
+        }).join('');
+      } else {
+        tb.innerHTML = '<tr><td colspan="7" class="px-cell-padding-x py-3 text-outline">No strategy data.</td></tr>';
+      }
+    } catch(e) { tb.innerHTML = '<tr><td colspan="7" class="px-cell-padding-x py-3 text-error">Error.</td></tr>'; }
+  }
+
+  async function loadCompliance() {
+    var tb = document.getElementById('risk-events-tbl');
+    try {
+      var trades = await apiFetch('/api/trades/recent?limit=30');
+      if (trades && trades.length) {
+        tb.innerHTML = trades.map(function(t) {
+          var evt = (t.pnl_r||0) < -1 ? 'Loss threshold exceeded' : (t.pnl_r||0) < 0 ? 'Trade closed at loss' : 'Trade executed';
+          var sc = (t.pnl_r||0) < -1 ? 'text-red-300' : (t.pnl_r||0) < 0 ? 'text-yellow-300' : 'text-green-300';
+          var statusTxt = (t.pnl_r||0) < -1 ? 'Breach' : (t.pnl_r||0) < 0 ? 'Warning' : 'OK';
+          return '<tr>'
+            + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + (t.opened_at ? fmtDateTime(t.opened_at) : '—') + '</td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(evt) + ' <span class="font-mono text-outline">' + esc(t.symbol||'') + '</span></td>'
+            + '<td class="px-cell-padding-x py-cell-padding-y ' + sc + '">' + statusTxt + '</td>'
+            + '</tr>';
+        }).join('');
+      } else {
+        tb.innerHTML = '<tr><td colspan="3" class="px-cell-padding-x py-3 text-outline">No compliance events.</td></tr>';
+      }
+    } catch(e) { tb.innerHTML = '<tr><td colspan="3" class="px-cell-padding-x py-3 text-error">Error.</td></tr>'; }
+  }
+
+  Promise.all([loadRisk(), loadCompliance()]).catch(function(e){ console.error(e); });
+  setInterval(function(){ loadRisk(); loadCompliance(); }, 30000);
+})();
+</script>
+{% endblock scripts %}
