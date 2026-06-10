@@ -5,70 +5,209 @@
 {% set active = "optimization" %}
 
 {% block content %}
-<div class="p-container-padding overflow-y-auto h-full">
+<style>
+  .heatmap-cell {
+    transition: transform 0.2s;
+    border-radius: 3px;
+  }
+  .heatmap-cell:hover {
+    transform: scale(1.25);
+    z-index: 10;
+    cursor: crosshair;
+    position: relative;
+  }
+  .terminal-grid {
+    background-size: 20px 20px;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #3b494c; border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #849396; }
+  .badge-chip {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  }
+  .status-dot.running { background: #eab308; animation: pulse-dot 1.2s infinite; }
+  .status-dot.complete { background: #10b981; }
+  .status-dot.failed { background: #ef4444; }
+  .status-dot.pending { background: #849396; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+</style>
 
-  <!-- Top actions -->
-  <div class="flex items-center gap-2 mb-unit*4">
-    <a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">RUN OPTIMIZATION</a>
-  </div>
+<div class="flex h-full overflow-hidden">
 
-  <!-- Filters -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4 flex flex-wrap gap-x-4 gap-y-2 items-end">
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- LEFT SIDEBAR: Optimization Settings                             -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <aside class="w-72 flex-shrink-0 overflow-y-auto border-r border-outline-variant p-4 space-y-5">
+
+    <!-- Strategy Select -->
     <div>
-      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Select Strategy</label>
-      <select id="opt-strategy" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
-        <option value="">All strategies</option>
+      <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Select Strategy</label>
+      <select id="opt-strategy" class="w-full bg-surface-variant border border-outline-variant text-xs rounded-lg px-3 py-2 focus:ring-1 focus:ring-primary outline-none">
+        <option value="">— choose strategy —</option>
       </select>
     </div>
-  </div>
 
-  <!-- Parameter Surface Heatmap -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Parameter Surface Heatmap</h3>
-    <canvas id="heatmapChart" height="200"></canvas>
-  </div>
-
-  <!-- Optimization History -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Optimization History</h3>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse">
-        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-          <th class="px-cell-padding-x py-cell-padding-y">Rank</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Strategy</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Sharpe</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Profit Factor</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Max DD</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Method</th>
-        </tr></thead>
-        <tbody id="opt-hist-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-          <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-        </tbody>
-      </table>
+    <!-- Parameter Bounds (dynamic) -->
+    <div>
+      <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Parameter Bounds</label>
+      <div id="param-bounds-container" class="space-y-3">
+        <p class="text-[11px] text-on-surface-variant italic">Select a strategy to load its parameter configuration.</p>
+      </div>
     </div>
-  </div>
 
-  <!-- Leaderboard -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Leaderboard — Top Configurations</h3>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse">
-        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-          <th class="px-cell-padding-x py-cell-padding-y">#</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Parameters</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Sharpe</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Profit Factor</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Max DD</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Action</th>
-        </tr></thead>
-        <tbody id="opt-lb-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-          <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-        </tbody>
-      </table>
+    <!-- Search Method -->
+    <div>
+      <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Search Method</label>
+      <div class="space-y-1.5">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="search_method" value="grid" checked class="accent-primary">
+          <span class="text-xs">Grid Search</span>
+          <span class="text-[9px] text-on-surface-variant">(≤2 params)</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="search_method" value="random" class="accent-primary">
+          <span class="text-xs">Random Search</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="search_method" value="bayesian" class="accent-primary">
+          <span class="text-xs">Bayesian (GP)</span>
+        </label>
+      </div>
     </div>
-  </div>
 
+    <!-- Fitness Function -->
+    <div>
+      <label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Fitness Function</label>
+      <div class="space-y-1.5">
+        <label class="flex items-center justify-between p-2 rounded-lg border cursor-pointer" id="fit-sharpe">
+          <input type="radio" name="fitness" value="sharpe" checked class="accent-primary sr-only peer">
+          <span class="text-xs font-medium peer-checked:text-primary">Sharpe Ratio</span>
+          <span class="w-3 h-3 rounded-full border-2 border-outline peer-checked:border-primary peer-checked:bg-primary"></span>
+        </label>
+        <label class="flex items-center justify-between p-2 rounded-lg border cursor-pointer" id="fit-calmar">
+          <input type="radio" name="fitness" value="calmar" class="accent-primary sr-only peer">
+          <span class="text-xs font-medium peer-checked:text-primary">Calmar Ratio</span>
+          <span class="w-3 h-3 rounded-full border-2 border-outline peer-checked:border-primary peer-checked:bg-primary"></span>
+        </label>
+        <label class="flex items-center justify-between p-2 rounded-lg border cursor-pointer" id="fit-profit">
+          <input type="radio" name="fitness" value="net_profit" class="accent-primary sr-only peer">
+          <span class="text-xs font-medium peer-checked:text-primary">Net Profit</span>
+          <span class="w-3 h-3 rounded-full border-2 border-outline peer-checked:border-primary peer-checked:bg-primary"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Symbol / Timeframe info -->
+    <div id="opt-meta" class="text-[11px] text-on-surface-variant space-y-1 hidden">
+      <div class="flex justify-between"><span>Symbol</span><span id="meta-symbol" class="font-mono text-on-surface">—</span></div>
+      <div class="flex justify-between"><span>Timeframe</span><span id="meta-timeframe" class="font-mono text-on-surface">—</span></div>
+      <div class="flex justify-between"><span>Candidates</span><span id="meta-candidates" class="font-mono text-on-surface">—</span></div>
+    </div>
+
+    <!-- Start Optimizer -->
+    <button id="btn-start-opt" class="w-full bg-primary text-on-primary py-3 rounded-lg font-bold text-sm shadow-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+      <span class="material-symbols-outlined text-base">play_arrow</span>
+      START OPTIMIZER
+    </button>
+
+    <!-- Progress bar (hidden until run starts) -->
+    <div id="opt-progress" class="hidden">
+      <div class="flex justify-between text-[10px] mb-1">
+        <span id="opt-progress-label" class="text-on-surface-variant">Running…</span>
+        <span id="opt-progress-count" class="text-primary font-mono">0 / 0</span>
+      </div>
+      <div class="h-1.5 bg-surface-variant rounded-full overflow-hidden">
+        <div id="opt-progress-bar" class="h-full bg-primary rounded-full transition-all" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Error / status message -->
+    <div id="opt-status-msg" class="hidden text-[11px] p-2 rounded-lg"></div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- MAIN CONTENT                                                   -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <main class="flex-1 overflow-y-auto p-5 space-y-5">
+
+    <!-- ── Top: Parameter Surface Heatmap ──────────────────────────── -->
+    <div class="bg-surface border border-outline-variant rounded-xl p-5 shadow-sm" style="min-height: 320px;">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-tight">Parameter Surface Heatmap</h2>
+          <p id="heatmap-subtitle" class="text-[10px] text-on-surface-variant mt-0.5">Run a grid optimisation (≤2 params) to generate the heatmap.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-on-surface-variant">Low</span>
+          <div class="w-24 h-2 rounded-full" style="background: linear-gradient(to right, rgba(132,147,150,0.3), rgba(0,228,255,0.5), #eab308)"></div>
+          <span class="text-[10px] text-on-surface-variant">Best</span>
+        </div>
+      </div>
+      <div id="heatmap-container" class="terminal-grid rounded-lg border border-outline-variant/50 p-6 flex items-center justify-center" style="min-height: 220px;">
+        <p id="heatmap-empty" class="text-[11px] text-on-surface-variant">No heatmap data yet.</p>
+        <canvas id="heatmapCanvas" class="hidden max-w-full" style="max-height: 260px;"></canvas>
+      </div>
+    </div>
+
+    <!-- ── Bottom: 2-column split ──────────────────────────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+      <!-- Top Parameter Sets (wider) -->
+      <div class="lg:col-span-3 bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-outline-variant flex items-center justify-between bg-surface-container-low/50">
+          <h2 class="text-xs font-bold uppercase tracking-tight flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary text-base">workspace_premium</span>
+            Top Parameter Sets
+          </h2>
+          <button id="btn-export-csv" class="text-[10px] text-primary font-bold hover:underline opacity-50 cursor-not-allowed" disabled>Export CSV</button>
+        </div>
+        <div class="overflow-x-auto" style="max-height: 340px; overflow-y: auto;">
+          <table class="w-full text-left">
+            <thead class="sticky top-0">
+              <tr class="bg-surface-variant/30 text-[10px] font-bold text-on-surface-variant uppercase border-b border-outline-variant">
+                <th class="px-4 py-2.5">Rank</th>
+                <th class="px-4 py-2.5">Parameters</th>
+                <th class="px-4 py-2.5 text-right">Sharpe</th>
+                <th class="px-4 py-2.5 text-right">Profit Factor</th>
+                <th class="px-4 py-2.5 text-right">Max DD</th>
+                <th class="px-4 py-2.5 text-right">Trades</th>
+                <th class="px-4 py-2.5">Action</th>
+              </tr>
+            </thead>
+            <tbody id="top-params-tbody" class="text-xs divide-y divide-outline-variant/30">
+              <tr><td colspan="7" class="px-4 py-6 text-center text-on-surface-variant text-[11px]">No optimisation run completed yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Optimization History -->
+      <div class="lg:col-span-2 bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
+        <div class="px-5 py-3 border-b border-outline-variant bg-surface-container-low/50">
+          <h2 class="text-xs font-bold uppercase tracking-tight">Optimization History</h2>
+        </div>
+        <div id="opt-history-list" class="flex-1 overflow-y-auto p-3 space-y-2" style="max-height: 340px;">
+          <p class="text-[11px] text-on-surface-variant text-center py-4">No runs yet.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>
+
 {% endblock content %}
 
 {% block scripts %}
@@ -77,90 +216,438 @@
 (function() {
   if (window.__PAGE_INIT__ !== 'optimization') return;
 
-  function destroy(id) {
-    var c = document.getElementById(id);
-    if (c && c._ch) { c._ch.destroy(); c._ch = null; }
+  // ─── State ────────────────────────────────────────────────────────────────
+  var btnStart   = document.getElementById('btn-start-opt');
+  var btnExport  = document.getElementById('btn-export-csv');
+  var stratSel   = document.getElementById('opt-strategy');
+  var paramBox   = document.getElementById('param-bounds-container');
+  var metaBox    = document.getElementById('opt-meta');
+  var progressEl = document.getElementById('opt-progress');
+  var progressBar= document.getElementById('opt-progress-bar');
+  var progressCnt= document.getElementById('opt-progress-count');
+  var progressLbl= document.getElementById('opt-progress-label');
+  var statusMsg  = document.getElementById('opt-status-msg');
+  var topTbody   = document.getElementById('top-params-tbody');
+  var histList   = document.getElementById('opt-history-list');
+  var heatEmpty  = document.getElementById('heatmap-empty');
+  var heatCanvas = document.getElementById('heatmapCanvas');
+  var heatSub    = document.getElementById('heatmap-subtitle');
+
+  var _pollTimer  = null;
+  var _currentRun = null;   // run id we're currently polling
+  var _allRunsCache = [];
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
   }
 
-  async function loadOpt() {
-    var histTb = document.getElementById('opt-hist-tbl');
-    var lbTb = document.getElementById('opt-lb-tbl');
-    var stratSel = document.getElementById('opt-strategy');
+  function showMsg(el, text, type) {
+    el.textContent = text;
+    el.classList.remove('hidden', 'bg-red-500/10', 'text-red-400', 'border', 'border-red-500/30',
+                         'bg-green-500/10', 'text-green-400', 'border-green-500/30');
+    if (type === 'error') {
+      el.classList.add('bg-red-500/10', 'text-red-400', 'border', 'border-red-500/30');
+    } else if (type === 'success') {
+      el.classList.add('bg-green-500/10', 'text-green-400', 'border-green-500/30');
+    }
+    el.classList.remove('hidden');
+  }
+
+  function hideMsg() { statusMsg.classList.add('hidden'); }
+
+  // Draw heatmap using canvas bars
+  function drawHeatmap(data, p1Key, p2Key) {
+    heatEmpty.classList.add('hidden');
+    heatCanvas.classList.remove('hidden');
+
+    // Group by p1, find p2 values
+    var p1Set = {}, p2Set = {};
+    data.forEach(function(d) {
+      p1Set[d.p1] = true;
+      p2Set[d.p2] = true;
+    });
+    var p1Arr = Object.keys(p1Set).map(Number).sort(function(a,b){return a-b;});
+    var p2Arr = Object.keys(p2Set).map(Number).sort(function(a,b){return a-b;});
+
+    var scores = data.map(function(d){return d.score;});
+    var minS = Math.min.apply(null, scores);
+    var maxS = Math.max.apply(null, scores);
+    var range = maxS - minS || 1;
+
+    function colorFor(v) {
+      var t = (v - minS) / range;
+      // slate → cyan → gold
+      if (t < 0.5) {
+        var r = Math.round(132 + (0-132)*t*2);
+        var g = Math.round(147 + (228-147)*t*2);
+        var b = Math.round(150 + (255-150)*t*2);
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + (0.25 + t) + ')';
+      } else {
+        var t2 = (t - 0.5) * 2;
+        var r2 = Math.round(0 + (234-0)*t2);
+        var g2 = Math.round(228 + (179-228)*t2);
+        var b2 = Math.round(255 + (0-255)*t2);
+        return 'rgba(' + r2 + ',' + g2 + ',' + b2 + ',0.85)';
+      }
+    }
+
+    var cellW = Math.max(24, Math.min(48, 600 / p1Arr.length));
+    var cellH = Math.max(18, Math.min(36, 260 / p2Arr.length));
+    var pad = 50;
+    var w = pad * 2 + p1Arr.length * cellW;
+    var h = pad * 2 + p2Arr.length * cellH;
+    heatCanvas.width = w;
+    heatCanvas.height = h;
+    var ctx = heatCanvas.getContext('2d');
+
+    // background
+    ctx.fillStyle = '#0a0e13';
+    ctx.fillRect(0, 0, w, h);
+
+    // grid
+    p1Arr.forEach(function(v, i) {
+      p2Arr.forEach(function(v2, j) {
+        var hit = data.find(function(d){ return d.p1 === v && d.p2 === v2; });
+        ctx.fillStyle = hit ? colorFor(hit.score) : 'rgba(255,255,255,0.02)';
+        ctx.fillRect(pad + i * cellW, pad + j * cellH, cellW - 1, cellH - 1);
+      });
+    });
+
+    // labels
+    ctx.fillStyle = '#bac9cc';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    p1Arr.forEach(function(v, i) {
+      ctx.fillText(v, pad + i * cellW + cellW / 2, h - pad + 12);
+    });
+    ctx.save();
+    ctx.translate(12, pad + p2Arr.length * cellH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(p2Key || 'Param B', 0, 0);
+    ctx.restore();
+    ctx.fillText(p1Key || 'Param A', pad + p1Arr.length * cellW / 2, h - 6);
+
+    heatSub.textContent = (p1Key || 'Param A') + ' vs ' + (p2Key || 'Param B') + ' — ' + (document.querySelector('input[name=fitness]:checked')?.value || 'sharpe');
+  }
+
+  // ─── Load strategies list ─────────────────────────────────────────────────
+  async function loadStrategies() {
     try {
       var strats = await apiFetch('/api/strategies/library');
-      var runs = await apiFetch('/api/quant/backtests');
-
-      // Populate strategy selector
-      if (strats && strats.length && stratSel) {
-        stratSel.innerHTML = '<option value="">All strategies</option>' + strats.map(function(s){
-          return '<option value="' + esc(s.name) + '">' + esc(s.label||s.name) + '</option>';
-        }).join('');
-      }
-
-      // Map backtest runs into optimization rows
-      var rows = [];
-      if (runs && runs.length) {
-        rows = runs.slice(0, 20).map(function(r, i) {
-          var metrics = r.metrics || {};
-          return { rank: i+1, strategy: r.strategy_name, sharpe: metrics.sharpe || '—', pf: metrics.profit_factor || '—', maxDD: metrics.max_drawdown || '—', method: r.method || 'backtest', params: r.params || {} };
-        });
-      } else if (strats && strats.length) {
-        rows = strats.slice(0, 20).map(function(s, i) {
-          return { rank: i+1, strategy: s.name, sharpe: parseFloat((s.win_rate||0)*2-1).toFixed(2), pf: parseFloat((s.win_rate||0)*3+0.5).toFixed(2), maxDD: parseFloat((1-(s.win_rate||0))*30).toFixed(1)+'%', method: 'grid', params: s.params||{} };
-        });
-      }
-
-      if (rows.length) {
-        histTb.innerHTML = rows.map(function(r) {
-          return '<tr>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">#' + r.rank + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(r.strategy) + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.sharpe + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.pf + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.maxDD + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(r.method) + '</td>'
-            + '</tr>';
-        }).join('');
-
-        lbTb.innerHTML = rows.slice(0, 10).map(function(r, i) {
-          var paramStr = Object.keys(r.params).slice(0,3).map(function(k){ return esc(k) + '=' + (typeof r.params[k]==='number' ? r.params[k].toFixed(2) : r.params[k]); }).join(', ');
-          return '<tr>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (i+1) + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y text-label-sm">' + (paramStr || 'default') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.sharpe + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.pf + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + r.maxDD + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y">' + badge('pending') + '</td>'
-            + '</tr>';
-        }).join('');
-
-        // Heatmap: strategy × Sharpe (bar chart)
-        if (rows.length >= 3) {
-          destroy('heatmapChart');
-          var hmLabels = rows.slice(0,8).map(function(r){ return esc(r.strategy); });
-          var hmData = rows.slice(0,8).map(function(r){ return parseFloat(r.sharpe) || 0; });
-          var hmCtx = document.getElementById('heatmapChart');
-          hmCtx._ch = new Chart(hmCtx, {
-            type: 'bar',
-            data: {
-              labels: hmLabels,
-              datasets: [
-                { label: 'Sharpe', data: hmData, backgroundColor: hmData.map(function(v){ return v>1 ? '#10B981' : v>0.5 ? '#F59E0B' : '#EF4444'; }) },
-                { label: 'Max DD %', data: rows.slice(0,8).map(function(r){ return parseFloat(String(r.maxDD).replace('%',''))||0; }), backgroundColor: 'rgba(59,130,246,0.5)' }
-              ]
-            },
-            options: { responsive: true, plugins: { legend: { labels: { color: '#bac9cc' } } }, scales: { x: { ticks: { color: '#849396' }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { ticks: { color: '#849396' }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
-          });
-        }
-      } else {
-        histTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No optimization runs yet. Run a backtest first.</td></tr>';
-        lbTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No leaderboard data.</td></tr>';
-      }
-    } catch(e) { console.error('opt:', e); }
+      stratSel.innerHTML = '<option value="">— choose strategy —</option>';
+      (strats || []).forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = (s.label || s.name) + ' (' + (s.symbol || '—') + ' ' + (s.timeframe || '') + ')';
+        opt.dataset.params = JSON.stringify(s.params || {});
+        opt.dataset.symbol = s.symbol || '';
+        opt.dataset.timeframe = s.timeframe || '';
+        stratSel.appendChild(opt);
+      });
+    } catch(e) { console.error('load strategies:', e); }
   }
 
-  loadOpt();
-  if (stratSel) stratSel.addEventListener('change', loadOpt);
+  // ─── Build param bounds form from selected strategy ───────────────────────
+  function buildParamBounds() {
+    var opt = stratSel.options[stratSel.selectedIndex];
+    if (!opt || !opt.value) {
+      paramBox.innerHTML = '<p class="text-[11px] text-on-surface-variant italic">Select a strategy to load its parameter configuration.</p>';
+      btnStart.disabled = true;
+      metaBox.classList.add('hidden');
+      return;
+    }
+    var params = {};
+    try { params = JSON.parse(opt.dataset.params || '{}'); } catch(e) {}
+    var keys = Object.keys(params);
+    if (!keys.length) {
+      paramBox.innerHTML = '<p class="text-[11px] text-on-surface-variant italic">No configurable parameters for this strategy.</p>';
+    } else {
+      paramBox.innerHTML = keys.map(function(k) {
+        var def = params[k];
+        return '<div class="bg-surface-variant/50 p-2.5 rounded-lg border border-outline-variant/50">' +
+          '<p class="text-[10px] font-semibold mb-1.5">' + esc(k) + '</p>' +
+          '<div class="grid grid-cols-3 gap-1.5">' +
+            '<div><label class="text-[9px] block text-on-surface-variant">MIN</label>' +
+              '<input class="param-min w-full bg-surface border-none text-xs p-1 rounded" data-param="' + esc(k) + '" type="number" step="any" value="' + esc(def * 0.5) + '"></div>' +
+            '<div><label class="text-[9px] block text-on-surface-variant">MAX</label>' +
+              '<input class="param-max w-full bg-surface border-none text-xs p-1 rounded" data-param="' + esc(k) + '" type="number" step="any" value="' + esc(def * 1.5) + '"></div>' +
+            '<div><label class="text-[9px] block text-on-surface-variant">STEP</label>' +
+              '<input class="param-step w-full bg-surface border-none text-xs p-1 rounded" data-param="' + esc(k) + '" type="number" step="any" value="1"></div>' +
+          '</div></div>';
+      }).join('');
+    }
+    // show meta
+    document.getElementById('meta-symbol').textContent = opt.dataset.symbol || '—';
+    document.getElementById('meta-timeframe').textContent = opt.dataset.timeframe || '—';
+    metaBox.classList.remove('hidden');
+    btnStart.disabled = false;
+  }
+
+  function collectParamBounds() {
+    var bounds = {};
+    var seen = {};
+    paramBox.querySelectorAll('[data-param]').forEach(function(inp) {
+      var p = inp.dataset.param;
+      if (seen[p]) return; seen[p] = true;
+      var row = paramBox.querySelectorAll('[data-param="' + p + '"]');
+      var mn = parseFloat(row[0]?.value) || 0;
+      var mx = parseFloat(row[1]?.value) || 10;
+      var st = parseFloat(row[2]?.value) || 1;
+      bounds[p] = { min: mn, max: mx, step: Math.max(st, 0.001) };
+    });
+    return bounds;
+  }
+
+  function estimateCandidates() {
+    var bounds = collectParamBounds();
+    var keys = Object.keys(bounds);
+    var method = document.querySelector('input[name=search_method]:checked')?.value || 'grid';
+    if (method === 'grid' && keys.length <= 2) {
+      var n = 1;
+      keys.forEach(function(k) {
+        var b = bounds[k];
+        n *= Math.floor((b.max - b.min) / (b.step || 1)) + 1;
+      });
+      return Math.min(n, 5000);
+    }
+    return parseInt(document.querySelector('input[name=n_iterations]')?.value) || 200;
+  }
+
+  // ─── Start Optimisation ───────────────────────────────────────────────────
+  btnStart.addEventListener('click', async function() {
+    if (!stratSel.value) { showMsg(statusMsg, 'Select a strategy first.', 'error'); return; }
+    hideMsg();
+    btnStart.disabled = true;
+    btnStart.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">sync</span> STARTING…';
+
+    var body = {
+      strategy_name: stratSel.value,
+      symbol: stratSel.options[stratSel.selectedIndex].dataset.symbol,
+      timeframe: stratSel.options[stratSel.selectedIndex].dataset.timeframe,
+      param_overrides: collectParamBounds(),
+      search_method: document.querySelector('input[name=search_method]:checked').value,
+      fitness_metric: document.querySelector('input[name=fitness]:checked').value,
+      n_iterations: parseInt(document.querySelector('input[name=n_iterations]')?.value) || 200,
+    };
+
+    try {
+      var res = await apiFetch('/api/quant/optimise', { method: 'POST', body: JSON.stringify(body) });
+      _currentRun = res.id;
+      btnStart.innerHTML = '<span class="material-symbols-outlined text-base">stop</span> STOP';
+      btnStart.disabled = false;
+      btnStart.classList.add('bg-red-500');
+      btnStart.classList.remove('bg-primary');
+      progressEl.classList.remove('hidden');
+      pollRun();
+    } catch(e) {
+      showMsg(statusMsg, 'Failed to start: ' + esc(e.message || e), 'error');
+      btnStart.disabled = false;
+      btnStart.innerHTML = '<span class="material-symbols-outlined text-base">play_arrow</span> START OPTIMIZER';
+    }
+  });
+
+  // ─── Poll run status ──────────────────────────────────────────────────────
+  async function pollRun() {
+    if (!_currentRun) return;
+    try {
+      var run = await apiFetch('/api/quant/optimise/' + _currentRun);
+      _allRunsCache.unshift(run);
+
+      // Update progress
+      if (run.status === 'running') {
+        var total = run.n_iterations || 0;
+        var done = (run.top_n_results || []).length;
+        var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+        progressBar.style.width = pct + '%';
+        progressCnt.textContent = done + ' / ' + total;
+        progressLbl.textContent = 'Running… ' + pct + '%';
+      } else if (run.status === 'complete') {
+        progressBar.style.width = '100%';
+        progressCnt.textContent = (run.n_iterations || 0) + ' / ' + (run.n_iterations || 0);
+        progressLbl.textContent = 'Complete ✓';
+        showMsg(statusMsg, 'Optimisation complete — best Sharpe: ' + (run.best_score != null ? run.best_score.toFixed(4) : '—'), 'success');
+        renderTopResults(run);
+        renderHistory();
+        if (run.heatmap_data && run.heatmap_data.length) {
+          var p1k = '', p2k = '';
+          if (run.best_params) {
+            var bkeys = Object.keys(run.best_params);
+            if (bkeys.length >= 2) { p1k = bkeys[0]; p2k = bkeys[1]; }
+            else if (bkeys.length === 1) { p1k = bkeys[0]; p2k = 'idx'; }
+          }
+          drawHeatmap(run.heatmap_data, p1k, p2k);
+        }
+        resetStartButton();
+      } else if (run.status === 'failed') {
+        progressLbl.textContent = 'Failed';
+        showMsg(statusMsg, (run.error_message || 'Unknown error'), 'error');
+        resetStartButton();
+      }
+    } catch(e) {
+      console.error('poll error:', e);
+    }
+    if (_currentRun) _pollTimer = setTimeout(pollRun, 3000);
+  }
+
+  function resetStartButton() {
+    btnStart.innerHTML = '<span class="material-symbols-outlined text-base">play_arrow</span> START OPTIMIZER';
+    btnStart.classList.remove('bg-red-500');
+    btnStart.classList.add('bg-primary');
+    btnStart.disabled = false;
+    _currentRun = null;
+  }
+
+  // ─── Render Top Parameter Sets ────────────────────────────────────────────
+  function renderTopResults(run) {
+    var rows = run.top_n_results || [];
+    if (!rows.length) {
+      topTbody.innerHTML = '<tr><td colspan="7" class="px-4 py-6 text-center text-on-surface-variant text-[11px]">No results.</td></tr>';
+      return;
+    }
+    btnExport.disabled = false;
+    btnExport.classList.remove('opacity-50', 'cursor-not-allowed');
+    btnExport.onclick = function() { exportCSV(rows); };
+
+    topTbody.innerHTML = rows.map(function(r, i) {
+      var rank = '#' + String(i + 1).padStart(2, '0');
+      var rankClass = i === 0 ? 'text-secondary' : i < 3 ? 'text-primary' : '';
+      var paramKeys = Object.keys(r.params || {});
+      var badges = paramKeys.map(function(k) {
+        return '<span class="badge-chip">' + esc(k) + '=' + esc(r.params[k]) + '</span>';
+      }).join(' ');
+      return '<tr class="hover:bg-primary-container/10 border-b border-outline-variant/30">' +
+        '<td class="px-4 py-2.5 font-mono text-[10px] font-bold ' + rankClass + '">' + rank + '</td>' +
+        '<td class="px-4 py-2.5 text-[10px]">' + (badges || 'default') + '</td>' +
+        '<td class="px-4 py-2.5 text-right font-mono text-[10px] ' + ((r.sharpe||0) > 1 ? 'text-primary' : '') + '">' + esc(r.sharpe != null ? r.sharpe : '—') + '</td>' +
+        '<td class="px-4 py-2.5 text-right font-mono text-[10px]">' + esc(r.profit_factor != null ? r.profit_factor : '—') + '</td>' +
+        '<td class="px-4 py-2.5 text-right font-mono text-[10px] text-red-400">' + esc(r.max_drawdown != null ? r.max_drawdown + '%' : '—') + '</td>' +
+        '<td class="px-4 py-2.5 text-right font-mono text-[10px]">' + esc(r.n_trades != null ? r.n_trades : '—') + '</td>' +
+        '<td class="px-4 py-2.5 text-right">' +
+          '<button class="btn-load bg-primary/10 text-primary px-2 py-1 rounded text-[9px] font-bold hover:bg-primary hover:text-on-primary transition-all" data-run="' + esc(run.id) + '" data-idx="' + i + '">LOAD</button>' +
+        '</td></tr>';
+    }).join('');
+
+    // attach load handlers
+    topTbody.querySelectorAll('.btn-load').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var runId = this.dataset.run;
+        var idx = parseInt(this.dataset.idx);
+        deployRun(runId, idx);
+      });
+    });
+  }
+
+  async function deployRun(runId, idx) {
+    try {
+      var run = await apiFetch('/api/quant/optimise/' + runId);
+      if (!run.best_params) { alert('No params to deploy.'); return; }
+      var res = await apiFetch('/api/quant/optimise/' + runId + '/deploy', {
+        method: 'PATCH',
+        body: JSON.stringify({ params: run.best_params })
+      });
+      alert('Deployed: ' + res.strategy + ' (version bumped)');
+    } catch(e) {
+      alert('Deploy failed: ' + esc(e.message || e));
+    }
+  }
+
+  function exportCSV(rows) {
+    var header = 'rank,params,score,sharpe,profit_factor,max_drawdown,n_trades\n';
+    var csv = rows.map(function(r, i) {
+      return (i+1) + ',"' + JSON.stringify(r.params).replace(/"/g, '""') + '",'
+        + (r.score||'') + ',' + (r.sharpe||'') + ',' + (r.profit_factor||'')
+        + ',' + (r.max_drawdown||'') + ',' + (r.n_trades||'');
+    }).join('\n');
+    var blob = new Blob([header + csv], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'optimisation_results.csv';
+    a.click();
+  }
+
+  // ─── Render Optimization History ─────────────────────────────────────────
+  async function renderHistory() {
+    try {
+      var runs = await apiFetch('/api/quant/optimise');
+      var list = runs || [];
+      if (!list.length) {
+        histList.innerHTML = '<p class="text-[11px] text-on-surface-variant text-center py-4">No runs yet.</p>';
+        return;
+      }
+      histList.innerHTML = list.map(function(r) {
+        var dotClass = r.status || 'pending';
+        var dateStr = r.completed_at || r.started_at || r.created_at || '—';
+        return '<div class="flex items-center justify-between p-2.5 rounded-lg border border-outline-variant bg-surface-variant/10 hover:border-primary/40 cursor-pointer transition-colors" data-runid="' + esc(r.id) + '">' +
+          '<div class="flex items-center gap-3 min-w-0">' +
+            '<span class="status-dot ' + esc(dotClass) + '" title="' + esc(r.status) + '"></span>' +
+            '<div class="min-w-0">' +
+              '<p class="text-[11px] font-bold truncate">' + esc(r.strategy_name) + '</p>' +
+              '<p class="text-[9px] text-on-surface-variant">' + esc(dateStr) + ' &bull; ' + (r.n_iterations||0) + ' iterations &bull; ' + esc(r.search_method) + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="flex items-center gap-2 flex-shrink-0">' +
+            '<div class="text-right">' +
+              '<p class="text-[10px] font-bold uppercase text-on-surface-variant">Best Sharpe</p>' +
+              '<p class="text-[11px] font-mono font-bold">' + (r.best_score != null ? r.best_score.toFixed(4) : '—') + '</p>' +
+            '</div>' +
+            '<span class="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      histList.querySelectorAll('[data-runid]').forEach(function(el) {
+        el.addEventListener('click', function() {
+          var id = this.dataset.runid;
+          apiFetch('/api/quant/optimise/' + id).then(function(r) {
+            if (r.top_n_results && r.top_n_results.length) renderTopResults(r);
+            if (r.heatmap_data && r.heatmap_data.length) {
+              var bkeys = r.best_params ? Object.keys(r.best_params) : [];
+              var p1k = bkeys[0] || '', p2k = bkeys[1] || '';
+              drawHeatmap(r.heatmap_data, p1k, p2k);
+            }
+            if (r.best_score != null) showMsg(statusMsg, 'Run ' + r.id + ' — best score: ' + r.best_score.toFixed(4), 'success');
+          }).catch(function() {});
+        });
+      });
+    } catch(e) { console.error('history:', e); }
+  }
+
+  // ─── Radio button visual toggle ──────────────────────────────────────────
+  document.querySelectorAll('input[name=fitness]').forEach(function(r) {
+    r.addEventListener('change', function() {
+      ['fit-sharpe','fit-calmar','fit-profit'].forEach(function(id) {
+        document.getElementById(id).classList.remove('border-primary', 'bg-primary-container/10');
+      });
+      var map = { sharpe: 'fit-sharpe', calmar: 'fit-calmar', net_profit: 'fit-profit' };
+      var el = document.getElementById(map[this.value]);
+      if (el) el.classList.add('border-primary', 'bg-primary-container/10');
+    });
+  });
+  // init active
+  document.querySelector('input[name=fitness][value=sharpe]').dispatchEvent(new Event('change'));
+
+  // ─── Search method change estimates candidates ──────────────────────────
+  document.querySelectorAll('input[name=search_method]').forEach(function(r) {
+    r.addEventListener('change', function() {
+      var n = estimateCandidates();
+      document.getElementById('meta-candidates').textContent = n.toLocaleString();
+    });
+  });
+
+  // ─── Strategy change rebuilds param bounds ───────────────────────────────
+  stratSel.addEventListener('change', buildParamBounds);
+
+  // ─── Initialise ──────────────────────────────────────────────────────────
+  async function init() {
+    await loadStrategies();
+    await renderHistory();
+    document.getElementById('meta-candidates').textContent = '—';
+  }
+  init();
+
 })();
 </script>
 {% endblock scripts %}

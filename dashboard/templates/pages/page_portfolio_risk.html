@@ -1,114 +1,386 @@
 {% extends "partials/_base.html" %}
 
 {% block title %}Savanna Capital — Portfolio Risk Monitor{% endblock %}
-{% set page_title = "Portfolio Risk Monitor" %}
-{% set active = "portfolio_risk" %}
 
 {% block content %}
-<div class="p-container-padding overflow-y-auto h-full">
+<div class="p-container-padding overflow-y-auto h-full flex flex-col gap-panel-gap">
 
-  <!-- Open Positions -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Open Positions</h3>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse">
-        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-          <th class="px-cell-padding-x py-cell-padding-y">Account</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Dir</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Entry</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Price</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Size</th>
-          <th class="px-cell-padding-x py-cell-padding-y">SL / TP</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Unreal PnL</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Risk %</th>
-        </tr></thead>
-        <tbody id="positions-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-          <tr><td colspan="9" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-        </tbody>
-      </table>
+  <!-- ── 5 KPI panels ─────────────────────────────────────────────────── -->
+  <div class="grid grid-cols-5 gap-panel-gap">
+    <div class="bg-surface-container-low border border-outline-variant p-3">
+      <div class="text-[10px] text-on-surface-variant uppercase font-bold mb-1">Daily Drawdown</div>
+      <div class="flex items-end justify-between">
+        <span id="kpi-daily-dd" class="font-data-lg text-data-lg text-error">—</span>
+        <div class="w-16 h-4 bg-error/10 overflow-hidden relative">
+          <div id="bar-daily-dd" class="absolute inset-0 bg-error/20" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant p-3">
+      <div class="text-[10px] text-on-surface-variant uppercase font-bold mb-1">Weekly Drawdown</div>
+      <div class="flex items-end justify-between">
+        <span id="kpi-weekly-dd" class="font-data-lg text-data-lg text-error">—</span>
+        <div class="w-16 h-4 bg-error/10 overflow-hidden relative">
+          <div id="bar-weekly-dd" class="absolute inset-0 bg-error/20" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant p-3">
+      <div class="text-[10px] text-on-surface-variant uppercase font-bold mb-1">Total Exposure</div>
+      <div class="flex items-end justify-between">
+        <span id="kpi-exposure" class="font-data-lg text-data-lg text-primary-fixed-dim">—</span>
+        <span class="material-symbols-outlined text-outline text-[14px]">public</span>
+      </div>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant p-3">
+      <div class="text-[10px] text-on-surface-variant uppercase font-bold mb-1">VaR (95%, 1D)</div>
+      <div class="flex items-end justify-between">
+        <span id="kpi-var" class="font-data-lg text-data-lg text-on-surface">—</span>
+        <span class="text-[10px] text-on-surface-variant" id="kpi-var-pct">—</span>
+      </div>
+    </div>
+    <div class="bg-surface-container-low terminal-border p-3">
+      <div class="text-[10px] text-on-surface-variant uppercase font-bold mb-1">Margin Usage</div>
+      <div class="flex items-end justify-between">
+        <span id="kpi-margin" class="font-data-lg text-data-lg text-tertiary">—</span>
+        <div class="w-16 h-1 bg-surface-container-highest rounded-full mt-2">
+          <div id="bar-margin" class="h-full bg-tertiary rounded-full" style="width:0%"></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Risk Alerts (from recent trades + positions) -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Risk Alerts</h3>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse">
-        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-          <th class="px-cell-padding-x py-cell-padding-y">Severity</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Account</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Message</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Updated</th>
-        </tr></thead>
-        <tbody id="alerts-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-          <tr><td colspan="5" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-        </tbody>
-      </table>
+  <!-- ── Central + Sidebar ─────────────────────────────────────────────── -->
+  <div class="flex-1 grid grid-cols-12 gap-panel-gap min-h-0">
+
+    <!-- Open Positions (9 cols) -->
+    <div class="col-span-9 bg-surface-container-low border border-outline-variant flex flex-col min-h-0">
+      <div class="h-7 bg-surface-container border-b border-outline flex items-center justify-between px-3 shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[14px] text-primary">list_alt</span>
+          <span class="text-[11px] font-bold uppercase tracking-wider">Active Portfolio Positions</span>
+        </div>
+        <div class="flex items-center gap-4 text-[10px] text-on-surface-variant">
+          <span id="positions-count">0 positions</span>
+        </div>
+      </div>
+      <div class="flex-1 overflow-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse">
+          <thead class="sticky top-0 bg-[#161B22] z-10 border-b border-outline-variant">
+            <tr>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant">Account</th>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant">Symbol</th>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant">Dir</th>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant text-right">Entry</th>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant text-right">Price</th>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant text-right">Size</th>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant text-center">SL / TP</th>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant text-right">PnL (Unreal)</th>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant text-right">Risk %</th>
+            </tr>
+          </thead>
+          <tbody id="positions-tbl" class="divide-y divide-surface-container-highest font-data-md text-data-md text-on-surface-variant">
+            <tr><td colspan="9" class="px-4 py-6 text-center text-outline">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Exposure sidebar (3 cols) -->
+    <div class="col-span-3 flex flex-col gap-panel-gap min-h-0">
+      <!-- Asset Allocation donut -->
+      <div class="flex-1 bg-surface-container-low border border-outline-variant flex flex-col min-h-0">
+        <div class="h-7 bg-surface-container border-b border-outline flex items-center px-3 shrink-0">
+          <span class="text-[11px] font-bold uppercase tracking-wider">Asset Allocation</span>
+        </div>
+        <div class="flex-1 flex flex-col items-center justify-center p-4">
+          <div class="relative w-32 h-32">
+            <canvas id="alloc-canvas" width="128" height="128"></canvas>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="text-center">
+                <div class="text-[10px] text-on-surface-variant uppercase">Gross</div>
+                <div id="alloc-gross" class="font-data-md text-data-md text-on-surface">$0</div>
+              </div>
+            </div>
+          </div>
+          <div id="alloc-legend" class="w-full mt-4 space-y-2"></div>
+        </div>
+      </div>
+
+      <!-- Strategy Exposure bars -->
+      <div class="flex-1 bg-surface-container-low border border-outline-variant flex flex-col min-h-0">
+        <div class="h-7 bg-surface-container border-b border-outline flex items-center px-3 shrink-0">
+          <span class="text-[11px] font-bold uppercase tracking-wider">Strategy Exposure</span>
+        </div>
+        <div id="strat-bars" class="flex-1 p-4 space-y-3 overflow-auto custom-scrollbar">
+          <div class="text-[10px] text-on-surface-variant text-center py-4">No data</div>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- ── Bottom Row: Correlation + Alerts ─────────────────────────────── -->
+  <div class="h-52 grid grid-cols-12 gap-panel-gap min-h-0">
+
+    <!-- Correlation matrix -->
+    <div class="col-span-8 bg-surface-container-low border border-outline-variant flex flex-col min-h-0">
+      <div class="h-7 bg-surface-container border-b border-outline flex items-center px-3 shrink-0">
+        <span class="text-[11px] font-bold uppercase tracking-wider">Strategy Correlation Matrix</span>
+      </div>
+      <div class="flex-1 p-3 overflow-auto custom-scrollbar">
+        <div id="corr-grid" class="grid gap-1" style="grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(6, auto);">
+          <div class="text-[9px] uppercase text-center text-on-surface-variant"></div>
+          <div id="corr-headers" class="contents"></div>
+          <div id="corr-body" class="contents"></div>
+        </div>
+        <p id="corr-empty" class="text-[10px] text-on-surface-variant text-center py-4">Insufficient data for correlation</p>
+      </div>
+    </div>
+
+    <!-- Risk alerts -->
+    <div class="col-span-4 bg-surface-container-low border border-outline-variant flex flex-col min-h-0">
+      <div class="h-7 bg-surface-container border-b border-outline flex items-center justify-between px-3 shrink-0">
+        <span class="text-[11px] font-bold uppercase tracking-wider">Critical Risk Alerts</span>
+        <span id="alerts-count" class="text-[10px] text-on-surface-variant">0</span>
+      </div>
+      <div id="alerts-list" class="flex-1 overflow-auto custom-scrollbar divide-y divide-surface-container-highest">
+        <div class="p-4 text-[10px] text-on-surface-variant text-center">No alerts</div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock content %}
 
-{% block scripts %}
-<script>window.__PAGE_INIT__ = "portfolio_risk";</script>
+{% block page_scripts %}
 <script>
-(function() {
+(function () {
   if (window.__PAGE_INIT__ !== 'portfolio_risk') return;
 
-  async function loadPositions() {
+  var COLORS = {
+    fx:       '#00daf3',
+    crypto:   '#e9c400',
+    equities: '#bcc7de',
+    metals:   '#ffecad',
+    other:    '#849396',
+    positive: '#10B981',
+    negative: '#EF4444',
+    neutral:  '#6B7280',
+  };
+
+  function fmt(n, dp) {
+    if (n === undefined || n === null || isNaN(n)) return '—';
+    dp = dp || 0;
+    if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+    if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+    return n.toFixed(dp);
+  }
+
+  function fmtUSD(n) {
+    if (n === undefined || n === null || isNaN(n)) return '$—';
+    return '$' + fmt(n, 0);
+  }
+
+  function severityIcon(sev) {
+    if (sev === 'error')   return '<span class="material-symbols-outlined text-error text-[18px]">warning</span>';
+    if (sev === 'warning') return '<span class="material-symbols-outlined text-tertiary text-[18px]">priority_high</span>';
+    return '<span class="material-symbols-outlined text-outline text-[18px]">info</span>';
+  }
+
+  function severityClass(sev) {
+    if (sev === 'error')   return 'text-error';
+    if (sev === 'warning') return 'text-tertiary';
+    return 'text-outline';
+  }
+
+  function loadData() {
+    return apiFetch('/api/risk/overview').catch(function () { return null; });
+  }
+
+  function renderKPIs(d) {
+    if (!d) return;
+    var k = d.kpis || {};
+    var ddEl = document.getElementById('kpi-daily-dd');
+    ddEl.textContent = (k.daily_dd_pct || 0).toFixed(2) + '%';
+    ddEl.className = 'font-data-lg text-data-lg ' + ((k.daily_dd_pct || 0) < 0 ? 'text-error' : 'text-primary-fixed-dim');
+
+    var wEl = document.getElementById('kpi-weekly-dd');
+    wEl.textContent = (k.weekly_dd_pct || 0).toFixed(2) + '%';
+    wEl.className = 'font-data-lg text-data-lg ' + ((k.weekly_dd_pct || 0) < 0 ? 'text-error' : 'text-primary-fixed-dim');
+
+    document.getElementById('kpi-exposure').textContent = fmtUSD(k.total_exposure_usd || 0);
+
+    var vEl = document.getElementById('kpi-var');
+    vEl.textContent = fmtUSD(k.var_95_1d_usd);
+    vEl.className = 'font-data-lg text-data-lg text-on-surface';
+    document.getElementById('kpi-var-pct').textContent =
+      (k.total_exposure_usd > 0 ? ((k.var_95_1d_usd / k.total_exposure_usd) * 100).toFixed(2) + '% NAV' : '');
+
+    var mEl = document.getElementById('kpi-margin');
+    mEl.textContent = (k.margin_usage_pct || 0).toFixed(1) + '%';
+    mEl.className = 'font-data-lg text-data-lg ' + ((k.margin_usage_pct || 0) > 70 ? 'text-error' : 'text-tertiary');
+    document.getElementById('bar-margin').style.width = Math.min(k.margin_usage_pct || 0, 100) + '%';
+  }
+
+  function renderPositions(d) {
     var tb = document.getElementById('positions-tbl');
-    try {
-      var pos = await apiFetch('/api/mt5/positions');
-      var acct = await apiFetch('/api/mt5/account');
-      if (pos && pos.length) {
-        tb.innerHTML = pos.map(function(p) {
-          var pnlC = (p.profit||0)>0 ? '#10B981' : (p.profit||0)<0 ? '#EF4444' : '#6B7280';
-          var sc = (p.type==='BUY'||p.type===0) ? '#10B981' : '#EF4444';
-          return '<tr>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(p.account||String(acct.login||'—')) + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(p.symbol||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y" style="color:'+sc+'">' + esc(p.type||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat(p.price_open||0).toFixed(5) + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat(p.price_current||0).toFixed(5) + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y text-right">' + parseFloat(p.volume||0).toFixed(2) + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono text-outline text-label-sm">' + parseFloat(p.sl||0).toFixed(5) + ' / ' + parseFloat(p.tp||0).toFixed(5) + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono text-right" style="color:'+pnlC+'">' + parseFloat(p.profit||0).toFixed(2) + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y">—</td>'
-            + '</tr>';
-        }).join('');
-      } else {
-        tb.innerHTML = '<tr><td colspan="9" class="px-cell-padding-x py-3 text-outline">No open positions (MT5 may be disconnected).</td></tr>';
-      }
-    } catch(e) { tb.innerHTML = '<tr><td colspan="9" class="px-cell-padding-x py-3 text-error">Failed to load positions.</td></tr>'; }
+    if (!d || !d.positions || !d.positions.length) {
+      tb.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-outline">No open positions</td></tr>';
+      document.getElementById('positions-count').textContent = '0 positions';
+      return;
+    }
+    document.getElementById('positions-count').textContent = d.positions.length + ' positions';
+    tb.innerHTML = d.positions.map(function (p) {
+      var pnlC = (p.pnl || 0) > 0 ? 'text-primary-fixed-dim' : (p.pnl || 0) < 0 ? 'text-error' : 'text-outline';
+      var sideC = (p.dir === 'Long') ? 'text-primary-fixed-dim' : 'text-error';
+      return '<tr class="hover:bg-surface-container-high transition-colors">'
+        + '<td class="px-4 py-2 font-mono">' + esc(p.account || '—') + '</td>'
+        + '<td class="px-4 py-2 font-mono font-medium text-primary">' + esc(p.symbol) + '</td>'
+        + '<td class="px-4 py-2" style="color:' + sideC + '">' + esc(p.dir) + '</td>'
+        + '<td class="px-4 py-2 text-right font-mono">' + (p.entry || 0).toFixed(5) + '</td>'
+        + '<td class="px-4 py-2 text-right font-mono">' + (p.price || 0).toFixed(5) + '</td>'
+        + '<td class="px-4 py-2 text-right font-mono">' + (p.size || 0).toFixed(2) + '</td>'
+        + '<td class="px-4 py-2 text-center font-mono text-outline text-label-sm">'
+        + (p.sl ? p.sl.toFixed(5) : '—') + ' / ' + (p.tp ? p.tp.toFixed(5) : '—') + '</td>'
+        + '<td class="px-4 py-2 text-right font-mono ' + pnlC + '">' + (p.pnl || 0).toFixed(2) + '</td>'
+        + '<td class="px-4 py-2 text-right font-mono">' + (p.risk_pct || 0).toFixed(2) + '%</td>'
+        + '</tr>';
+    }).join('');
   }
 
-  async function loadAlerts() {
-    var tb = document.getElementById('alerts-tbl');
-    try {
-      var trades = await apiFetch('/api/trades/recent?limit=20');
-      if (trades && trades.length) {
-        var sevCol = function(pnl){ return pnl>0 ? 'text-green-300' : pnl<0 ? 'text-red-300' : 'text-outline'; };
-        tb.innerHTML = trades.map(function(t) {
-          var sev = (t.pnl_r||0) < -1 ? 'High' : (t.pnl_r||0) < 0 ? 'Medium' : 'Low';
-          return '<tr>'
-            + '<td class="px-cell-padding-x py-cell-padding-y ' + sevCol(t.pnl_r||0) + '">' + esc(sev) + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(t.account||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(t.symbol||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(t.closed_reason||t.strategy_name||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + (t.opened_at ? fmtDateTime(t.opened_at) : '—') + '</td>'
-            + '</tr>';
-        }).join('');
-      } else {
-        tb.innerHTML = '<tr><td colspan="5" class="px-cell-padding-x py-3 text-outline">No alerts.</td></tr>';
-      }
-    } catch(e) { tb.innerHTML = '<tr><td colspan="5" class="px-cell-padding-x py-3 text-error">Failed to load alerts.</td></tr>'; }
+  function renderAlloc(d) {
+    if (!d || !d.asset_allocation) return;
+    var alloc = d.asset_allocation;
+    var entries = Object.entries(alloc).filter(function (e) { return e[1] > 0; });
+    if (!entries.length) {
+      document.getElementById('alloc-gross').textContent = '$0';
+      document.getElementById('alloc-legend').innerHTML = '';
+      return;
+    }
+    document.getElementById('alloc-gross').textContent = fmtUSD(d.kpis.total_exposure_usd || 0);
+
+    var canvas = document.getElementById('alloc-canvas');
+    var ctx = canvas.getContext('2d');
+    var cx = 64, cy = 64, r = 54, lw = 16;
+    ctx.clearRect(0, 0, 128, 128);
+    var total = entries.reduce(function (s, e) { return s + e[1]; }, 0);
+    var start = -Math.PI / 2;
+    entries.forEach(function (e) {
+      var sweep = (e[1] / total) * 2 * Math.PI;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, start, start + sweep);
+      ctx.strokeStyle = COLORS[e[0]] || COLORS.other;
+      ctx.lineWidth = lw;
+      ctx.stroke();
+      start += sweep;
+    });
+
+    var legend = entries.map(function (e) {
+      return '<div class="flex items-center justify-between text-[11px]">'
+        + '<div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full" style="background:' + (COLORS[e[0]] || COLORS.other) + '"></div>'
+        + esc(e[0].charAt(0).toUpperCase() + e[0].slice(1)) + '</div>'
+        + '<span class="font-data-md">' + e[1].toFixed(1) + '%</span></div>';
+    }).join('');
+    document.getElementById('alloc-legend').innerHTML = legend;
   }
 
-  Promise.all([loadPositions(), loadAlerts()]).catch(function(e){ console.error(e); });
-  setInterval(function(){ loadPositions(); loadAlerts(); }, 10000);
+  function renderStratExp(d) {
+    var box = document.getElementById('strat-bars');
+    if (!d || !d.strategy_exposure_usd || !Object.keys(d.strategy_exposure_usd).length) {
+      box.innerHTML = '<div class="text-[10px] text-on-surface-variant text-center py-4">No data</div>';
+      return;
+    }
+    var entries = Object.entries(d.strategy_exposure_usd);
+    var max = Math.max.apply(null, entries.map(function (e) { return e[1]; }));
+    box.innerHTML = entries.map(function (e) {
+      var pct = max > 0 ? (e[1] / max * 100) : 0;
+      return '<div>'
+        + '<div class="flex items-center justify-between text-[10px] mb-1">'
+        + '<span class="uppercase">' + esc(e[0].replace(/_/g, ' ')) + '</span>'
+        + '<span class="text-primary-fixed-dim">' + fmtUSD(e[1]) + '</span></div>'
+        + '<div class="w-full h-1.5 bg-surface-container-highest rounded-full">'
+        + '<div class="h-full bg-primary-fixed-dim rounded-full" style="width:' + pct.toFixed(1) + '%"></div></div></div>';
+    }).join('');
+  }
+
+  function renderCorrelation(d) {
+    var c = d ? d.correlation : null;
+    var empty = document.getElementById('corr-empty');
+    var headers = document.getElementById('corr-headers');
+    var body = document.getElementById('corr-body');
+    var grid = document.getElementById('corr-grid');
+
+    if (!c || !c.labels || c.labels.length < 2) {
+      empty.style.display = '';
+      headers.innerHTML = '';
+      body.innerHTML = '';
+      return;
+    }
+    empty.style.display = 'none';
+    var n = c.labels.length;
+    grid.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
+    grid.style.gridTemplateRows = 'repeat(' + n + ', 1fr)';
+
+    var out = '';
+    c.labels.forEach(function (lbl) {
+      out += '<div class="text-[9px] uppercase text-center text-on-surface-variant flex items-center justify-center">' + esc(lbl) + '</div>';
+    });
+    headers.innerHTML = out;
+
+    var bodyHtml = '';
+    c.matrix.forEach(function (row, i) {
+      bodyHtml += '<div class="text-[9px] uppercase text-on-surface-variant flex items-center">' + esc(c.labels[i]) + '</div>';
+      row.forEach(function (v, j) {
+        var cls = 'flex items-center justify-center text-[10px]';
+        if (i === j) {
+          cls += ' bg-primary-container/40 font-bold';
+        } else if (Math.abs(v) > 0.5) {
+          cls += v > 0 ? ' bg-error/30 text-error font-bold' : ' bg-primary-container/40';
+        } else {
+          cls += ' bg-surface-container-highest';
+        }
+        bodyHtml += '<div class="' + cls + '">' + (i === j ? 1.0 : v).toFixed(2) + '</div>';
+      });
+    });
+    body.innerHTML = bodyHtml;
+  }
+
+  function renderAlerts(d) {
+    var box = document.getElementById('alerts-list');
+    var count = document.getElementById('alerts-count');
+    if (!d || !d.alerts || !d.alerts.length) {
+      box.innerHTML = '<div class="p-4 text-[10px] text-on-surface-variant text-center">No alerts</div>';
+      count.textContent = '0';
+      return;
+    }
+    count.textContent = d.alerts.length;
+    box.innerHTML = d.alerts.map(function (a) {
+      return '<div class="p-2 flex gap-3 hover:bg-surface-container-high cursor-pointer transition-colors">'
+        + severityIcon(a.severity)
+        + '<div class="flex-1 min-w-0">'
+        + '<div class="flex items-center justify-between">'
+        + '<span class="text-[10px] font-bold ' + severityClass(a.severity) + ' uppercase">' + esc(a.symbol) + '</span>'
+        + '<span class="text-[9px] text-on-surface-variant">' + (a.ts ? a.ts.split('T')[1].split('.')[0] : '') + '</span>'
+        + '</div>'
+        + '<p class="text-[11px] leading-tight mt-1 text-on-surface-variant">' + esc(a.message) + '</p>'
+        + '</div></div>';
+    }).join('');
+  }
+
+  function tick() {
+    loadData().then(function (d) {
+      if (d) {
+        renderKPIs(d);
+        renderPositions(d);
+        renderAlloc(d);
+        renderStratExp(d);
+        renderCorrelation(d);
+        renderAlerts(d);
+      }
+    });
+  }
+
+  tick();
+  setInterval(tick, 6000);
 })();
 </script>
-{% endblock scripts %}
+{% endblock page_scripts %}

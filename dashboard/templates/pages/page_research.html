@@ -1,97 +1,722 @@
 {% extends "partials/_base.html" %}
 
 {% block title %}Savanna Capital — Research Lab{% endblock %}
-
 {% set page_title = "Research Lab" %}
-
 {% set active = "research" %}
 
 {% block content %}
-<div class="p-container-padding overflow-y-auto h-full">
+<!-- =================================================================
+RESEARCH LAB — full build
+Three independent panels:
+1. fixed top nav (app-scoped — Research / Execution / Ops / Analytics)
+2. pipeline breadcrumb bar
+3. 3-column workspace: Dataset Explorer | Notebook | Observations
+================================================================= -->
 
-  <!-- Top actions -->
-  <div class="flex items-center gap-2 mb-unit*4">
-    <a href="/strategies" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">Deploy Strategy</a>
-  </div>
+<!-- ===== Panel 1: Research Workspace Content Area ===== -->
+<main id="rl-workspace-root" class="fixed top-0 left-sidebar-width right-0 bottom-0 flex flex-col overflow-hidden">
 
-  <!-- Charts -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">OHLCV Chart</h3>
-    <canvas id="ohlcvChart" height="200"></canvas>
-  </div>
-
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Datasets (MT5 Symbol Pool)</h3>
-    <div class="overflow-x-auto">
-    <table class="w-full text-left border-collapse">
-      <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-        <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Asset Class</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Supported TFs</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Cached Bars</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Status</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Action</th>
-      </tr></thead>
-      <tbody id="datasets-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-        <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-      </tbody>
-    </table>
-    </div>
-  </div>
-
+<!-- ── Top Navigation Bar (app-scoped, h-12) ── -->
+<header class="rl-panel h-12 bg-surface-container-lowest border-b border-outline-variant flex items-center justify-between px-3 flex-shrink-0 z-50">
+<!-- Left: brand + domain nav -->
+<div class="flex items-center">
+<span class="font-headline-md text-headline-md font-black tracking-tighter text-on-surface mr-6">Savanna OS</span>
+<nav class="flex gap-4 items-center">
+<span class="rl-nav-active text-primary font-bold font-label-sm text-label-sm border-b-2 border-primary pb-1">Research</span>
+<span class="text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm cursor-pointer transition-colors">Execution</span>
+<span class="text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm cursor-pointer transition-colors">Operations</span>
+<span class="text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm cursor-pointer transition-colors">Analytics</span>
+</nav>
 </div>
+<!-- Right: deploy btn + icons + profile -->
+<div class="flex items-center gap-4">
+<button id="rl-deploy-btn"
+class="bg-primary-container text-on-primary px-3 py-1 font-label-sm text-label-sm font-bold uppercase tracking-wider
+hover:opacity-90 transition-opacity rounded">
+Deploy Strategy
+</button>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface text-xl">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface text-xl">terminal</span>
+<div class="w-6 h-6 rounded-full bg-surface-variant border border-outline-variant flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-xs text-on-surface-variant">person</span>
+</div>
+</div>
+</header>
+
+<!-- ── Research Pipeline Bar (h-10, full-width breadcrumb) ── -->
+<div id="rl-pipeline-bar" class="rl-panel h-10 bg-surface-container border-b border-outline-variant flex items-center px-6 gap-0 flex-shrink-0">
+<!-- rendered by JS: Idea › Research › Hypothesis › Backtest › Validation › Deployment -->
+</div>
+
+<!-- ── 3-Column Workspace: Dataset | Notebook | Observations ── -->
+<div class="flex-1 flex overflow-hidden min-h-0 gap-panel-gap bg-surface-container-lowest">
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- LEFT: Dataset Explorer (w-64, fixed width) ── -->
+<!-- ──────────────────────────────────────────────────────── -->
+<aside id="panel-datasets" class="rl-panel w-64 bg-surface border-r border-outline-variant flex flex-col shrink-0 overflow-hidden">
+<!-- Panel header -->
+<div class="h-9 bg-surface-container-low border-b border-outline-variant flex items-center justify-between px-3 flex-shrink-0">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Available Datasets</span>
+<span class="material-symbols-outlined text-outline text-sm cursor-pointer hover:text-primary-container transition-colors">filter_list</span>
+</div>
+<!-- Category list -->
+<div id="rl-dataset-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+<div class="text-label-sm text-outline italic px-2 py-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm animate-spin">sync</span> Loading datasets…
+</div>
+</div>
+<!-- Footer actions -->
+<div class="p-2 border-t border-outline-variant flex-shrink-0 space-y-1.5">
+<button id="rl-import-btn"
+class="w-full py-2 bg-surface-variant hover:bg-surface-container-highest rounded font-label-sm text-label-sm
+text-on-surface-variant flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-sm">cloud_download</span>
+Import New Data
+</button>
+<div id="rl-loaded-badge" class="text-center text-[10px] font-data-md text-primary-fixed-dim font-bold uppercase tracking-wider hidden">
+● LOADED
+</div>
+</div>
+</aside>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- CENTER: Research Notebook (flex-1) ── -->
+<!-- ──────────────────────────────────────────────────────── -->
+<section id="panel-notebook" class="rl-panel flex-1 flex flex-col overflow-hidden bg-surface-container-lowest min-w-0">
+
+<!-- Notebook header: tabs + run -->
+<div class="rl-panel h-9 bg-surface border-b border-outline-variant flex items-center justify-between px-1 flex-shrink-0 overflow-hidden">
+<!-- File tabs -->
+<div id="rl-tabs-bar" class="flex h-full overflow-x-auto flex-1">
+<!-- populated by JS -->
+</div>
+<!-- Right: kernel indicator + run-all -->
+<div class="flex items-center gap-2 pr-2 shrink-0">
+<span id="rl-kernel-badge"
+class="flex items-center gap-1.5 text-[10px] font-data-md text-primary-fixed-dim border border-outline-variant px-2 py-0.5 rounded">
+<span id="rl-kernel-dot" class="w-1.5 h-1.5 rounded-full bg-primary-fixed-dim animate-pulse"></span>
+Python 3.11 (CPU)
+</span>
+<button id="rl-run-all-btn"
+class="flex items-center gap-1 text-primary-container bg-primary-container/10 hover:bg-primary-container/20
+px-2.5 py-1 rounded border border-primary-container/30 transition-colors font-label-sm text-[11px] font-bold">
+<span class="material-symbols-outlined text-[14px]">play_arrow</span>
+Run All
+</button>
+</div>
+</div>
+
+<!-- Notebook body: code editor surface + output -->
+<div id="rl-notebook-body" class="rl-panel flex-1 overflow-auto custom-scrollbar p-5 font-data-md text-data-md leading-relaxed
+bg-surface-container-lowest relative">
+
+<!-- Default welcome state (shown until a dataset is loaded) ── -->
+<div id="rl-welcome-state" class="max-w-3xl mx-auto space-y-5">
+<div class="flex items-center gap-2 text-primary-container">
+<span class="material-symbols-outlined text-lg">science</span>
+<h2 class="font-headline-md text-headline-md font-bold">Research Workspace</h2>
+</div>
+<p class="text-on-surface-variant font-body-md text-body-md max-w-xl">
+Select a dataset from the left panel to begin. The notebook supports Python code blocks, Markdown notes, and inline data visualizations.
+</p>
+<!-- Accepted file-type chips -->
+<div class="flex flex-wrap gap-2 pt-2">
+<span class="px-2 py-1 bg-surface-container border border-outline-variant text-on-surface-variant text-[10px] font-data-md rounded">.py</span>
+<span class="px-2 py-1 bg-surface-container border border-outline-variant text-on-surface-variant text-[10px] font-data-md rounded">.csv</span>
+<span class="px-2 py-1 bg-surface-container border border-outline-variant text-on-surface-variant text-[10px] font-data-md rounded">.md</span>
+<span class="px-2 py-1 bg-surface-container border border-outline-variant text-on-surface-variant text-[10px] font-data-md rounded">.json</span>
+</div>
+
+<!-- Pipeline summary stub -->
+<div class="border border-outline-variant rounded bg-surface-container p-4 space-y-3 mt-6">
+<div class="text-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">
+Active Pipeline: Research
+</div>
+<div class="grid grid-cols-2 gap-2 text-[11px] font-data-md">
+<div class="text-outline">Stage <span class="text-primary-container font-bold">2 / 5</span></div>
+<div class="text-outline">Active strategies: <span class="text-on-surface font-bold" id="rl-strat-count">--</span></div>
+<div class="text-outline">Open hypotheses: <span class="text-on-surface font-bold" id="rl-hyp-count">--</span></div>
+<div class="text-outline">Datasets: <span class="text-on-surface font-bold" id="rl-ds-count">--</span></div>
+</div>
+</div>
+</div>
+
+<!-- Active notebook content (populated once a dataset is selected) ── -->
+<div id="rl-notebook-content" class="rl-panel max-w-4xl mx-auto space-y-5 hidden">
+<!-- Code Block 01 — Environment Setup -->
+<div class="rl-code-block border border-outline-variant rounded bg-[#0A0E12] overflow-hidden">
+<div class="flex items-center justify-between px-4 py-2 bg-surface-variant border-b border-outline-variant">
+<span class="text-[11px] text-outline uppercase font-bold tracking-tighter">Section 01 — Environment Setup</span>
+<div class="flex items-center gap-2">
+<button class="rl-run-block material-symbols-outlined text-outline text-[14px] cursor-pointer hover:text-primary-container transition-colors" title="Run this block">play_arrow</button>
+<span class="rl-collapse material-symbols-outlined text-outline text-[14px] cursor-pointer hover:text-on-surface transition-colors" title="Collapse">unfold_less</span>
+</div>
+</div>
+<div class="rl-block-body p-4 bg-[#0D1117]/80 overflow-x-auto space-y-0.5">
+<pre class="whitespace-pre"><span class="rl-kw">import</span> <span class="rl-std">numpy</span> <span class="rl-kw">as</span> <span class="rl-std">np</span>
+<span class="rl-kw">import</span> <span class="rl-std">pandas</span> <span class="rl-kw">as</span> <span class="rl-std">pd</span>
+
+<span class="rl-cmt"># Load active dataset into research scope</span>
+<span class="rl-obj">df</span> = <span class="rl-obj">sc</span>.load_dataset( <span id="rl-code-dataset-name" class="rl-str">"&lt;none&gt;"</span>, start=<span class="rl-str">"2023-10-01"</span> )
+<span class="rl-obj">df</span>.head()</pre>
+</div>
+<!-- Block stdout (hidden until run) -->
+<div class="rl-block-output hidden border-t border-outline-variant/40 bg-[#0A0E12]/90 p-4 text-on-surface-variant font-data-md text-[12px] max-h-48 overflow-auto custom-scrollbar"></div>
+</div>
+
+<!-- Code Block 02 — Hypothesis Generation -->
+<div class="rl-code-block border border-outline-variant rounded bg-[#0A0E12] overflow-hidden">
+<div class="flex items-center justify-between px-4 py-2 bg-surface-variant border-b border-outline-variant">
+<span class="text-[11px] text-outline uppercase font-bold tracking-tighter">Section 02 — Hypothesis Generation</span>
+<div class="flex items-center gap-2">
+<button class="rl-run-block material-symbols-outlined text-outline text-[14px] cursor-pointer hover:text-primary-container transition-colors" title="Run this block">play_arrow</button>
+<span class="rl-collapse material-symbols-outlined text-outline text-[14px] cursor-pointer hover:text-on-surface transition-colors" title="Collapse">unfold_less</span>
+</div>
+</div>
+<div class="rl-block-body p-4 bg-[#0D1117]/80 overflow-x-auto space-y-0.5">
+<pre class="whitespace-pre"><span class="rl-kw">def</span> <span class="rl-fn">compute_zscore</span>(series, window=<span class="rl-num">20</span>):
+    rm = series.rolling(window).mean()
+    rs = series.rolling(window).std()
+    <span class="rl-kw">return</span> (series - rm) / rs
+
+<span class="rl-obj">df</span>[<span class="rl-str">"z_score"</span>] = <span class="rl-fn">compute_zscore</span>(<span class="rl-obj">df</span>[<span class="rl-str">"mid_price"</span>])
+<span class="rl-obj">df</span>[<span class="rl-str">"z_sig"</span>] = (<span class="rl-obj">df</span>[<span class="rl-str">"z_score"</span>].abs() &gt; <span class="rl-num">2.4</span>).astype(<span class="rl-std">int</span>)</pre>
+</div>
+<div class="rl-block-output hidden border-t border-outline-variant/40 bg-[#0A0E12]/90 p-4 text-on-surface-variant font-data-md text-[12px] max-h-48 overflow-auto custom-scrollbar"></div>
+</div>
+
+<!-- Markdown Block — Findings -->
+<div class="rl-md-block border border-outline-variant rounded bg-surface-container overflow-hidden">
+<div class="flex items-center justify-between px-4 py-2 bg-surface-variant border-b border-outline-variant">
+<span class="text-[11px] text-outline uppercase font-bold tracking-tighter">Section 03 — Findings</span>
+<span class="material-symbols-outlined text-outline text-[14px]">description</span>
+</div>
+<div class="p-5 font-body-md text-body-md text-on-surface-variant space-y-2">
+<p>Spread exhaustion is a strong mean-reversion signal at 50 ms granularity. Preliminary validation on the active dataset indicates:</p>
+<ul class="list-disc list-inside space-y-1">
+<li>Z-score &gt; 2.4 produced a <span class="text-on-surface font-bold">68 % win rate</span> over a 500 ms reversion horizon.</li>
+<li>London / New York overlap window shows highest signal strength.</li>
+<li>Liquidity vacuum at mid-price levels precedes directional bursts.</li>
+</ul>
+<p class="text-on-surface-variant/60 italic">Update observations in the right panel, then commit to hypothesis pipeline.</p>
+</div>
+</div>
+
+<!-- Visualization placeholder — Alpha Signal Intensity Map -->
+<div id="rl-viz-block" class="border border-outline-variant rounded bg-surface-container overflow-hidden">
+<div class="flex items-center justify-between px-4 py-2 bg-surface-variant border-b border-outline-variant">
+<span class="text-[11px] text-outline uppercase font-bold tracking-tighter">Visualisation — Alpha Signal Intensity</span>
+<span class="material-symbols-outlined text-outline text-[14px]">bar_chart</span>
+</div>
+<div id="rl-viz-container" class="relative w-full h-52 bg-surface-container-lowest flex items-center justify-center overflow-hidden">
+<div class="flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-4xl opacity-40">auto_graph</span>
+<span class="text-[10px] text-outline font-label-sm uppercase tracking-wider">Run a code block to render visualisation</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Bottom file-tabs bar (shown once notebook becomes active) -->
+<div id="rl-file-tabs" class="rl-panel h-8 bg-surface border-t border-outline-variant flex items-center overflow-x-auto flex-shrink-0 hidden">
+<!-- JS-populated <div> tabs -->
+</div>
+</section>
+
+<!-- ──────────────────────────────────────────────────────── -->
+<!-- RIGHT: Observation Panel (w-80, fixed) ── -->
+<!-- ──────────────────────────────────────────────────────── -->
+<aside id="panel-observations" class="rl-panel w-80 bg-surface border-l border-outline-variant flex flex-col shrink-0 overflow-hidden">
+
+<!-- Panel header -->
+<div class="h-9 bg-surface-container-low border-b border-outline-variant flex items-center px-3 flex-shrink-0">
+<div>
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface text-[13px]">Key Observations</h3>
+<p class="text-[10px] text-outline font-label-sm uppercase tracking-wider">Real-Time Research Logging</p>
+</div>
+</div>
+
+<!-- Observation cards list -->
+<div id="rl-obs-list" class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3">
+<!-- JS-populated -->
+</div>
+
+<!-- Inline observation entry form -->
+<div class="p-3 border-t border-outline-variant bg-surface-container-low flex-shrink-0 space-y-2">
+<div class="flex gap-2">
+<select id="rl-obs-type"
+class="bg-surface-container-high border border-outline-variant text-on-surface text-[11px] font-label-sm p-1.5 rounded
+focus:border-primary-container focus:ring-0">
+<option value="STAT_SIG">STAT_SIG</option>
+<option value="ANOMALY">ANOMALY</option>
+<option value="DATA_GAP">DATA_GAP</option>
+<option value="VOLATILITY">VOLATILITY</option>
+<option value="REGIME_SHIFT">REGIME_SHIFT</option>
+<option value="MODEL_ALERT">MODEL_ALERT</option>
+<option value="CORRELATION">CORRELATION</option>
+<option value="RISK">RISK</option>
+</select>
+<button id="rl-add-obs-btn"
+class="bg-surface-variant hover:bg-surface-container-highest text-on-surface-variant px-2.5 py-1 rounded
+text-[11px] font-bold transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">add</span>
+</button>
+</div>
+<textarea id="rl-obs-input"
+class="rl-panel w-full bg-surface-container-high border border-outline-variant text-on-surface font-body-md text-body-md
+p-2 rounded resize-none placeholder:text-on-surface-variant/30 focus:border-primary-container focus:ring-0"
+rows="2" placeholder="Log a new research observation…"></textarea>
+</div>
+
+<!-- Workspace Stats + Commit -->
+<div class="p-3 border-t border-outline-variant bg-surface-container-lowest flex-shrink-0 space-y-3">
+<div class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Workspace Stats</div>
+<div class="grid grid-cols-2 gap-2">
+<div class="p-2 bg-surface-container border border-outline-variant rounded">
+<div class="text-[9px] text-outline uppercase">RAM Usage</div>
+<div class="text-data-md text-on-surface font-data-md">12.4 / 64 GB</div>
+</div>
+<div class="p-2 bg-surface-container border border-outline-variant rounded">
+<div class="text-[9px] text-outline uppercase">GPU Load</div>
+<div id="rl-gpu-stat" class="text-data-md font-data-md text-primary-fixed-dim">--</div>
+</div>
+<div class="p-2 bg-surface-container border border-outline-variant rounded">
+<div class="text-[9px] text-outline uppercase">Running Jobs</div>
+<div id="rl-jobs-stat" class="text-data-md font-data-md text-on-surface">0</div>
+</div>
+<div class="p-2 bg-surface-container border border-outline-variant rounded">
+<div class="text-[9px] text-outline uppercase">Notebook Runtime</div>
+<div id="rl-runtime-stat" class="text-data-md font-data-md text-on-surface-variant">0s</div>
+</div>
+</div>
+<button id="rl-commit-btn"
+class="rl-panel w-full py-2.5 bg-primary-container text-on-primary font-bold font-label-sm text-label-sm uppercase tracking-wider
+rounded hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[14px]">save</span>
+Commit to Hypothesis
+</button>
+</div>
+</aside>
+</div>
+</main>
+
+<!-- Toast container (rendered outside fixed layout so overlays work on all panels) -->
+<div id="rl-toast-container" class="fixed bottom-8 right-8 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+
 {% endblock content %}
 
 {% block scripts %}
 <script>window.__PAGE_INIT__ = "research";</script>
-
 <script>
-async function initResearch() {
-  const r = await apiFetch('/api/data/datasets');
-  renderDatasets(r);
-  if (r.datasets && r.datasets.length > 0) loadOHLCV(r.datasets[0].symbol);
-}
-function renderDatasets(data) {
-  const tb = document.getElementById('datasets-tbody');
-  if (!tb) return;
-  tb.innerHTML = data.map(function(d) {
-    return '<tr><td class="px-cell-padding-x py-cell-padding-y font-mono font-medium text-on-surface">' + d.symbol + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant">' + d.asset_class + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant">' + (d.supported_timeframes||[]).slice(0,3).join(', ') + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface">' + (d.cached_bars||0).toLocaleString() + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y"><span class="px-1 py-0.5 text-label-sm rounded ' + (d.cached_bars > 0 ? 'bg-primary/15 text-primary' : 'bg-surface-variant text-outline') + '">' + (d.cached_bars > 0 ? 'Available' : 'No cache') + '</span></td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y"><button class="px-2 py-0.5 text-label-sm border border-outline-variant" onclick="loadOHLCV(\'' + d.symbol + '\', \'' + d.timeframe + '\')">Inspect</button></td></tr>';
-  }).join('');
-}
-async function loadOHLCV(symbol, tf) {
-  tf = tf || 'H1';
-  const r = await apiFetch('/api/data/datasets/' + symbol + '/ohlcv?timeframe=' + tf + '&limit=200');
-  drawOHLCV(r);
-}
-function drawOHLCV(data) {
-  const canvas = document.getElementById('ohlcvChart');
-  if (!canvas) return;
-  if (canvas._chart) canvas._chart.destroy();
-  const bars = data.bars || [];
-  const labels = bars.map(function(b) { return new Date(b.timestamp).toLocaleDateString(); });
-  const closes = bars.map(function(b) { return b.close; });
-  const c = '#00e5ff';
-  canvas._chart = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{ label: data.symbol + ' ' + data.timeframe, data: closes, borderColor: c, borderWidth: 2, pointRadius: 0, tension: 0.15, fill: true, backgroundColor: 'rgba(0,229,255,0.08)' }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { labels: { color: '#bac9cc' } } },
-      scales: { x: { ticks: { color: '#849396', maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { ticks: { color: '#bac9cc' }, grid: { color: 'rgba(255,255,255,0.04)' } } },
-    }
-  });
-  const sum = document.getElementById('ohlcv-summary');
-  if (sum && bars.length) { sum.textContent = bars.length + ' bars — last close: ' + bars[bars.length - 1].close; }
-}
-document.addEventListener('DOMContentLoaded', function() { if (window.__PAGE_INIT__ === 'research') initResearch(); });
-</script>
+(function () {
+'use strict';
+if (window.__PAGE_INIT__ !== 'research') return;
 
+// ─────────────────────────────────────────────────────────────────
+// A — Helpers
+// ─────────────────────────────────────────────────────────────────
+function esc(s) { if (s == null) return ''; return String(s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[c]; }); }
+
+// ─────────────────────────────────────────────────────────────────
+// B — Pipeline breadcrumb (5 stages + deployment slot)
+// ─────────────────────────────────────────────────────────────────
+var pipelineStages = [
+{ key: 'idea', label: 'Idea', icon: 'tips_and_updates' },
+{ key: 'research', label: 'Research', icon: 'science', active: true },
+{ key: 'hypothesis', label: 'Hypothesis', icon: 'model_training' },
+{ key: 'backtest', label: 'Backtest', icon: 'history' },
+{ key: 'validation', label: 'Validation', icon: 'verified' },
+];
+
+function renderPipeline() {
+var bar = document.getElementById('rl-pipeline-bar');
+if (!bar) return;
+var html = '';
+pipelineStages.forEach(function (stage, i) {
+var isLast = i === pipelineStages.length - 1;
+var bg = stage.active ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant';
+var dim = stage.active ? '' : 'opacity-50';
+var cur = stage.active ? '' : 'cursor-default';
+html += '<div class="flex items-center">';
+html += '<div class="flex items-center gap-2 px-3 py-1 rounded-lg ' + bg + ' ' + dim + ' ' + cur + '">';
+html += '<span class="material-symbols-outlined text-[16px]">' + stage.icon + '</span>';
+html += '<span class="font-label-sm text-label-sm' + (stage.active ? ' font-bold' : '') + '">' + esc(stage.label) + '</span>';
+html += '</div>';
+if (!isLast) html += '<span class="material-symbols-outlined mx-2 opacity-30 text-[16px]">chevron_right</span>';
+html += '</div>';
+});
+// deployment slot (grayed out — requires VALIDATED)
+html += '<div class="flex items-center ml-1 opacity-50 cursor-default">';
+html += '<div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-surface-container-high text-outline">';
+html += '<span class="material-symbols-outlined text-[16px]">rocket_launch</span>';
+html += '<span class="font-label-sm text-label-sm">Deployment</span>';
+html += '</div></div>';
+bar.innerHTML = html;
+}
+renderPipeline();
+
+// ─────────────────────────────────────────────────────────────────
+// C — State
+// ─────────────────────────────────────────────────────────────────
+var activeDataset = null;
+var notebookFiles = [];
+var activeFileIdx = 0;
+var obsCounter = 0;
+var notebookStarted = false;
+var startTime = Date.now();
+
+// Mirrors the MT5 symbol pool — used as the "data catalogue" rendered in the dataset panel
+var datasetMeta = [
+{ cat: 'Metals', icon: 'query_stats', items: [
+{ name: 'XAUUSD_Tick_L1', size: '4.2 GB', loaded: false },
+{ name: 'XAGUSD_M1_Hist', size: '1.8 GB', loaded: false },
+]},
+{ cat: 'Crypto (L2)', icon: 'database', color: 'text-primary-fixed-dim', items: [
+{ name: 'BTCUSD_OB_50ms', size: '2.1 GB', loaded: false },
+{ name: 'ETHUSD_L2_Full', size: '12.4 GB', loaded: false },
+]},
+{ cat: 'Equities', icon: 'grid_view', items: [
+{ name: 'SPY_Options_OIP', size: '850 MB', loaded: false },
+]},
+];
+
+var mockObs = [
+{ type: 'STAT_SIG', ts: '14:02', title: 'Z-score threshold signal',
+content: 'Z-score thresholds above 2.4 produced 68% win rate for mean-reversion over 500ms horizon.',
+tags: ['#BTC','#HFT'], confidence: 0.68 },
+{ type: 'ANOMALY', ts: '13:45', title: 'Liquidity vacuum',
+content: 'Observed liquidity vacuum at mid-price. Potential wash-trading detection required.',
+tags: ['#ETH'], confidence: 0.4 },
+{ type: 'DATA_GAP', ts: '13:20', title: 'Feed interruption',
+content: 'Packet loss detected in market data feed at 13:15:22. Validation pending.',
+tags: [], confidence: null },
+];
+
+// ─────────────────────────────────────────────────────────────────
+// D — Dataset list rendering (independent of other panels)
+// ─────────────────────────────────────────────────────────────────
+function renderDatasets() {
+var list = document.getElementById('rl-dataset-list');
+if (!list) return;
+var html = '';
+datasetMeta.forEach(function (group) {
+html += '<div>';
+html += '<div class="flex items-center gap-2 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-outline mt-2 mb-1">';
+html += esc(group.cat);
+html += '</div>';
+group.items.forEach(function (ds) {
+var activeCls = ds.loaded
+? 'bg-surface-container-high border-outline-variant'
+: 'border-transparent hover:border-outline-variant hover:bg-surface-variant';
+var iconCol = ds.loaded ? 'text-primary-fixed-dim' : (group.color || 'text-outline');
+var badge = ds.loaded
+? '<span class="text-[9px] font-data-md text-primary-fixed-dim font-bold">LOADED</span>'
+: '<span class="text-[9px] font-data-md text-outline opacity-0 group-hover:opacity-100">' + esc(ds.size) + '</span>';
+html += '<div class="rl-ds-item group flex items-center justify-between p-2 rounded cursor-pointer transition-all border '
++ activeCls + '" data-dataset="' + esc(ds.name) + '">';
+html += '<div class="flex items-center gap-2 overflow-hidden">';
+html += '<span class="material-symbols-outlined text-sm ' + iconCol + '">' + esc(group.icon) + '</span>';
+html += '<span class="text-label-sm font-data-md truncate text-on-surface">' + esc(ds.name) + '</span>';
+html += '</div>';
+html += badge;
+html += '</div>';
+});
+html += '</div>';
+});
+list.innerHTML = html;
+list.querySelectorAll('.rl-ds-item').forEach(function (el) {
+el.addEventListener('click', function () { activateDataset(this.dataset.dataset); });
+});
+
+// Welcome-state counters (lives alongside dataset panel)
+try {
+var nsEl = document.getElementById('rl-strat-count');
+var nhEl = document.getElementById('rl-hyp-count');
+var ndEl = document.getElementById('rl-ds-count');
+if (nsEl) nsEl.textContent = '7';
+if (nhEl) nhEl.textContent = '3';
+if (ndEl) ndEl.textContent = String(datasetMeta.reduce(function(a,g){return a + g.items.length;}, 0));
+} catch (_) {}
+}
+renderDatasets();
+
+function activateDataset(name) {
+activeDataset = name;
+datasetMeta.forEach(function (g) { g.items.forEach(function (ds) { ds.loaded = ds.name === name; }); });
+renderDatasets();
+var badge = document.getElementById('rl-loaded-badge');
+if (badge) badge.classList.remove('hidden');
+// update code placeholder variable
+var nm = document.getElementById('rl-code-dataset-name');
+if (nm) nm.textContent = '"' + name + '"';
+// swap panels
+document.getElementById('rl-welcome-state').classList.add('hidden');
+document.getElementById('rl-notebook-content').classList.remove('hidden');
+document.getElementById('rl-file-tabs').classList.remove('hidden');
+addFileTab(name + '_research.ipynb', true);
+// reset block outputs
+document.querySelectorAll('.rl-block-output').forEach(function (el) { el.classList.add('hidden'); el.innerHTML = ''; });
+if (!notebookStarted) notebookStarted = true;
+showToast('Dataset loaded: ' + name, 'success');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// E — File tabs
+// ─────────────────────────────────────────────────────────────────
+function addFileTab(filename, active) {
+var bar = document.getElementById('rl-file-tabs');
+if (!bar) return;
+var tab = document.createElement('div');
+tab.className = 'flex items-center gap-1.5 px-3 h-full border-r border-outline-variant cursor-pointer shrink-0 '
++ (active ? 'bg-surface-container-lowest text-primary border-t-2 border-t-primary' : 'text-on-surface-variant hover:bg-surface-variant');
+tab.innerHTML = '<span class="material-symbols-outlined text-[12px]">description</span>'
++ '<span class="text-[11px] font-data-md truncate max-w-[140px]">' + esc(filename) + '</span>'
++ '<span class="rl-close-tab material-symbols-outlined text-[11px] text-outline hover:text-error cursor-pointer ml-0.5">close</span>';
+tab.addEventListener('click', function (e) {
+if (e.target.classList.contains('rl-close-tab')) { bar.removeChild(tab); return; }
+bar.querySelectorAll('div').forEach(function (t) {
+t.className = 'flex items-center gap-1.5 px-3 h-full border-r border-outline-variant cursor-pointer shrink-0 text-on-surface-variant hover:bg-surface-variant';
+});
+tab.className = 'flex items-center gap-1.5 px-3 h-full border-r border-outline-variant cursor-pointer shrink-0 bg-surface-container-lowest text-primary border-t-2 border-t-primary';
+});
+bar.appendChild(tab);
+bar.scrollLeft = bar.scrollWidth;
+}
+addFileTab('mean_reversion_alpha.ipynb', true);
+
+// ─────────────────────────────────────────────────────────────────
+// F — Observation Panel
+// ─────────────────────────────────────────────────────────────────
+function obsTypeStyle(type) {
+var map = {
+STAT_SIG: 'bg-primary-container/20 text-primary-container',
+ANOMALY: 'bg-tertiary-container/20 text-on-tertiary-container',
+DATA_GAP: 'bg-secondary-container/20 text-on-secondary-container',
+VOLATILITY: 'bg-primary-container/20 text-primary-container',
+REGIME_SHIFT: 'bg-tertiary-container/20 text-on-tertiary-container',
+MODEL_ALERT: 'bg-error-container/20 text-on-error-container',
+CORRELATION: 'bg-secondary-container/20 text-on-secondary-container',
+RISK: 'bg-error-container/20 text-on-error-container',
+};
+return map[type] || 'bg-surface-container-high text-on-surface-variant';
+}
+
+function renderObservations() {
+var list = document.getElementById('rl-obs-list');
+if (!list) return;
+if (!mockObs.length) {
+list.innerHTML = '<div class="text-[11px] text-outline italic p-2">No observations recorded yet.</div>';
+return;
+}
+list.innerHTML = mockObs.map(function (o, idx) {
+var tags = (o.tags || []).map(function (t) {
+return '<span class="text-[9px] font-data-md text-outline border border-outline-variant px-1 py-0.5 rounded">' + esc(t) + '</span>';
+}).join(' ');
+var conf = (o.confidence != null)
+? '<span class="text-[9px] text-on-surface-variant font-data-md ml-2">conf ' + (o.confidence * 100).toFixed(0) + '%</span>' : '';
+var highlight = idx === 0 ? 'border-l-2 border-l-primary-container' : '';
+return '<div class="p-3 rounded border border-outline-variant/50 bg-surface-container-high space-y-1.5 ' + highlight + '">'
++ '<div class="flex justify-between items-center">'
++ '<span class="text-[10px] font-data-md px-1.5 py-0.5 rounded ' + obsTypeStyle(o.type) + '">' + esc(o.type) + '</span>'
++ '<span class="text-[9px] font-data-md text-outline">' + esc(o.ts) + conf + '</span>'
++ '</div>'
++ '<p class="text-body-md text-on-surface-variant leading-snug">' + esc(o.content || o.title) + '</p>'
++ (tags ? '<div class="flex gap-1.5 flex-wrap pt-0.5">' + tags + '</div>' : '')
++ '</div>';
+}).join('');
+}
+renderObservations();
+
+document.getElementById('rl-add-obs-btn').addEventListener('click', function () {
+var input = document.getElementById('rl-obs-input');
+var type = document.getElementById('rl-obs-type').value;
+var text = (input.value || '').trim();
+if (!text) { input.focus(); return; }
+var now = new Date();
+var ts = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+mockObs.unshift({ type: type, ts: ts, content: text, tags: [], confidence: null });
+input.value = '';
+renderObservations();
+showToast('Observation logged — ' + type, 'success');
+});
+
+// ─────────────────────────────────────────────────────────────────
+// G — Notebook code execution (simulated; hook /api/v2/research/execute here)
+// ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('.rl-run-block').forEach(function (btn) {
+btn.addEventListener('click', function () {
+var block = this.closest('.rl-code-block');
+if (!block) return;
+var out = block.querySelector('.rl-block-output');
+if (!out) return;
+out.classList.remove('hidden');
+out.innerHTML = '<span class="text-primary-fixed-dim animate-pulse">Running…</span>';
+setTimeout(function () {
+var output = 'df.shape: (14,420, 8)\nmid_price mean: 42,152.31 ± 0.73\nz_score range: [-4.2, 3.8]\nsignals detected: 847\ncoverage: 2023-10 → 2024-03';
+out.innerHTML = '<pre class="whitespace-pre-wrap">' + esc(output) + '</pre>';
+// also populate viz placeholder
+renderViz();
+}, 700);
+});
+});
+
+// Run All
+document.getElementById('rl-run-all-btn').addEventListener('click', function () {
+if (!activeDataset && !notebookStarted) {
+showToast('Load a dataset from the left panel before running.', 'error');
+return;
+}
+document.querySelectorAll('.rl-run-block').forEach(function (b, i) {
+setTimeout(function () { b.click(); }, i * 500);
+});
+});
+
+// Collapse block bodies
+document.querySelectorAll('.rl-collapse').forEach(function (btn) {
+btn.addEventListener('click', function () {
+var block = this.closest('.rl-code-block');
+if (!block) return;
+var body = block.querySelector('.rl-block-body');
+if (!body) return;
+var hidden = body.style.display === 'none';
+body.style.display = hidden ? '' : 'none';
+this.textContent = hidden ? 'unfold_less' : 'unfold_more';
+});
+});
+
+// ─────────────────────────────────────────────────────────────────
+// H — Visualisation renderer (simulated alpha intensity grid)
+// ─────────────────────────────────────────────────────────────────
+function renderViz() {
+if (!activeDataset) return;
+var container = document.getElementById('rl-viz-container');
+if (!container) return;
+var seed = activeDataset.length;
+var rows = Array.from({ length: 10 }, function (_, r) {
+return Array.from({ length: 14 }, function (_, c) {
+var v = Math.abs(Math.sin(r * 0.7 + seed) * Math.cos(c * 0.5 - seed * 0.3)) * 100;
+var bg = v > 65 ? 'rgba(0,229,255,0.5)' : v > 35 ? 'rgba(0,229,255,0.18)' : 'rgba(0,229,255,0.04)';
+return '<div class="rounded-sm" style="background-color:' + bg + ';height:' + (35 + v * 0.6) + '%"></div>';
+}).join('');
+}).join('');
+container.innerHTML = '<div class="w-full h-full p-4 flex flex-col gap-1.5">'
++ '<div class="flex justify-between items-center">'
++ '<div class="text-[10px] text-outline uppercase tracking-wider">Alpha Intensity — ' + esc(activeDataset) + '</div>'
++ '<div class="text-[9px] text-on-surface-variant font-data-md">Z-score density by hour-of-day (UTC)</div>'
++ '</div>'
++ '<div class="flex-1 grid grid-cols-14 gap-0.5">' + rows + '</div>'
++ '</div>';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// I — Commit to Hypothesis  (REAL API CALL — replaces stub)
+// ─────────────────────────────────────────────────────────────────
+document.getElementById('rl-commit-btn').addEventListener('click', function () {
+var btn = this, orig = btn.innerHTML;
+btn.disabled = true;
+btn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Committing…';
+
+// Gather context from the current research session
+var title = activeDataset
+? 'Research: ' + activeDataset
+: 'Untitled Hypothesis';
+var sigs = mockObs.filter(function (o) { return o.type === 'STAT_SIG'; });
+var description = sigs.length
+? sigs.map(function (s) { return '- [' + s.type + '] ' + s.content; }).join('\n')
+: 'Hypothesis committed from Research Lab.';
+
+apiFetch('/api/quant/hypotheses', {
+method: 'POST',
+body: JSON.stringify({
+title: title,
+description: description,
+symbol: null,
+timeframe: null,
+status: 'DRAFT'
+})
+})
+.then(function (result) {
+showToast('Hypothesis created — ' + (result.id || ''), 'success');
+// Notify the Hypotheses page to refresh
+window.dispatchEvent(new CustomEvent('research.hypothesis.created', { detail: result }));
+setTimeout(function () { window.location.href = '/hypotheses'; }, 600);
+})
+.catch(function (err) {
+showToast('Commit failed: ' + (err.message || err), 'error');
+btn.innerHTML = orig;
+btn.disabled = false;
+});
+});
+
+// ─────────────────────────────────────────────────────────────────
+// J — Top nav interactions
+// ─────────────────────────────────────────────────────────────────
+document.getElementById('rl-deploy-btn').addEventListener('click', function () {
+showToast('Deployment unlocks after the Validation stage.', 'info');
+});
+document.querySelectorAll('#rl-pipeline-bar, header nav span, header nav a').forEach(function (el) {
+el.addEventListener('click', function () {
+if (this.tagName === 'A') return; // real links pass through
+showToast('Workflow navigation controlled by pipeline state.', 'info');
+});
+});
+
+// ─────────────────────────────────────────────────────────────────
+// K — Import New Data
+// ─────────────────────────────────────────────────────────────────
+document.getElementById('rl-import-btn').addEventListener('click', function () {
+showToast('CSV/Parquet import route: /api/v2/research/datasets/upload (stub)', 'info');
+});
+
+// ─────────────────────────────────────────────────────────────────
+// L — Toast system
+// ─────────────────────────────────────────────────────────────────
+function showToast(msg, kind) {
+var container = document.getElementById('rl-toast-container');
+var palette = {
+success: 'border-primary-container text-primary-container',
+error: 'border-error text-error',
+info: 'border-outline text-on-surface',
+};
+var el = document.createElement('div');
+el.className = 'pointer-events-auto px-4 py-2.5 rounded border bg-surface-container shadow-lg font-label-sm text-label-sm '
++ (palette[kind] || palette.info);
+el.textContent = msg;
+container.appendChild(el);
+setTimeout(function () {
+el.style.opacity = '0';
+el.style.transition = 'opacity 0.25s';
+setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+}, 3400);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// M — Workspace stats live-ticker (simulated)
+// ─────────────────────────────────────────────────────────────────
+function tickStats() {
+var elapsed = Math.floor((Date.now() - startTime) / 1000);
+var rtEl = document.getElementById('rl-runtime-stat');
+if (rtEl) { var m = Math.floor(elapsed / 60), s = elapsed % 60; rtEl.textContent = (m ? m + 'm ' : '') + s + 's'; }
+var gEl = document.getElementById('rl-gpu-stat');
+if (gEl) gEl.textContent = (38 + Math.round(Math.random() * 18)) + '%';
+var jEl = document.getElementById('rl-jobs-stat');
+if (jEl) jEl.textContent = Math.random() < 0.25 ? '1' : '0';
+}
+setInterval(tickStats, 5000);
+tickStats();
+
+// ─────────────────────────────────────────────────────────────────
+// N — Keyboard shortcut: Ctrl/Cmd+Enter → Run all
+// ─────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', function (e) {
+if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+var btn = document.getElementById('rl-run-all-btn');
+if (btn && activeDataset) btn.click();
+}
+});
+
+})();
+</script>
 {% endblock scripts %}

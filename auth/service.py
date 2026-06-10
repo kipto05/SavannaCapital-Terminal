@@ -1,7 +1,8 @@
 """auth/service.py — JWT creation, verification, password hashing.
 
 Password hashing: bcrypt directly (not passlib — version mismatch with bcrypt 4.x).
-Token handling: access short-lived (30 min, in-memory), refresh long-lived (7 days, sessionStorage).
+Token handling: access short-lived (480 min, in-memory + sessionStorage), refresh long-lived (7 days, sessionStorage).
+JWT decode has a 60-second leeway to tolerate minor clock drift between server and browser.
 """
 from __future__ import annotations
 
@@ -70,7 +71,7 @@ def _make_token(
 
 
 def create_access_token(data: dict) -> str:
-    """Short-lived access token (default 30 min)."""
+    """Short-lived access token (default 480 min / 8 hours)."""
     return _make_token(
         data,
         timedelta(minutes=config.auth.access_token_expire_minutes),
@@ -91,12 +92,14 @@ def decode_token(token: str) -> dict:
     """
     Decode and validate a JWT. Raises HTTPException 401 on any failure.
     Never propagates raw JWTError.
+    60-second leeway tolerates minor clock drift between server and browser.
     """
     try:
         payload = jwt.decode(
             token,
             config.auth.secret_key,
             algorithms=[config.auth.algorithm],
+            leeway=60,
         )
         return payload
     except JWTError as exc:

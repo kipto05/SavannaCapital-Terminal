@@ -1,4 +1,4 @@
-﻿"""
+"""
 execution/mt5_adapter.py — MetaTrader 5 adapter for JustMarkets.
 
 Bridges the broker-agnostic OrderManager to the live MT5 terminal.
@@ -6,13 +6,14 @@ All MT5 package calls are isolated here; nothing in the rest of the codebase
 imports metatrader5 directly.
 
 Broker note: JustMarkets appends .m (lowercase) to symbol names
-(e.g. XAUUSD.m, EURUSD.m).  The _symbol() helper always produces the
+(e.g. XAUUSD.m, EURUSD.m). The _symbol() helper always produces the
 correct lowercase .m form, stripping any existing suffix first.
 """
 from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime
 from typing import Any
 
 from config.settings import config
@@ -29,13 +30,13 @@ def _symbol(name: str) -> str:
     """Normalize a canonical symbol name for JustMarkets MT5.
 
     Strips any existing suffix and appends the lowercase .m that
-    JustMarkets uses.  Idempotent: passing "XAUUSD.m" returns "XAUUSD.m".
+    JustMarkets uses. Idempotent: passing "XAUUSD.m" returns "XAUUSD.m".
     Examples:
-        XAUUSD    -> XAUUSD.m
-        xauusd    -> XAUUSD.m
-        XAUUSD.m  -> XAUUSD.m
-        xauusd.m  -> XAUUSD.m
-        EURUSD    -> EURUSD.m
+        XAUUSD -> XAUUSD.m
+        xauusd -> XAUUSD.m
+        XAUUSD.m -> XAUUSD.m
+        xauusd.m -> XAUUSD.m
+        EURUSD -> EURUSD.m
     """
     n = name.strip()
     base = n[:-2] if n.lower().endswith(".m") else n
@@ -43,8 +44,7 @@ def _symbol(name: str) -> str:
 
 
 class MT5Adapter:
-    """
-    Thin wrapper around the MetaTrader5 Python package.
+    """Thin wrapper around the MetaTrader5 Python package.
 
     Calling pattern:
         adapter = MT5Adapter()
@@ -138,6 +138,80 @@ class MT5Adapter:
             return None
         return [o._asdict() for o in orders]
 
+    def history_deals_get(
+        self,
+        from_dt: datetime,
+        to_dt: datetime,
+        symbol: str = "",
+    ) -> list[dict[str, Any]] | None:
+        """Return deal history between two datetimes, optionally filtered by symbol.
+
+        Parameters
+        ----------
+        from_dt, to_dt : datetime
+            UTC datetime range.
+        symbol : str
+            Canonical symbol name (e.g. "XAUUSD"). Empty for all symbols.
+
+        Returns
+        -------
+        list[dict] | None
+            Deal dicts from MT5, or None if not connected / error.
+        """
+        if not self._connected or mt5 is None:
+            return None
+        deals = mt5.history_deals_get(from_dt, to_dt)
+        if deals is None:
+            log.warning("MT5 history_deals_get failed: %s", mt5.last_error())
+            return []
+        result = [d._asdict() for d in deals]
+        if symbol:
+            result = [
+                d for d in result
+                if d.get("symbol", "").lower() == symbol.lower()
+            ]
+        return result
+
+    def history_orders_get(
+        self,
+        from_dt: datetime,
+        to_dt: datetime,
+        symbol: str = "",
+    ) -> list[dict[str, Any]] | None:
+        """Return order history between two datetimes, optionally filtered by symbol.
+
+        Parameters
+        ----------
+        from_dt, to_dt : datetime
+            UTC datetime range.
+        symbol : str
+            Canonical symbol name. Empty for all symbols.
+
+        Returns
+        -------
+        list[dict] | None
+            Order history dicts from MT5, or None on failure.
+        """
+        if not self._connected or mt5 is None:
+            return None
+        try:
+            orders = mt5.history_orders_get(from_dt, to_dt)
+        except AttributeError:
+            log.debug("history_orders_get not available in this MT5 build")
+            return []
+        except Exception as exc:
+            log.warning("MT5 history_orders_get failed: %s", exc)
+            return None
+        if orders is None:
+            return []
+        result = [o._asdict() for o in orders]
+        if symbol:
+            result = [
+                o for o in result
+                if o.get("symbol", "").lower() == symbol.lower()
+            ]
+        return result
+
     def place_order(
         self,
         symbol: str,
@@ -154,8 +228,7 @@ class MT5Adapter:
         Parameters
         ----------
         symbol : str
-            Canonical broker ticker (e.g. "XAUUSD").  .m suffix added
-            automatically.
+            Canonical broker ticker (e.g. "XAUUSD"). .m suffix added automatically.
         side : str
             "BUY" or "SELL".
         lot_size : float

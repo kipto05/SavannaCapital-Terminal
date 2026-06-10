@@ -1,55 +1,149 @@
 {% extends "partials/_base.html" %}
 
-{% block title %}Savanna Capital — Machine Learning Center{% endblock %}
+{% block title %}Savanna Capital — ML Center{% endblock %}
 {% set page_title = "Machine Learning Center" %}
 {% set active = "ml" %}
 
 {% block content %}
-<div class="p-container-padding overflow-y-auto h-full">
+<div class="p-container-padding overflow-y-auto h-full space-y-unit*4">
 
-  <!-- Filters -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4 flex flex-wrap gap-x-4 gap-y-2 items-end">
-    <div>
-      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Search / filter</label>
-      <input type="text" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="">
+  <!-- ░░ TOP STATS BAR ░░ -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-unit*2">
+    <div class="bg-surface-container-low border border-outline-variant p-unit*2 rounded">
+      <div class="font-label-sm text-label-sm text-on-surface-variant">Trained Models</div>
+      <div class="font-display-lg text-primary font-bold" id="stat-total">—</div>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant p-unit*2 rounded">
+      <div class="font-label-sm text-label-sm text-on-surface-variant">Active</div>
+      <div class="font-display-lg text-primary font-bold" id="stat-active">—</div>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant p-unit*2 rounded">
+      <div class="font-label-sm text-label-sm text-on-surface-variant">Avg Accuracy</div>
+      <div class="font-display-lg font-bold" id="stat-accuracy">—</div>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant p-unit*2 rounded">
+      <div class="font-label-sm text-label-sm text-on-surface-variant">Models Deployed</div>
+      <div class="font-display-lg text-accent font-bold" id="stat-deployed">0</div>
     </div>
   </div>
 
-  <!-- Model Registry (renamed from Training Jobs Queue) -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Model Registry</h3>
+  <!-- ░░ TRAIN FORM ░░ -->
+  <div class="bg-surface-container-low border border-outline-variant p-unit*3">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-unit*2">Train New Model</h3>
+    <form id="train-form" class="grid grid-cols-2 md:grid-cols-6 gap-unit*2 items-end">
+      <div>
+        <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Symbol</label>
+        <select id="train-symbol" class="w-full bg-surface border border-outline-variant text-label-sm px-2 py-1.5 rounded">
+          <option value="XAUUSD">XAUUSD</option>
+          <option value="EURUSD">EURUSD</option>
+          <option value="GBPUSD">GBPUSD</option>
+          <option value="BTCUSD">BTCUSD</option>
+          <option value="US500">US500</option>
+          <option value="AAPL">AAPL</option>
+        </select>
+      </div>
+      <div>
+        <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Timeframe</label>
+        <select id="train-timeframe" class="w-full bg-surface border border-outline-variant text-label-sm px-2 py-1.5 rounded">
+          <option value="M5">M5</option>
+          <option value="M15">M15</option>
+          <option value="M30">M30</option>
+          <option value="H1">H1</option>
+        </select>
+      </div>
+      <div>
+        <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Model Type</label>
+        <select id="train-model-type" class="w-full bg-surface border border-outline-variant text-label-sm px-2 py-1.5 rounded">
+          <option value="random_forest">Random Forest</option>
+          <option value="gradient_boosting">Gradient Boosting</option>
+          <option value="logistic">Logistic Regression</option>
+        </select>
+      </div>
+      <div>
+        <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Model Name</label>
+        <input type="text" id="train-model-name" value="XAUUSD-M5-Model" class="w-full bg-surface border border-outline-variant text-label-sm px-2 py-1.5 rounded">
+      </div>
+      <div>
+        <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">CV Folds</label>
+        <input type="number" id="train-n-splits" value="5" min="2" max="10" class="w-full bg-surface border border-outline-variant text-label-sm px-2 py-1.5 rounded">
+      </div>
+      <div>
+        <button type="submit" id="train-btn"
+                class="w-full bg-primary text-on-primary font-label-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-wait">
+          Train Model
+        </button>
+      </div>
+    </form>
+    <div id="train-status" class="mt-unit*2 font-label-sm text-on-surface-variant hidden"></div>
+  </div>
+
+  <!-- ░░ MODEL CARDS / REGISTRY ░░ -->
+  <div class="bg-surface-container-low border border-outline-variant p-unit*3">
+    <div class="flex items-center justify-between mb-unit*2">
+      <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase">Model Registry</h3>
+      <button id="refresh-models" class="font-label-sm text-primary underline decoration-1">Refresh</button>
+    </div>
+    <div id="model-cards" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-unit*3">
+      <div class="col-span-full text-center py-unit*4 text-outline">Loading models…</div>
+    </div>
+  </div>
+
+  <!-- ░░ FEATURE IMPORTANCE ░░ -->
+  <div class="bg-surface-container-low border border-outline-variant p-unit*3">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-unit*2">Feature Analysis</h3>
+    <p class="font-label-sm text-on-surface-variant mb-unit*2">Select a trained model below to view weighted feature importances.</p>
+    <div class="flex flex-wrap gap-unit*2 mb-unit*3">
+      <select id="fi-model-select" class="bg-surface border border-outline-variant text-label-sm px-2 py-1.5 rounded">
+        <option value="">— Choose a model —</option>
+      </select>
+      <button id="load-fi" class="border border-outline-variant px-3 py-1.5 rounded font-label-sm">Analyse</button>
+    </div>
+    <div class="relative" style="height: 320px;">
+      <canvas id="feature-chart"></canvas>
+    </div>
+    <div id="fi-error" class="text-error font-label-sm mt-2 hidden"></div>
+  </div>
+
+  <!-- ░░ DEPLOYED AS STRATEGIES ░░ -->
+  <div class="bg-surface-container-low border border-outline-variant p-unit*3">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-unit*2">Deployed ML Strategies</h3>
     <div class="overflow-x-auto">
       <table class="w-full text-left border-collapse">
-        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-          <th class="px-cell-padding-x py-cell-padding-y">Model ID</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Type</th>
+        <thead>
+        <tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Strategy Name</th>
           <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Created</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Status</th>
-        </tr></thead>
-        <tbody id="ml-queue-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-          <tr><td colspan="5" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-        </tbody>
+          <th class="px-cell-padding-x py-cell-padding-y">TF</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Model ID</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Active</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Prediction</th>
+        </tr>
+      </thead>
+      <tbody id="deployed-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+        <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">None deployed yet.</td></tr>
+      </tbody>
       </table>
     </div>
   </div>
 
-  <!-- AI Advisor Suggestions (renamed from Live Prediction Stream) -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">AI Advisor Suggestions</h3>
+  <!-- ░░ LIVE PREDICTION STREAM ░░ -->
+  <div class="bg-surface-container-low border border-outline-variant p-unit*3">
+    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-unit*2">Live Prediction Stream</h3>
     <div class="overflow-x-auto">
       <table class="w-full text-left border-collapse">
-        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-          <th class="px-cell-padding-x py-cell-padding-y">Direction</th>
+        <thead>
+        <tr class="border-b border-outline-variant text-label-sm text-outline">
+          <th class="px-cell-padding-x py-cell-padding-y">Time</th>
           <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Conf %</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Timeframe</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Timestamp</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Reasoning</th>
-        </tr></thead>
-        <tbody id="ml-pred-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-          <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-        </tbody>
+          <th class="px-cell-padding-x py-cell-padding-y">TF</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Side</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Confidence</th>
+          <th class="px-cell-padding-x py-cell-padding-y">Model</th>
+        </tr>
+      </thead>
+      <tbody id="pred-stream-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+        <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Waiting for live data…</td></tr>
+      </tbody>
       </table>
     </div>
   </div>
@@ -58,55 +152,380 @@
 {% endblock content %}
 
 {% block scripts %}
-<script>window.__PAGE_INIT__ = "ml";</script>
+<script>window.__PAGE_INIT__ = {{ __PAGE_INIT__ | default('"ml"') | safe }};</script>
 <script>
 (function() {
   if (window.__PAGE_INIT__ !== 'ml') return;
 
-  async function loadModels() {
-    var tb = document.getElementById('ml-queue-tbl');
-    try {
-      var models = await apiFetch('/api/ml/models');
-      if (models && models.length) {
-        tb.innerHTML = models.map(function(m) {
-          return '<tr>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(m.id || m.name || '—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(m.model_type || m.type || '—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(m.symbol||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + (m.created_at ? fmtDate(m.created_at) : '—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y">' + badge(m.status || 'pending') + '</td>'
-            + '</tr>';
-        }).join('');
-      } else {
-        tb.innerHTML = '<tr><td colspan="5" class="px-cell-padding-x py-3 text-outline">No trained models yet.</td></tr>';
-      }
-    } catch(e) { tb.innerHTML = '<tr><td colspan="5" class="px-cell-padding-x py-3 text-error">Error loading models.</td></tr>'; }
+  // ── helpers ──────────────────────────────────────────────────────────────
+  function esc(t) { return String(t ?? '').replace(/[<>&"]/g, function(c) {
+    return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];
+  }); }
+
+  function fmtDate(iso) { if (!iso) return '—'; return new Date(iso).toLocaleDateString('en-GB'); }
+  function fmtDateTime(iso) { if (!iso) return '—'; return new Date(iso).toLocaleString('en-GB'); }
+
+  function badge(status) {
+    var palette = {
+      pending: 'bg-amber-100 text-amber-800',
+      training: 'bg-blue-100 text-blue-800',
+      ready: 'bg-emerald-100 text-emerald-800',
+      active: 'bg-emerald-100 text-emerald-800',
+      failed: 'bg-red-100 text-red-800',
+    };
+    var cls = palette[status] || 'bg-gray-200 text-gray-800';
+    return '<span class="px-2 py-0.5 rounded-full text-xs font-medium ' + cls + '">' + esc(status || 'pending') + '</span>';
   }
 
-  async function loadSuggestions() {
-    var tb = document.getElementById('ml-pred-tbl');
-    try {
-      var suggs = await apiFetch('/api/ai_advisor/suggestions');
-      if (suggs && suggs.length) {
-        tb.innerHTML = suggs.map(function(s) {
-          var sideC = (s.side==='BUY') ? '#10B981' : (s.side==='SELL') ? '#EF4444' : '#6B7280';
-          return '<tr>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-medium" style="color:'+sideC+'">' + esc(s.side||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(s.symbol||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (s.confidence!=null ? parseFloat(s.confidence*100).toFixed(0)+'%' : '—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(s.timeframe||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + (s.created_at ? fmtDateTime(s.created_at) : '—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y text-outline text-label-sm" title="' + esc(s.reasoning||'') + '">' + esc((s.reasoning||'').slice(0,80)) + '</td>'
-            + '</tr>';
-        }).join('');
-      } else {
-        tb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No AI suggestions yet. Enable AI advisor in Settings.</td></tr>';
-      }
-    } catch(e) { tb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-error">Error loading suggestions.</td></tr>'; }
+  function metricRow(m) {
+    return '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat((m.accuracy  || 0)).toFixed(2) + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat((m.precision || 0)).toFixed(2) + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat((m.recall    || 0)).toFixed(2) + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat((m.f1        || 0)).toFixed(2) + '</td>';
   }
 
-  Promise.all([loadModels(), loadSuggestions()]).catch(function(e){ console.error(e); });
-  setInterval(function(){ loadModels(); loadSuggestions(); }, 30000);
+  var trainForm = document.getElementById('train-form');
+  var trainBtn  = document.getElementById('train-btn');
+  var trainStatusEl = document.getElementById('train-status');
+
+  var deployedTb = document.getElementById('deployed-tbl');
+  var totalEl  = document.getElementById('stat-total');
+  var activeEl = document.getElementById('stat-active');
+  var accEl    = document.getElementById('stat-accuracy');
+  var depEl    = document.getElementById('stat-deployed');
+
+  var predStreamTb = document.getElementById('pred-stream-tbl');
+  var fiSelect = document.getElementById('fi-model-select');
+  var fiChart  = null;
+  var ALL_MODELS = [];
+
+  // ── train form ────────────────────────────────────────────────────────────
+  var trainTimeout;
+  trainForm.addEventListener('submit', async function(ev) {
+    ev.preventDefault();
+    trainBtn.disabled = true;
+    trainStatusEl.classList.remove('hidden');
+    trainStatusEl.className = 'mt-unit*2 font-label-sm text-primary';
+    trainStatusEl.textContent = '⏳ Training started… polling for status every 5s…';
+
+    var body = {
+      symbol:      document.getElementById('train-symbol').value,
+      timeframe:   document.getElementById('train-timeframe').value,
+      model_type:  document.getElementById('train-model-type').value,
+      model_name:  document.getElementById('train-model-name').value,
+      n_splits:    parseInt(document.getElementById('train-n-splits').value || 5, 10),
+    };
+
+    try {
+      var res = await apiFetch('/api/ml/train', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      if (!res.ok) {
+        var j = await res.json().catch(function() { return {}; });
+        throw new Error(j.detail && j.detail.error ? j.detail.error : 'HTTP ' + res.status);
+      }
+      var j = await res.json();
+      trainStatusEl.textContent = '✓ Queued (id=' + j.id + '). Waiting on background thread…';
+      pollTrainStatus(j.id);
+    } catch (err) {
+      trainStatusEl.className = 'mt-unit*2 font-label-sm text-error';
+      trainStatusEl.textContent = '✗ ' + err.message;
+    } finally {
+      trainBtn.disabled = false;
+    }
+  });
+
+  async function pollTrainStatus(id) {
+    clearTimeout(trainTimeout);
+    var wait = function() {
+      apiFetch('/api/ml/models')
+        .then(function(models) {
+          ALL_MODELS = models;
+          renderAll();
+          var m = models.find(function(x) { return x.id === id; });
+          if (m && (m.status === 'ready' || m.status === 'failed' || m.status === 'active')) {
+            if (m.status === 'ready') {
+              trainStatusEl.className = 'mt-unit*2 font-label-sm text-emerald-700';
+              trainStatusEl.textContent = '✓ Training complete: ' + (m.accuracy || 0).toFixed(3) + ' accuracy, ' + (m.f1 || 0).toFixed(3) + ' F1';
+            } else {
+              trainStatusEl.className = 'mt-unit*2 font-label-sm text-error';
+              trainStatusEl.textContent = '✗ Training failed with status: ' + m.status;
+            }
+            return;
+          }
+          trainTimeout = setTimeout(wait, 5000);
+        })
+        .catch(function() { trainTimeout = setTimeout(wait, 5000); });
+    };
+    wait();
+  }
+
+  // ── model cards ───────────────────────────────────────────────────────────
+  function renderAll() {
+    renderStats();
+    renderModelCards();
+    renderDeployedTable();
+    refreshFiSelect();
+  }
+
+  function renderStats() {
+    var models = ALL_MODELS || [];
+    totalEl.textContent  = models.length || 0;
+    var active = models.filter(function(m) { return m.is_active; });
+    activeEl.textContent = active.length;
+
+    var ready = models.filter(function(m) { return m.status === 'ready' || m.status === 'active'; });
+    if (ready.length) {
+      var sum = ready.reduce(function(a, b) { return a + (parseFloat(b.accuracy) || 0); }, 0);
+      accEl.textContent = (sum / ready.length).toFixed(2);
+    } else {
+      accEl.textContent = '—';
+    }
+    depEl.textContent = active.length;
+  }
+
+  function renderModelCards() {
+    var el = document.getElementById('model-cards');
+    var models = ALL_MODELS || [];
+    if (!models.length) {
+      el.innerHTML = '<div class="col-span-full text-center py-unit*4 text-outline">No trained models yet. Use the form above to train one.</div>';
+      return;
+    }
+    el.innerHTML = models.map(function(m) {
+      var actionHtml = '';
+
+      if (m.status === 'ready') {
+        actionHtml +=
+          '<button class="deploy-btn bg-emerald-700 text-white px-3 py-1.5 rounded text-xs w-full" data-id="' + m.id + '">Deploy as Strategy</button>';
+      }
+      if (m.status === 'ready' || m.status === 'active') {
+        actionHtml += '<button class="retrain-btn bg-accent/10 text-accent px-3 py-1.5 rounded text-xs mt-2 w-full" data-id="' + m.id + '">Retrain</button>';
+      }
+      if (m.status === 'active') {
+        actionHtml += '<button class="predict-btn bg-primary text-on-primary px-3 py-1.5 rounded text-xs mt-2 w-full" data-id="' + m.id + '">Live Predict</button>';
+      }
+      if (!actionHtml) actionHtml = '<span class="text-xs text-outline">Actions unlock when status is "ready" or "active".</span>';
+
+      return (
+        '<div class="bg-surface border border-outline-variant/60 rounded p-unit*3 space-y-2" data-model-id="' + m.id + '">' +
+          '<div class="flex items-center justify-between">' +
+            '<span class="font-label-sm text-label-sm font-bold text-primary">' + esc(m.name || m.model_type) + '</span>' +
+            badge(m.status) +
+          '</div>' +
+          '<div class="grid grid-cols-2 gap-x-unit gap-y-1 font-data-sm text-data-sm text-on-surface-variant">' +
+            '<div>Symbol</div><div class="font-mono">' + esc(m.symbol || '—') + '</div>' +
+            '<div>Timeframe</div><div class="font-mono">' + esc(m.timeframe || '—') + '</div>' +
+            '<div>Type</div><div>' + esc(m.model_type || '—') + '</div>' +
+            '<div>Accuracy</div><div class="font-mono">' + parseFloat(m.accuracy  || 0).toFixed(3) + '</div>' +
+            '<div>Precision</div><div class="font-mono">' + parseFloat(m.precision || 0).toFixed(3) + '</div>' +
+            '<div>Recall</div><div class="font-mono">' + parseFloat(m.recall    || 0).toFixed(3) + '</div>' +
+            '<div>F1</div><div class="font-mono">' + parseFloat(m.f1        || 0).toFixed(3) + '</div>' +
+            '<div>Created</div><div class="text-outline">' + fmtDate(m.created_at) + '</div>' +
+            '<div>Last trained</div><div class="text-outline">' + (m.last_trained_at ? fmtDateTime(m.last_trained_at) : '—') + '</div>' +
+            '<div>Training Samples</div><div class="font-mono">' + (m.n_train_samples || '—') + '</div>' +
+          '</div>' +
+          '<div class="border-t border-outline/30 pt-2 space-y-1">' + actionHtml + '</div>' +
+        '</div>'
+      );
+    }).join('');
+
+    bindCardButtons();
+  }
+
+  function bindCardButtons() {
+    document.querySelectorAll('.deploy-btn').forEach(function(btn) {
+      btn.onclick = function() { deployModel(parseInt(btn.dataset.id, 10)); };
+    });
+    document.querySelectorAll('.retrain-btn').forEach(function(btn) {
+      btn.onclick = function() { retrainModel(parseInt(btn.dataset.id, 10)); };
+    });
+    document.querySelectorAll('.predict-btn').forEach(function(btn) {
+      btn.onclick = function() { predictModel(parseInt(btn.dataset.id, 10)); };
+    });
+  }
+
+  // ── deploy / retrain / predict ────────────────────────────────────────────
+  async function deployModel(id) {
+    try {
+      var res = await apiFetch('/api/ml/deploy', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({model_id: id})});
+      if (!res.ok) { var j = await res.json().catch(function() {}); throw new Error((j && j.detail && j.detail.error) || 'HTTP ' + res.status); }
+      var j = await res.json();
+      alert('✓ Deployed as strategy: ' + j.strategy_name);
+      refreshAll();
+    } catch (err) { alert('Deploy failed: ' + err.message); }
+  }
+
+  async function retrainModel(id) {
+    try {
+      var res = await apiFetch('/api/ml/retrain/' + id, {method:'POST'});
+      if (!res.ok) { throw new Error('HTTP ' + res.status); }
+      var j = await res.json();
+      alert('↻ Retrain queued (id=' + id + ').');
+      setTimeout(refreshAll, 3000);
+    } catch (err) { alert('Retrain failed: ' + err.message); }
+  }
+
+  async function predictModel(id) {
+    predStreamTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-primary">Fetching prediction…</td></tr>';
+    try {
+      var res = await apiFetch('/api/ml/predictions/' + id);
+      if (!res.ok) { throw new Error('HTTP ' + res.status); }
+      var p = await res.json();
+      var row = '<tr>' +
+        '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + fmtDateTime(p.generated_at) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(p.symbol) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y">' + esc(p.timeframe) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y font-medium" style="color:' + (p.side === 'BUY' ? '#10B981' : p.side === 'SELL' ? '#EF4444' : '#6B7280') + '">' + esc(p.side || p.status) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (p.confidence != null ? (p.confidence * 100).toFixed(1) + '%' : '—') + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y">' + esc(p.model_name) + '</td>' +
+        '</tr>';
+      predStreamTb.innerHTML = row;
+      setTimeout(function() { loadPredStream(); }, 15000);
+    } catch (err) {
+      predStreamTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-error">Prediction error: ' + esc(err.message) + '</td></tr>';
+    }
+  }
+
+  // ── live prediction stream (all active ML strategies) ─────────────────────
+  var predStreamTag = document.getElementById('pred-stream-tbl');
+  function loadPredStream() {
+    apiFetch('/api/ml/models')
+      .then(function(models) {
+        var actives = (models || []).filter(function(m) { return m.is_active; });
+        if (!actives.length) {
+          predStreamTag.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Deploy a model to see live predictions here.</td></tr>';
+          return;
+        }
+        Promise.all(actives.map(function(m) { return apiFetch('/api/ml/predictions/' + m.id).then(function(r) { if (!r.ok) return null; return r.json(); }); }))
+          .then(function(preds) {
+            var rows = preds.filter(Boolean).map(function(p) {
+              return '<tr>' +
+                '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + fmtDateTime(p.generated_at) + '</td>' +
+                '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(p.symbol) + '</td>' +
+                '<td class="px-cell-padding-x py-cell-padding-y">' + esc(p.timeframe) + '</td>' +
+                '<td class="px-cell-padding-x py-cell-padding-y font-medium" style="color:' + (p.side === 'BUY' ? '#10B981' : p.side === 'SELL' ? '#EF4444' : '#6B7280') + '">' + esc(p.side || p.status) + '</td>' +
+                '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (p.confidence != null ? (p.confidence * 100).toFixed(1) + '%' : '—') + '</td>' +
+                '<td class="px-cell-padding-x py-cell-padding-y">' + esc(p.model_name) + '</td>' +
+                '</tr>';
+            }).join('');
+            predStreamTag.innerHTML = rows || '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No predictions produced yet.</td></tr>';
+          })
+          .catch(function() { predStreamTag.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-error">Error fetching predictions.</td></tr>'; });
+      });
+  }
+
+  // ── deployed strategies table ─────────────────────────────────────────────
+  function renderDeployedTable() {
+    apiFetch('/api/strategies/library')
+      .then(function(strats) {
+        var mlStrats = (strats || []).filter(function(s) { return s.name.indexOf('ml_') === 0; });
+        if (!mlStrats.length) {
+          deployedTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No ML strategies deployed yet. Deploy a model above to appear here.</td></tr>';
+          return;
+        }
+        deployedTb.innerHTML = mlStrats.map(function(s) {
+          var sideC = '#6B7280';
+          var sideLabel = '—';
+          if (s.params && s.params.side) { sideC = s.params.side === 'BUY' ? '#10B981' : s.params.side === 'SELL' ? '#EF4444' : sideC; sideLabel = s.params.side; }
+          return '<tr>' +
+            '<td class="px-cell-padding-x py-cell-padding-y font-medium">' + esc(s.name) + '</td>' +
+            '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(s.symbol) + '</td>' +
+            '<td class="px-cell-padding-x py-cell-padding-y">' + esc(s.timeframe) + '</td>' +
+            '<td class="px-cell-padding-x py-cell-padding-y">' + (s.params && s.params.model_id != null ? s.params.model_id : '—') + '</td>' +
+            '<td class="px-cell-padding-x py-cell-padding-y">' + (s.is_active ? '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Active</span>' : '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">Off</span>') + '</td>' +
+            '<td class="px-cell-padding-x py-cell-padding-y">' + esc(sideLabel) + '</td>' +
+            '</tr>';
+        }).join('');
+      });
+  }
+
+  // ── feature importance ────────────────────────────────────────────────────
+  function refreshFiSelect() {
+    var models = ALL_MODELS || [];
+    var prev = fiSelect.value;
+    fiSelect.innerHTML = '<option value="">— Choose a model —</option>' +
+      models.filter(function(m) { return m.feature_columns && m.feature_columns.length; })
+        .map(function(m) { return '<option value="' + m.id + '">#' + m.id + ' — ' + esc(m.name) + '</option>'; })
+        .join('');
+    if (prev) fiSelect.value = prev;
+  }
+
+  document.getElementById('load-fi').addEventListener('click', function() {
+    var id = fiSelect.value;
+    if (!id) return;
+    document.getElementById('fi-error').classList.add('hidden');
+    apiFetch('/api/ml/feature-importance/' + id)
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(data) {
+        drawFeatureChart(data.features);
+      })
+      .catch(function(err) {
+        var el = document.getElementById('fi-error');
+        el.textContent = 'Error loading feature importance: ' + err.message;
+        el.classList.remove('hidden');
+      });
+  });
+
+  function drawFeatureChart(features) {
+    if (!features || !features.length) {
+      document.getElementById('fi-error').classList.remove('hidden');
+      document.getElementById('fi-error').textContent = 'No feature importance data for this model.';
+      return;
+    }
+    var ctx = document.getElementById('feature-chart').getContext('2d');
+    if (fiChart) fiChart.destroy();
+    var labels = features.map(function(f) { return f.name; });
+    var values = features.map(function(f) { return f.importance; });
+
+    fiChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Feature Importance',
+          data: values,
+          backgroundColor: 'rgba(245, 158, 11, 0.7)',
+          borderColor: '#F59E0B',
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { color: 'rgba(0,0,0,0.05)' } },
+          y: { grid: { display: false } },
+        },
+        plugins: { legend: { display: false } },
+      },
+    });
+  }
+
+  // ── refresh ──────────────────────────────────────────────────────────────
+  function refreshAll() {
+    apiFetch('/api/ml/models').then(function(models) {
+      ALL_MODELS = models;
+      renderAll();
+    });
+    renderDeployedTable();
+  }
+
+  document.getElementById('refresh-models').addEventListener('click', refreshAll);
+
+  // ── init ──────────────────────────────────────────────────────────────────
+  apiFetch('/api/ml/models')
+    .then(function(models) {
+      ALL_MODELS = models;
+      renderAll();
+      renderDeployedTable();
+      loadPredStream();
+      setInterval(function() { refreshAll(); loadPredStream(); }, 30000);
+    })
+    .catch(function() {
+      document.getElementById('model-cards').innerHTML = '<div class="col-span-full text-center py-unit*4 text-error">Failed to load models. Is the backend running?</div>';
+    });
+
+  // initial load: kick off the statistics from whatever comes back
+  renderStats();
 })();
 </script>
 {% endblock scripts %}

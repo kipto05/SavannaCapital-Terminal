@@ -1,9 +1,9 @@
-"""
-db/models.py — all SQLAlchemy ORM models.
+"""db/models.py — all SQLAlchemy ORM models.
+
 13 tables covering auth, trades, strategies, backtesting, ML, AI advisor, and settings.
 
 Import pattern (never import from anywhere else):
-    from db.models import Trade, User, OHLCVBar, StrategyConfig, BacktestRun
+from db.models import Trade, User, OHLCVBar, StrategyConfig, BacktestRun
 """
 from __future__ import annotations
 
@@ -34,13 +34,11 @@ from db.session import Base
 
 log = logging.getLogger(__name__)
 
-
 # ── Enums ─────────────────────────────────────────────────────────────────────
 
 class Side(str, enum.Enum):
     BUY = "BUY"
     SELL = "SELL"
-
 
 class StrategyStatus(str, enum.Enum):
     DRAFT = "DRAFT"
@@ -49,27 +47,25 @@ class StrategyStatus(str, enum.Enum):
     DEPLOYED = "DEPLOYED"
     REJECTED = "REJECTED"
 
-
 class HypothesisStatus(str, enum.Enum):
     DRAFT = "DRAFT"
-    TESTING = "TESTING"
-    ACCEPTED = "ACCEPTED"
+    RESEARCHING = "RESEARCHING"
+    BACKTESTING = "BACKTESTING"
+    VALIDATED = "VALIDATED"
+    DEPLOYED = "DEPLOYED"
     REJECTED = "REJECTED"
-
 
 class ModelType(str, enum.Enum):
     RANDOM_FOREST = "random_forest"
     GRADIENT_BOOSTING = "gradient_boosting"
     LOGISTIC = "logistic"
 
-
 class AISide(str, enum.Enum):
     BUY = "BUY"
     SELL = "SELL"
     HOLD = "HOLD"
 
-
-# ── User ─────────────────────────────────────────────────────────────────────
+# ── User ──────────────────────────────────────────────────────────────────────
 
 class User(Base):
     __tablename__ = "users"
@@ -98,8 +94,7 @@ class User(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
-
-# ── Trade ────────────────────────────────────────────────────────────────────
+# ── Trade ─────────────────────────────────────────────────────────────────────
 
 class Trade(Base):
     __tablename__ = "trades"
@@ -152,11 +147,6 @@ class Trade(Base):
     account_snapshot = relationship("AccountSnapshot", back_populates="trades", lazy="noload")
     annotations = relationship("TradeAnnotation", back_populates="trade", cascade="all, delete-orphan", lazy="noload")
 
-    __table_args__ = (
-        Index("ix_trades_symbol_opened", "symbol", "opened_at"),
-        Index("ix_trades_strategy", "strategy_name", "symbol", "timeframe"),
-    )
-
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -186,7 +176,6 @@ class Trade(Base):
             "notes": self.notes,
         }
 
-
 # ── AccountSnapshot ───────────────────────────────────────────────────────────
 
 class AccountSnapshot(Base):
@@ -201,7 +190,6 @@ class AccountSnapshot(Base):
     created_at = Column(DateTime, default=func.now(), nullable=False, index=True)
 
     trades = relationship("Trade", back_populates="account_snapshot", lazy="noload")
-
 
 # ── OHLCVBar ──────────────────────────────────────────────────────────────────
 
@@ -229,7 +217,6 @@ class OHLCVBar(Base):
 
     def __repr__(self) -> str:
         return f"<OHLCVBar {self.symbol} {self.timeframe} {self.timestamp}>"
-
 
 # ── StrategyConfig ────────────────────────────────────────────────────────────
 
@@ -276,7 +263,6 @@ class StrategyConfig(Base):
             "version": self.version,
         }
 
-
 # ── StrategyParamVersion ──────────────────────────────────────────────────────
 
 class StrategyParamVersion(Base):
@@ -291,7 +277,6 @@ class StrategyParamVersion(Base):
     created_at = Column(DateTime, default=func.now(), nullable=False)
 
     strategy_config = relationship("StrategyConfig", back_populates="param_versions", lazy="noload")
-
 
 # ── BacktestRun ───────────────────────────────────────────────────────────────
 
@@ -348,6 +333,51 @@ class BacktestRun(Base):
             "p_value": self.p_value,
         }
 
+# ── OptimisationRun ─────────────────────────────────────────────────────────────
+
+class OptimisationRun(Base):
+    __tablename__ = "optimisation_runs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    label = Column(String(128), nullable=True)
+    strategy_name = Column(String(64), nullable=False, index=True)
+    symbol = Column(String(32), nullable=False, index=True)
+    timeframe = Column(String(8), nullable=False)
+
+    search_method = Column(String(32), nullable=False, default="grid")
+    fitness_metric = Column(String(32), nullable=False, default="sharpe")
+    status = Column(String(16), nullable=False, default="pending", index=True)
+    n_iterations = Column(Integer, nullable=True)
+
+    best_params = Column(JSON, nullable=True)
+    best_score = Column(Float, nullable=True)
+    heatmap_data = Column(JSON, nullable=True)
+    top_n_results = Column(JSON, nullable=True)
+    error_message = Column(Text, nullable=True)
+
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "label": self.label,
+            "strategy_name": self.strategy_name,
+            "symbol": self.symbol,
+            "timeframe": self.timeframe,
+            "search_method": self.search_method,
+            "fitness_metric": self.fitness_metric,
+            "status": self.status,
+            "n_iterations": self.n_iterations,
+            "best_params": self.best_params,
+            "best_score": self.best_score,
+            "top_n_results": self.top_n_results,
+            "error_message": self.error_message,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 
 # ── Hypothesis ────────────────────────────────────────────────────────────────
 
@@ -379,7 +409,6 @@ class Hypothesis(Base):
             "hypothesis_text": self.hypothesis_text,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
-
 
 # ── MLModel ───────────────────────────────────────────────────────────────────
 
@@ -419,7 +448,6 @@ class MLModel(Base):
             "last_trained_at": self.last_trained_at.isoformat() if self.last_trained_at else None,
         }
 
-
 # ── AIAdvisorSuggestion ────────────────────────────────────────────────────────
 
 class AIAdvisorSuggestion(Base):
@@ -451,7 +479,6 @@ class AIAdvisorSuggestion(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
-
 # ── TradeAnnotation ───────────────────────────────────────────────────────────
 
 class TradeAnnotation(Base):
@@ -465,6 +492,14 @@ class TradeAnnotation(Base):
 
     trade = relationship("Trade", back_populates="annotations", lazy="noload")
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "trade_id": self.trade_id,
+            "note": self.note,
+            "tag": self.tag,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 
 # ── PlatformSetting ───────────────────────────────────────────────────────────
 
@@ -480,3 +515,143 @@ class PlatformSetting(Base):
 
     def __repr__(self) -> str:
         return f"<PlatformSetting key={self.key!r} value={self.value!r}>"
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "key": self.key,
+            "value": self.value,
+            "value_type": self.value_type,
+            "description": self.description,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# ── Account ───────────────────────────────────────────────────────────────────
+class AccountType(str, enum.Enum):
+    LIVE = "live"
+    DEMO = "demo"
+
+
+class Account(Base):
+    __allow_unmapped__ = True
+    __tablename__ = "accounts"
+    __table_args__ = (
+        UniqueConstraint("mt5_login", name="uq_accounts_mt5_login"),
+        UniqueConstraint("account_name", name="uq_accounts_name"),
+        CheckConstraint("weight >= 0.0 AND weight <= 2.0", name="ck_account_weight"),
+        Index("ix_accounts_active", "is_active"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    account_name = Column(String(64), nullable=False, unique=True, index=True)
+    broker = Column(String(32), nullable=False)
+    server = Column(String(128), nullable=False)
+
+    # MT5 credentials
+    mt5_login = Column(Integer, nullable=False, unique=True, index=True)
+    raw_password = Column(Text, nullable=True)    # plaintext — NEVER in API responses
+    password_enc = Column(Text, nullable=False)   # bcrypt hash; legacy rows may hold plaintext
+    investor_password_enc = Column(Text, nullable=True)
+
+    account_type = Column(String(8), default='demo', nullable=False)
+    weight = Column(Float, nullable=False, default=1.0)
+    colour = Column(String(16), nullable=True)
+
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_connected = Column(Boolean, default=False, nullable=False)
+
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Runtime fields (NOT persisted — engine updates these per poll cycle)
+    _balance: Optional[float] = None
+    _equity: Optional[float] = None
+    _margin: Optional[float] = None
+    _free_margin: Optional[float] = None
+    _open_positions: Optional[int] = None
+    _last_heartbeat: Optional[datetime] = None
+
+    def to_dict(
+        self,
+        include_runtime: bool = False,
+        include_secrets: bool = False,
+    ) -> dict:
+        """Serialize for API responses.
+
+        Security: raw_password is NEVER returned — it is the plaintext MT5
+        credential and must stay server-side only. Even include_secrets=True
+        will not expose it (use include_secrets only for password_enc bcrypt
+        hash which is safe to inspect for debugging).
+        """
+        d: dict = {
+            "id": self.id,
+            "account_name": self.account_name,
+            "broker": self.broker,
+            "server": self.server,
+            "mt5_login": self.mt5_login,
+            "account_type": str(self.account_type),
+            "weight": self.weight,
+            "colour": self.colour,
+            "is_active": self.is_active,
+            "is_connected": self.is_connected,
+            "notes": self.notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+        if include_runtime:
+            d.update({
+                "balance": self._balance,
+                "equity": self._equity,
+                "margin": self._margin,
+                "free_margin": self._free_margin,
+                "open_positions": self._open_positions,
+                "margin_level": self.margin_level,
+                "last_heartbeat": (
+                    self._last_heartbeat.isoformat()
+                    if self._last_heartbeat
+                    else None
+                ),
+            })
+        if include_secrets:
+            # raw_password intentionally excluded even here
+            d["password_enc"] = self.password_enc
+            d["investor_password_enc"] = self.investor_password_enc
+        return d
+
+    def update_runtime(
+        self,
+        *,
+        balance: Optional[float] = None,
+        equity: Optional[float] = None,
+        margin: Optional[float] = None,
+        free_margin: Optional[float] = None,
+        open_positions: Optional[int] = None,
+        is_connected: Optional[bool] = None,
+    ) -> None:
+        """Update in-memory runtime fields (does not persist to DB)."""
+        if balance is not None:
+            self._balance = balance
+        if equity is not None:
+            self._equity = equity
+        if margin is not None:
+            self._margin = margin
+        if free_margin is not None:
+            self._free_margin = free_margin
+        if open_positions is not None:
+            self._open_positions = open_positions
+        if is_connected is not None:
+            self.is_connected = is_connected
+        import datetime as _dt
+        self._last_heartbeat = _dt.datetime.now(_dt.timezone.utc)
+
+    @property
+    def margin_level(self) -> Optional[float]:
+        if self._margin is not None and self._margin > 0:
+            return round(
+                (self._margin / (self._margin + (self._free_margin or 0))) * 100,
+                1,
+            )
+        return None

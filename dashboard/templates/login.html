@@ -207,6 +207,8 @@ return r.json();
 })
 .then(data => {
 console.log('Login success, token received');
+window.authToken = data.access_token;
+window.__JWT__ = data.access_token;
 sessionStorage.setItem('access_token', data.access_token);
 sessionStorage.setItem('refresh_token', data.refresh_token);
 window.location.href = '/';

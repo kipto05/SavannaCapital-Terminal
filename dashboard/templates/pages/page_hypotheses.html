@@ -1,93 +1,574 @@
-
 {% extends "partials/_base.html" %}
+
 {% block title %}Savanna Capital — Hypotheses Center{% endblock %}
 {% set page_title = "Hypotheses Center" %}
 {% set active = "hypotheses" %}
+
 {% block content %}
-<div class="p-container-padding overflow-y-auto h-full">
-  <div class="flex items-center justify-between mb-unit*4">
-    <div>
-      <span class="font-headline-md text-headline-md font-bold text-on-surface">Hypotheses Center</span>
-      <p class="font-label-sm text-label-sm text-outline mt-0.5">Draft &rarr; Research &rarr; Backtest &rarr; Validate &rarr; Deploy</p>
+<div class="flex flex-col h-full overflow-hidden bg-background">
+
+  <!-- ═══ TOP BAR ═══ -->
+  <header class="h-14 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-container-padding shrink-0">
+    <div class="flex items-center gap-4">
+      <h2 class="font-headline-md text-headline-md font-semibold text-on-surface tracking-tight">Hypotheses Center</h2>
+      <span class="text-label-sm text-outline uppercase font-label-sm hidden sm:inline">Research Pipeline</span>
     </div>
-    <div class="flex gap-2">
-      <button class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant" onclick="setHypoView('kanban')">Kanban</button>
-      <button class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant" onclick="setHypoView('table')">Table</button>
-      <a href="#" class="px-3 py-1.5 bg-primary text-on-primary-fixed text-label-sm font-medium rounded">+ New Hypothesis</a>
+    <div class="flex items-center gap-2">
+      <button id="hp-refresh-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-sm font-label-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container hover:text-on-surface rounded transition-colors">
+        <span class="material-symbols-outlined text-[14px]">refresh</span> Refresh
+      </button>
+      <button id="hp-new-hypo-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-sm font-label-sm font-bold uppercase bg-primary text-on-primary rounded hover:opacity-90 transition-opacity">
+        <span class="material-symbols-outlined text-[14px]">add</span> New Hypothesis
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ SCROLLABLE CONTENT ═══ -->
+  <div class="flex-grow overflow-y-auto p-container-padding space-y-3 custom-scrollbar">
+
+    <!-- Context bar -->
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-1 bg-surface-container border border-outline-variant rounded p-0.5">
+        <button id="hp-view-kanban" class="px-3 py-1.5 text-label-sm font-label-sm font-bold bg-surface-container-highest text-primary rounded transition-colors">Kanban</button>
+        <button id="hp-view-table" class="px-3 py-1.5 text-label-sm font-label-sm text-outline hover:text-on-surface rounded transition-colors">Table</button>
+      </div>
+      <div class="h-6 w-px bg-outline-variant/50"></div>
+      <select id="hp-filter-status" class="bg-surface-container border border-outline-variant text-label-sm font-label-sm text-on-surface px-3 py-1.5 rounded focus:ring-1 focus:ring-primary outline-none">
+        <option value="">All Status</option>
+        <option value="DRAFT">Draft</option>
+        <option value="RESEARCHING">Researching</option>
+        <option value="BACKTESTING">Backtesting</option>
+        <option value="VALIDATED">Validated</option>
+        <option value="DEPLOYED">Deployed</option>
+        <option value="REJECTED">Rejected</option>
+      </select>
+      <select id="hp-filter-asset" class="bg-surface-container border border-outline-variant text-label-sm font-label-sm text-on-surface px-3 py-1.5 rounded focus:ring-1 focus:ring-primary outline-none">
+        <option value="">All Asset Classes</option>
+        <option value="FX">FX</option>
+        <option value="Crypto">Crypto</option>
+        <option value="Equities">Equities</option>
+        <option value="Metals">Metals</option>
+        <option value="Fixed Income">Fixed Income</option>
+      </select>
+      <div class="relative ml-auto">
+        <span class="absolute inset-y-0 left-3 flex items-center text-outline">
+          <span class="material-symbols-outlined text-[16px]">search</span>
+        </span>
+        <input id="hp-search" type="text" placeholder="Search hypotheses…" class="bg-surface-container border border-outline-variant text-label-sm font-label-sm text-on-surface pl-9 pr-4 py-1.5 rounded focus:ring-1 focus:ring-primary outline-none w-56">
+      </div>
+    </div>
+
+    <!-- ── ROW 1: Collapsible Summary Table ── -->
+    <section class="bg-surface-container border border-outline-variant rounded overflow-hidden">
+      <button id="hp-table-toggle" class="w-full px-4 py-2.5 flex items-center justify-between bg-surface-container-high hover:bg-surface-container-highest transition-colors">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-primary text-[16px]">table_chart</span>
+          <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Active Hypothesis Registry</span>
+          <span id="hp-total-count" class="text-[10px] font-label-sm text-primary uppercase">0 total</span>
+        </div>
+        <span id="hp-table-chevron" class="material-symbols-outlined text-[18px] text-outline transition-transform">expand_more</span>
+      </button>
+      <div id="hp-table-panel" class="hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-surface-container border-b border-outline-variant">
+                <th class="px-4 py-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">ID</th>
+                <th class="px-4 py-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">Strategy Name</th>
+                <th class="px-4 py-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">Asset Class</th>
+                <th class="px-4 py-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">Timeframe</th>
+                <th class="px-4 py-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">Confidence</th>
+                <th class="px-4 py-2 font-label-sm text-label-sm text-outline uppercase tracking-wider">Status</th>
+                <th class="px-4 py-2 font-label-sm text-label-sm text-outline uppercase tracking-wider text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="hp-table-body" class="divide-y divide-outline-variant/30 text-on-surface-variant"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ROW 2: Kanban Board ── -->
+    <div id="hp-kanban-wrap" class="flex gap-3 overflow-x-auto pb-4" style="min-height:480px">
+      {% for st in ['DRAFT','RESEARCHING','BACKTESTING','VALIDATED','DEPLOYED'] %}
+      <div class="flex flex-col gap-2 min-w-[260px] flex-1" data-status="{{ st }}">
+        <div class="flex items-center justify-between px-2 py-1.5">
+          <h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">{{ st }}</h3>
+          <span id="hp-cnt-{{ st|lower }}" class="font-label-sm text-label-sm text-outline tabular-nums">0</span>
+        </div>
+        <div id="hp-col-{{ st|lower }}" class="flex-1 flex flex-col gap-2 bg-surface-container-low/40 border border-dashed border-outline-variant/60 rounded p-2 min-h-[400px]">
+          <div class="text-label-sm text-outline text-center py-6">Loading…</div>
+        </div>
+      </div>
+      {% endfor %}
+      <!-- REJECTED column hidden behind toggle -->
+      <div id="hp-col-rejected-wrap" class="hidden flex-col gap-2 min-w-[260px] flex-1" data-status="REJECTED">
+        <div class="flex items-center justify-between px-2 py-1.5">
+          <h3 class="font-label-sm text-label-sm text-error uppercase tracking-widest">REJECTED</h3>
+          <span id="hp-cnt-rejected" class="font-label-sm text-label-sm text-outline tabular-nums">0</span>
+        </div>
+        <div id="hp-col-rejected" class="flex-1 flex flex-col gap-2 bg-surface-container-low/40 border border-dashed border-error/30 rounded p-2 min-h-[400px]">
+          <div class="text-label-sm text-outline text-center py-6">No rejected hypotheses</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating status overlay -->
+    <div class="fixed bottom-6 right-6 z-40">
+      <div class="flex items-center gap-4 px-4 py-3 bg-surface-container/90 backdrop-blur border border-outline-variant shadow-2xl rounded">
+        <div class="flex items-center gap-2 pr-4 border-r border-outline-variant">
+          <div class="w-2 h-2 rounded-full bg-primary-fixed-dim animate-pulse"></div>
+          <span class="font-label-sm text-[10px] text-outline uppercase tracking-wider">Engine Live</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-label-sm text-[9px] text-outline-variant uppercase">Latency</span>
+          <span id="hp-overlay-latency" class="font-data-md text-data-md text-primary tabular-nums">—</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-label-sm text-[9px] text-outline-variant uppercase">CPU</span>
+          <span id="hp-overlay-cpu" class="font-data-md text-data-md text-on-surface tabular-nums">—</span>
+        </div>
+      </div>
     </div>
   </div>
-  <div id="kanban-board" class="grid grid-cols-5 gap-panel-gap">
-    {% for st in ['DRAFT','RESEARCHING','BACKTESTING','VALIDATED','DEPLOYED'] %}
-    <div class="bg-surface-container-low border border-outline-variant">
-      <div class="px-cell-padding-x py-2 border-b border-outline-variant flex items-center justify-between">
-        <span class="font-label-sm text-label-sm font-medium text-primary uppercase">{{ st }}</span>
-        <span class="font-label-sm text-label-sm text-outline" id="cnt-{{ st|lower }}">0</span>
+</div>
+
+<!-- New Hypothesis Modal -->
+<div id="hp-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+  <div id="hp-modal-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="bg-surface-container border border-outline-variant rounded-lg w-full max-w-lg flex flex-col shadow-2xl">
+      <div class="px-5 py-3 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+        <h3 class="font-headline-md text-headline-md font-semibold text-on-surface">New Hypothesis</h3>
+        <button id="hp-modal-close" class="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded transition-colors">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
       </div>
-      <div id="col-{{ st|lower }}" class="p-cell-padding-x py-2 space-y-2 min-h-64">
-        <div class="text-label-sm text-outline text-center py-8">Loading&hellip;</div>
+      <div class="p-5 space-y-4">
+        <div>
+          <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase mb-1">Hypothesis Title</label>
+          <input id="hp-m-title" type="text" placeholder="e.g. Momentum Reversion on BTCUSD M15" class="w-full bg-background border border-outline-variant text-on-surface font-body-md font-body-md px-3 py-2 rounded focus:ring-1 focus:ring-primary outline-none">
+        </div>
+        <div>
+          <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase mb-1">Description / Rationale</label>
+          <textarea id="hp-m-desc" rows="3" placeholder="Why does this edge exist? What market structure are you exploiting?" class="w-full bg-background border border-outline-variant text-on-surface font-body-md font-body-md px-3 py-2 rounded focus:ring-1 focus:ring-primary outline-none resize-none"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase mb-1">Symbol</label>
+            <input id="hp-m-symbol" type="text" placeholder="e.g. BTCUSD, EURUSD" class="w-full bg-background border border-outline-variant text-on-surface font-data-md font-data-md px-3 py-2 rounded focus:ring-1 focus:ring-primary outline-none">
+          </div>
+          <div>
+            <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase mb-1">Timeframe</label>
+            <input id="hp-m-tf" type="text" placeholder="e.g. M15, H1" class="w-full bg-background border border-outline-variant text-on-surface font-data-md font-data-md px-3 py-2 rounded focus:ring-1 focus:ring-primary outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase mb-1">Initial Status</label>
+          <select id="hp-m-status" class="w-full bg-background border border-outline-variant text-on-surface font-label-sm font-label-sm px-3 py-2 rounded focus:ring-1 focus:ring-primary outline-none">
+            <option value="DRAFT">Draft</option>
+            <option value="RESEARCHING">Researching</option>
+            <option value="BACKTESTING">Backtesting</option>
+            <option value="VALIDATED">Validated</option>
+          </select>
+        </div>
+      </div>
+      <div class="px-5 py-3 border-t border-outline-variant flex justify-end gap-2 bg-surface-container-high/50 shrink-0">
+        <button id="hp-modal-cancel" class="px-4 py-2 text-label-sm font-label-sm border border-outline-variant text-on-surface-variant hover:bg-surface-variant rounded transition-colors">Cancel</button>
+        <button id="hp-modal-submit" class="px-4 py-2 text-label-sm font-label-sm font-bold bg-primary text-on-primary rounded hover:opacity-90 transition-opacity">Create Hypothesis</button>
       </div>
     </div>
-    {% endfor %}
-  </div>
-  <div id="hypo-table" class="hidden bg-surface-container-low border border-outline-variant p-3 mt-unit*4">
-    <table class="w-full text-left border-collapse">
-      <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-        <th class="px-cell-padding-x py-cell-padding-y">ID</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Strategy Name</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Asset</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Timeframe</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Confidence</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Status</th>
-      </tr></thead>
-      <tbody id="hypo-table-body" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-        <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading&hellip;</td></tr>
-      </tbody>
-    </table>
   </div>
 </div>
 {% endblock content %}
 
 {% block scripts %}
+<script>window.__PAGE_INIT__ = "hypotheses";</script>
 <script>
-async function initHyp() {
-  const r = await apiFetch('/api/quant/hypotheses');
-  renderHyp(r, 'kanban');
-}
-function renderHyp(list, view) {
-  var statuses = {DRAFT:'draft',RESEARCHING:'researching',BACKTESTING:'backtesting',VALIDATED:'validated',DEPLOYED:'deployed'};
-  for (var st in statuses) {
-    var sl = statuses[st];
-    var items = list.filter(function(h){ return h.status === st; });
-    var cnt = document.getElementById('cnt-' + sl); if (cnt) cnt.textContent = items.length;
-    var col = document.getElementById('col-' + sl); if (!col) continue;
-    if (!items.length) { col.innerHTML = '<div class="text-label-sm text-outline text-center py-4">No items</div>'; continue; }
-    col.innerHTML = items.map(function(h) {
-      return '<div class="bg-surface-container border border-outline-variant p-2 cursor-pointer hover:border-primary/40 transition-colors">' +
-        '<div class="font-body-md text-on-surface mb-1">' + esc(h.title) + '</div>' +
-        '<div class="flex gap-2 font-mono text-label-sm text-outline"><span>' + (h.symbol||'—') + '</span><span>' + (h.timeframe||'—') + '</span></div>' +
-        '<div class="flex gap-1 mt-2 justify-end">' +
-          '<button class="px-2 py-0.5 text-label-sm border border-outline-variant" onclick="updateHyp(' + h.id + ',{status:'RESEARCHING'})">Research</button>' +
-          '<button class="px-2 py-0.5 text-label-sm border border-outline-variant" onclick="updateHyp(' + h.id + ',{status:'BACKTESTING'})">Backtest</button>' +
-          '<button class="px-2 py-0.5 text-label-sm border border-outline-variant text-error" onclick="delHyp(' + h.id + ')">✕</button>' +
-        '</div></div>';
-    }).join('');
+(function () {
+  "use strict";
+  if (window.__PAGE_INIT__ !== "hypotheses") return;
+
+  /* ── helpers ── */
+  function esc(s) {
+    if (s == null) return "";
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
   }
-  var tb = document.getElementById('hypo-table-body');
-  if (tb) tb.innerHTML = list.map(function(h) {
-    return '<tr><td class="px-cell-padding-x py-cell-padding-y font-mono">' + h.id + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y">' + esc(h.title) + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y">' + (h.symbol||'—') + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y">' + (h.timeframe||'—') + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y">' + ((h.confidence||0)*100).toFixed(0) + '%</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y"><span class="px-1 py-0.5 text-label-sm rounded bg-primary/15 text-primary">' + h.status + '</span></td></tr>';
-  }).join('');
-}
-function setHypoView(v) {
-  document.getElementById('kanban-board').classList.toggle('hidden', v !== 'kanban');
-  document.getElementById('hypo-table').classList.toggle('hidden', v !== 'table');
-}
-async function updateHyp(id, body) { await apiFetch('/api/quant/hypotheses/' + id, {method: 'PATCH', body: JSON.stringify(body)}); initHyp(); }
-async function delHyp(id) { if (!confirm('Delete hypothesis ' + id + '?')) return; await apiFetch('/api/quant/hypotheses/' + id, {method: 'DELETE'}); initHyp(); }
-document.addEventListener('DOMContentLoaded', function() { if (window.__PAGE_INIT__ === 'hypotheses') initHyp(); });
+  function setText(id, t) {
+    var e = document.getElementById(id);
+    if (e) e.textContent = t;
+  }
+
+  /* ── pipeline stages ── */
+  var STAGES = ["DRAFT","RESEARCHING","BACKTESTING","VALIDATED","DEPLOYED","REJECTED"];
+  var NEXT_STAGE = { DRAFT:"RESEARCHING", RESEARCHING:"BACKTESTING", BACKTESTING:"VALIDATED", VALIDATED:"DEPLOYED" };
+  var STAGE_LABEL = { DRAFT:"Draft", RESEARCHING:"Researching", BACKTESTING:"Backtesting", VALIDATED:"Validated", DEPLOYED:"Deployed", REJECTED:"Rejected" };
+  var STAGE_CFG = {
+    DRAFT:        { label:"text-outline",      dot:"" },
+    RESEARCHING:  { label:"text-primary-fixed-dim", dot:"bg-primary-fixed-dim animate-pulse" },
+    BACKTESTING:  { label:"text-yellow-400",    dot:"bg-yellow-400 animate-pulse" },
+    VALIDATED:    { label:"text-primary",       dot:"bg-primary" },
+    DEPLOYED:     { label:"text-success",       dot:"bg-success" },
+    REJECTED:     { label:"text-error",         dot:"bg-error" },
+  };
+
+  var allHypotheses = [];
+
+  /* ══════════════════════════════════════════════════════
+     DATA
+     ══════════════════════════════════════════════════════ */
+  function loadHypotheses() {
+    return apiFetch("/api/quant/hypotheses").then(function(data){
+      allHypotheses = Array.isArray(data) ? data : [];
+      renderBothViews();
+    }).catch(function(){
+      allHypotheses = [];
+      renderBothViews();
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════
+     FILTERS
+     ══════════════════════════════════════════════════════ */
+  function getFiltered() {
+    var statusEl = document.getElementById("hp-filter-status");
+    var assetEl  = document.getElementById("hp-filter-asset");
+    var q        = (document.getElementById("hp-search") || {}).value || "";
+    var status   = statusEl ? statusEl.value : "";
+    var asset    = assetEl  ? assetEl.value  : "";
+
+    var assetMap = {
+      FX: ["EUR","GBP","USD","JPY","AUD","NZD","CAD","CHF"],
+      Crypto: ["BTC","ETH","SOL","BNB","XRP"],
+      Equities: ["AAPL","TSLA","NVDA","MSFT","GOOGL","AMZN"],
+      Metals: ["XAU","XAG","GOLD","SILVER"],
+      "Fixed Income": ["US10Y","US02Y","DXY"]
+    };
+    var keywords = assetMap[asset] || [];
+
+    return allHypotheses.filter(function(h){
+      if (status && h.status !== status) return false;
+      if (asset && h.symbol) {
+        var sym = h.symbol.toUpperCase();
+        if (!keywords.some(function(k){ return sym.indexOf(k) !== -1; })) return false;
+      }
+      if (q) {
+        var txt = (h.title + " " + (h.symbol || "")).toLowerCase();
+        if (txt.indexOf(q.toLowerCase()) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════
+     BADGE HELPERS
+     ══════════════════════════════════════════════════════ */
+  function statusBadge(status) {
+    var cfg = STAGE_CFG[status] || STAGE_CFG.DRAFT;
+    return '<span class="inline-flex items-center gap-1.5 font-label-sm text-label-sm ' + cfg.label + '">'
+         + (cfg.dot ? '<span class="w-1.5 h-1.5 rounded-full ' + cfg.dot + '"></span>' : '')
+         + STAGE_LABEL[status] + '</span>';
+  }
+
+  function assetBadge(symbol) {
+    if (!symbol) return '<span class="text-outline">—</span>';
+    var s = symbol.toUpperCase();
+    var cls = "bg-surface-variant text-outline";
+    var fx = ["EUR","GBP","USD","JPY","AUD","NZD","CAD","CHF"];
+    var crypto = ["BTC","ETH","SOL","BNB","XRP"];
+    var metals = ["XAU","XAG","GOLD","SILVER"];
+    var fi = ["US10Y","US02Y","EUR10Y","DXY"];
+    if (fx.some(function(k){ return s.indexOf(k) !== -1; }))    cls = "bg-secondary-container/40 text-secondary border border-secondary-container/50";
+    else if (crypto.some(function(k){ return s.indexOf(k) !== -1; })) cls = "bg-tertiary-container/40 text-tertiary border border-tertiary-container/50";
+    else if (metals.some(function(k){ return s.indexOf(k) !== -1; })) cls = "bg-surface-variant text-on-surface-variant border border-outline-variant";
+    else if (fi.some(function(k){ return s.indexOf(k) !== -1; }))   cls = "bg-error/15 text-error border border-error/30";
+    return '<span class="px-2 py-0.5 font-label-sm text-[10px] rounded-sm ' + cls + '">' + esc(s) + '</span>';
+  }
+
+  /* ══════════════════════════════════════════════════════
+     TABLE
+     ══════════════════════════════════════════════════════ */
+  function renderTable(list) {
+    var tb = document.getElementById("hp-table-body");
+    if (!tb) return;
+    if (!list.length) {
+      tb.innerHTML = '<tr><td colspan="7" class="px-4 py-6 text-outline text-center text-label-sm">No hypotheses found</td></tr>';
+      setText("hp-total-count", "0 total");
+      return;
+    }
+    tb.innerHTML = list.map(function(h){
+      var next = NEXT_STAGE[h.status];
+      var advanceBtn = '';
+      if (next) {
+        advanceBtn = '<button onclick="window._hpAdvance(' + h.id + ',\'' + next + '\')" '
+          + 'class="px-2 py-1 text-label-sm border border-outline-variant hover:bg-surface-container-highest rounded transition-colors">'
+          + 'Advance to ' + STAGE_LABEL[next] + '</button>';
+      }
+      if (h.status === "VALIDATED") {
+        advanceBtn += '<button onclick="window._hpDeploy(' + h.id + ')" '
+          + 'class="px-2 py-1 text-label-sm bg-primary text-on-primary rounded hover:opacity-80 transition-opacity ml-1">Deploy</button>';
+      }
+      return '<tr class="hover:bg-surface-variant/40 transition-colors">'
+        + '<td class="px-4 py-2.5 font-data-md text-data-md text-primary tabular-nums">H-' + String(h.id).padStart(3,"0") + '</td>'
+        + '<td class="px-4 py-2.5 font-body-md font-body-md">' + esc(h.title) + '</td>'
+        + '<td class="px-4 py-2.5">' + assetBadge(h.symbol) + '</td>'
+        + '<td class="px-4 py-2.5 font-data-md text-data-md">' + esc(h.timeframe || "—") + '</td>'
+        + '<td class="px-4 py-2.5"><span class="text-[10px] text-outline font-label-sm">—</span></td>'
+        + '<td class="px-4 py-2.5">' + statusBadge(h.status) + '</td>'
+        + '<td class="px-4 py-2.5 text-right whitespace-nowrap">' + advanceBtn
+        + '<button onclick="window._hpDelete(' + h.id + ')" class="px-2 py-1 text-label-sm text-error hover:bg-error/10 rounded transition-colors ml-1">✕</button>'
+        + '</td></tr>';
+    }).join("");
+    setText("hp-total-count", list.length + " total");
+  }
+
+  /* ══════════════════════════════════════════════════════
+     KANBAN CARD + COLUMN
+     ══════════════════════════════════════════════════════ */
+  function progressBar(status) {
+    var pipeline = ["DRAFT","RESEARCHING","BACKTESTING","VALIDATED","DEPLOYED"];
+    var idx = pipeline.indexOf(status);
+    var html = '<div class="flex h-1 rounded-sm overflow-hidden">';
+    for (var i = 0; i < pipeline.length; i++) {
+      html += '<div class="flex-1 ' + (i <= idx ? 'bg-primary' : 'bg-surface-variant') + (i > 0 ? ' ml-px' : '') + '"></div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function cardActions(status, id) {
+    var html = '<div class="mt-2 space-y-1.5">';
+    var next = NEXT_STAGE[status];
+    if (next) {
+      html += '<button onclick="window._hpAdvance(' + id + ',\'' + next + '\')" '
+        + 'class="w-full py-1.5 bg-primary/10 text-primary border border-primary/30 font-label-sm text-label-sm font-bold uppercase tracking-wider rounded hover:bg-primary/20 transition-colors">'
+        + 'Advance to ' + STAGE_LABEL[next] + '</button>';
+    }
+    if (status === "VALIDATED") {
+      html += '<button onclick="window._hpDeploy(' + id + ')" '
+        + 'class="w-full py-1.5 bg-primary text-on-primary font-label-sm text-label-sm font-bold uppercase tracking-wider rounded hover:opacity-90 transition-opacity">'
+        + 'Deploy Strategy</button>';
+    }
+    html += '<button onclick="window._hpDelete(' + id + ')" '
+      + 'class="w-full text-outline hover:text-error font-label-sm text-[10px] uppercase transition-colors">Discard</button>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderCard(h) {
+    var cfg = STAGE_CFG[h.status] || STAGE_CFG.DRAFT;
+    var tagCls = "text-outline";
+    var tkMap = { FX:"secondary", Crypto:"tertiary", Equities:"error", Metals:"secondary", "Fixed Income":"tertiary" };
+    var tkCls = tkMap[h.symbol] ? "bg-" + tkMap[h.symbol] + "-container/40 text-" + tkMap[h.symbol] + " border border-" + tkMap[h.symbol] + "-container/50 px-2 py-0.5 font-label-sm text-[10px] rounded-sm" : "";
+    return '<div class="bg-surface-container border border-outline-variant rounded p-3 hover:border-primary/40 transition-all group" data-hypo-id="' + h.id + '">'
+      + '<div class="flex items-center justify-between mb-2">'
+        + '<span class="font-data-md text-[10px] text-outline tabular-nums">H-' + String(h.id).padStart(3,"0") + '</span>'
+        + '<span class="material-symbols-outlined text-[16px] text-outline-variant group-hover:text-outline cursor-grab">drag_indicator</span>'
+      + '</div>'
+      + '<h4 class="font-headline-md text-body-md font-medium leading-tight mb-2">' + esc(h.title) + '</h4>'
+      + ((h.symbol || h.timeframe) ? '<div class="flex items-center gap-2 mb-2 ' + cfg.label + '">'
+        + assetBadge(h.symbol)
+        + (h.timeframe ? '<span class="font-data-md text-data-md text-outline">' + esc(h.timeframe) + '</span>' : '')
+        + '</div>' : '')
+      + progressBar(h.status)
+      + (h.description ? '<p class="text-[11px] text-on-surface-variant/70 font-body-md line-clamp-2 mb-2 mt-2">' + esc(h.description) + '</p>' : '')
+      + cardActions(h.status, h.id)
+    + '</div>';
+  }
+
+  function renderKanban(list) {
+    // 5 pipeline columns + rejected
+    var allCols = ["DRAFT","RESEARCHING","BACKTESTING","VALIDATED","DEPLOYED","REJECTED"];
+    allCols.forEach(function(st){
+      var lower = st.toLowerCase();
+      var colId = "hp-col-" + lower;
+      var cntId = "hp-cnt-" + lower;
+      var col   = document.getElementById(colId);
+      var cnt   = document.getElementById(cntId);
+      if (!col) return;
+      var items = list.filter(function(h){ return h.status === st; });
+      if (cnt) cnt.textContent = items.length;
+      if (!items.length) {
+        col.innerHTML = '<div class="text-label-sm text-outline text-center py-6">No hypotheses</div>';
+        return;
+      }
+      col.innerHTML = items.map(renderCard).join("");
+    });
+  }
+
+  function renderBothViews() {
+    var filtered = getFiltered();
+    renderKanban(filtered);
+    renderTable(filtered);
+  }
+
+  /* ══════════════════════════════════════════════════════
+     MUTATIONS
+     ══════════════════════════════════════════════════════ */
+  function advanceHypo(id, newStatus) {
+    apiFetch("/api/quant/hypotheses/" + id, {
+      method: "PATCH",
+      body: JSON.stringify({ status: newStatus })
+    }).then(function(){
+      return loadHypotheses();
+    }).then(function(){
+      showToast("Hypothesis " + id + " → " + STAGE_LABEL[newStatus], "success");
+    }).catch(function(e){
+      showToast("Failed: " + (e.message || e), "error");
+    });
+  }
+
+  function deployHypo(id) {
+    advanceHypo(id, "DEPLOYED");
+  }
+
+  function deleteHypo(id) {
+    if (!confirm("Discard hypothesis " + id + "?")) return;
+    apiFetch("/api/quant/hypotheses/" + id, { method: "DELETE" }).then(function(){
+      return loadHypotheses();
+    }).then(function(){
+      showToast("Hypothesis discarded", "success");
+    }).catch(function(e){
+      showToast("Delete failed: " + (e.message || e), "error");
+    });
+  }
+
+  // Expose to inline onclick handlers
+  window._hpAdvance = advanceHypo;
+  window._hpDeploy  = deployHypo;
+  window._hpDelete  = deleteHypo;
+
+  /* ══════════════════════════════════════════════════════
+     VIEW TOGGLE + TABLE COLLAPSE
+     ══════════════════════════════════════════════════════ */
+  document.getElementById("hp-view-kanban").addEventListener("click", function(){
+    setView("kanban");
+  });
+  document.getElementById("hp-view-table").addEventListener("click", function(){
+    setView("table");
+  });
+
+  var tableOpen = false;
+  document.getElementById("hp-table-toggle").addEventListener("click", function(){
+    tableOpen = !tableOpen;
+    var panel = document.getElementById("hp-table-panel");
+    var chev = document.getElementById("hp-table-chevron");
+    if (panel) panel.classList.toggle("hidden", !tableOpen);
+    if (chev) chev.style.transform = tableOpen ? "rotate(180deg)" : "rotate(0deg)";
+  });
+
+  function setView(mode) {
+    var kanban = document.getElementById("hp-kanban-wrap");
+    var kBtn = document.getElementById("hp-view-kanban");
+    var tBtn = document.getElementById("hp-view-table");
+    if (mode === "kanban") {
+      kanban.classList.remove("hidden");
+      kBtn.className = "px-3 py-1.5 text-label-sm font-label-sm font-bold bg-surface-container-highest text-primary rounded transition-colors";
+      tBtn.className = "px-3 py-1.5 text-label-sm font-label-sm text-outline hover:text-on-surface rounded transition-colors";
+    } else {
+      kanban.classList.add("hidden");
+      tBtn.className = "px-3 py-1.5 text-label-sm font-label-sm font-bold bg-surface-container-highest text-primary rounded transition-colors";
+      kBtn.className = "px-3 py-1.5 text-label-sm font-label-sm text-outline hover:text-on-surface rounded transition-colors";
+      var tablePanel = document.getElementById("hp-table-panel");
+      if (tablePanel) tablePanel.classList.remove("hidden");
+      tableOpen = true;
+      var chev = document.getElementById("hp-table-chevron");
+      if (chev) chev.style.transform = "rotate(180deg)";
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     NEW HYPOTHESIS MODAL
+     ══════════════════════════════════════════════════════ */
+  function openModal() {
+    document.getElementById("hp-modal").classList.remove("hidden");
+    document.getElementById("hp-modal-backdrop").style.display = "block";
+    document.body.style.overflow = "hidden";
+  }
+  function closeModal() {
+    document.getElementById("hp-modal").classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+  document.getElementById("hp-new-hypo-btn").addEventListener("click", openModal);
+  document.getElementById("hp-modal-close").addEventListener("click", closeModal);
+  document.getElementById("hp-modal-backdrop").addEventListener("click", closeModal);
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeModal(); });
+
+  document.getElementById("hp-modal-submit").addEventListener("click", function(){
+    var title = (document.getElementById("hp-m-title") || {}).value || "";
+    if (!title.trim()) { showToast("Title is required", "error"); return; }
+    var body = {
+      title: title.trim(),
+      description: (document.getElementById("hp-m-desc") || {}).value || null,
+      symbol: (document.getElementById("hp-m-symbol") || {}).value || null,
+      timeframe: (document.getElementById("hp-m-tf") || {}).value || null,
+      status: (document.getElementById("hp-m-status") || {}).value || "DRAFT"
+    };
+    apiFetch("/api/quant/hypotheses", {
+      method: "POST",
+      body: JSON.stringify(body)
+    }).then(function(){
+      closeModal();
+      document.getElementById("hp-m-title").value = "";
+      document.getElementById("hp-m-desc").value = "";
+      document.getElementById("hp-m-symbol").value = "";
+      document.getElementById("hp-m-tf").value = "";
+      return loadHypotheses();
+    }).then(function(){
+      showToast("Hypothesis created", "success");
+    }).catch(function(e){
+      showToast("Create failed: " + (e.message || e), "error");
+    });
+  });
+
+  /* ══════════════════════════════════════════════════════
+     REFRESH + FILTERS
+     ══════════════════════════════════════════════════════ */
+  document.getElementById("hp-refresh-btn").addEventListener("click", function(){
+    var btn = document.getElementById("hp-refresh-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">refresh</span>';
+    loadHypotheses().then(function(){
+      setTimeout(function(){
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[14px]">refresh</span> Refresh';
+      }, 300);
+    });
+  });
+
+  document.getElementById("hp-filter-status").addEventListener("change", renderBothViews);
+  document.getElementById("hp-filter-asset").addEventListener("change", renderBothViews);
+  document.getElementById("hp-search").addEventListener("input", renderBothViews);
+
+  /* ══════════════════════════════════════════════════════
+     TOAST
+     ══════════════════════════════════════════════════════ */
+  function showToast(msg, type) {
+    var container = document.getElementById("rl-toast-container") || document.body;
+    var t = document.createElement("div");
+    var bg = type === "error"
+      ? "bg-error/20 border-error/40 text-error"
+      : "bg-primary/15 border-primary/30 text-primary";
+    t.className = "px-4 py-2 border rounded font-label-sm text-label-sm " + bg + " pointer-events-auto animate-bounce";
+    t.textContent = msg;
+    container.appendChild(t);
+    setTimeout(function(){ t.remove(); }, 3000);
+  }
+
+  /* ══════════════════════════════════════════════════════
+     RESEARCH LAB COMMIT WIRING
+     ══════════════════════════════════════════════════════ */
+  document.addEventListener("research.hypothesis.created", function(evt){
+    loadHypotheses();
+    showToast("Committed from Research Lab — new hypothesis loaded", "success");
+  });
+
+  /* ══════════════════════════════════════════════════════
+     INIT
+     ══════════════════════════════════════════════════════ */
+  loadHypotheses();
+})();
 </script>
 {% endblock scripts %}

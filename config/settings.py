@@ -1,5 +1,4 @@
-"""
-config/settings.py — single source of truth for all platform configuration.
+"""config/settings.py — single source of truth for all platform configuration.
 Every number, threshold, and path reads from here. Nothing is hardcoded elsewhere.
 """
 from __future__ import annotations
@@ -8,25 +7,164 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Load .env file immediately so os.environ picks up settings before any imports
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(Path(__file__).resolve().parent.parent, ".env"))
+except ImportError:
+    pass
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # ── Asset pools and timeframe lists ───────────────────────────────────────────
 # Extend these dicts to add new symbols or timeframes. No strategy code changes needed.
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Broker-neutral canonical symbol names (no suffix).
+# resolution to broker-specific names (e.g. XAUUSD.m, US30.std) lives in
+# data/repository.py via BrokerAdapter. Add a new broker → add a new entry
+# in BROKER_SYMBOL_MAP; everything else (strategies, ML, DB) is untouched.
+# ─────────────────────────────────────────────────────────────────────────────
 ASSET_POOL: dict[str, list[str]] = {
-    "crypto": ["BTCUSD", "ETHUSD", "BNBUSD", "XRPUSD", "SOLUSD"],
-    "forex": ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCHF", "NZDUSD"],
-    "commodity": ["XAUUSD", "XAGUSD", "USOIL", "UKOIL"],
-    "equity": ["AAPL", "TSLA", "NVDA", "MSFT", "AMZN", "GOOGL"],
+# ── Crypto (JustMarkets uses <TICKER>USD.m or <TICKER>EUR.m for BTC) ─
+"crypto": [
+"BTCUSD", "ETHUSD", "BNBUSD", "XRPUSD", "SOLUSD",
+"ADAUSD", "DOGEUSD", "AVAXUSD", "DOTUSD", "LINKUSD",
+"LTCUSD", "MATICUSD","SHIBUSD", "TRXUSD", "UNIUSD",
+"XLMUSD", "BCHUSD", "KSMUSD",
+],
+# ── Forex majors ────────────────────────────────────────────────────────
+"forex": [
+"EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCHF", "NZDUSD", "USDCAD",
+],
+# ── Forex crosses & exotics (active JustMarkets pairs) ──────────────────
+"forex_cross": [
+"EURGBP", "EURJPY", "GBPJPY", "AUDJPY", "EURAUD", "GBPAUD",
+"EURCHF", "GBPCHF", "AUDCAD", "AUDNZD", "NZDCAD", "NZDCHF",
+"CADCHF", "CADJPY", "CHFJPY", "EURCAD", "EURNZD", "GBPNZD",
+"EURSEK", "USDSEK", "EURHUF", "USDHUF", "USDPLN", "USDZAR",
+"EURDKK", "USDNOK", "NOKSEK", "NOKJPY", "SEKJPY",
+"CHFPLN", "CHFSGD", "EURCNH", "USDDKK", "USDHKD", "USDTHB",
+"EURHKD", "EURPLN", "EURNOK", "GBPSEK", "GBPSGD", "NZDSGD",
+"AUDSGD", "USDCNH", "USDMXN", "USDZAR", "USDMXN", "EURZAR",
+"AUDCHF", "GBPNOK", "GBPUSD",
+],
+# ── Commodities & Metals ────────────────────────────────────────────────
+# JustMarkets: XAU/USD, XAG/USD pairings plus WTI, Brent, NatGas
+# Precious metals also quoted in EUR/GBP/AUD/JPY (XAUEUR.m, XAUGBP.m …)
+"commodity": [
+"XAUUSD", "XAGUSD", "XAUAUD", "XAUEUR", "XAUGBP", "XAUJPY", "XAGEUR",
+"WTI", "BRENT", "XNGUSD",
+"XPDUSD", "XPTUSD", # Palladium, Platinum
+],
+# ── Equity CFDs (US/EU names – JustMarkets .m suffix) ──────────────────
+"equity": [
+"AAPL", "TSLA", "NVDA", "MSFT", "AMZN", "GOOGL",
+"META", "NFLX", "AMD", "INTC", "BABA", "BA",
+"BAC", "C", "CRM", "DIS", "F", "GS",
+"JPM", "KO", "MA", "MS", "NKE", "ORCL",
+"PFE", "PG", "PYPL", "SHOP", "V", "VZ",
+"WMT", "XOM", "ZM", "HOOD", "COIN", "UBER",
+"ABNB", "DELL", "LMT", "RACE", "WFC", "CSCO",
+"CVX", "SBUX", "QCOM", "BA", "MRVL",
+],
+# ── Index CFDs (JustMarkets uses .std suffix, NOT .m) ───────────────────
+"index": [
+"US30", "US500", "US100", "UK100", "DE40",
+"FR40", "JP225", "AU200", "EU50", "ES35",
+"SG20", "CH50", "SHA50", "HK50", "A50",
+],
 }
 
 TIMEFRAMES_BY_ASSET: dict[str, list[str]] = {
-    "crypto": ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
-    "forex": ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
-    "commodity": ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
-    "equity": ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+"crypto": ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+"forex": ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+"commodity": ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+"equity": ["M1", "M5", "M15", "M30", "H1", "H4", "D1"],
 }
+
+
+# ── Broker symbol resolution ───────────────────────────────────────────────────
+# Every canonical symbol in ASSET_POOL is resolved to its broker-specific
+# terminal name through this map. When you add a new broker / account:
+# 1. Add its entry here (suffix rules + explicit overrides for odd names)
+# 2. Ensure MT5_SERVER in .env matches the key below
+# 3. Nothing else changes — strategies, ML, DB all use canonical names.
+#
+# Strategy:
+# - `default_suffix` → appended for every symbol not explicitly overridden
+# - `overrides` → exact broker-specific name for the few instruments
+#   that don't follow the pattern (e.g. BRENT, WTI,
+#   BTCXAU, XNGUSD have no standard suffix variant)
+# - `strip_suffix` → strip these known suffixes before re-applying
+#   (idempotent — safe if symbol is already canonical)
+
+BROKER_MAP: dict[str, dict] = {
+# ── JustMarkets (current broker) ─────────────────────────────────────────
+"JustMarkets-Demo3": {
+"default_suffix": ".m",
+"strip_suffix": {".m"},
+"overrides": {
+# Indices use .std not .m
+"US30": "US30.std", "US500": "US500.std", "US100": "US100.std",
+"UK100": "UK100.std", "DE40": "DE40.std", "FR40": "FR40.std",
+"JP225": "JP225.std", "AU200": "AU200.std", "EU50": "EU50.std",
+"ES35": "ES35.std", "SG20": "SG20.std", "CH50": "CH50.std",
+"SHA50": "SHA50.std", "HK50": "SHA50.std", "A50": "A50.std",
+# Commodity CFDs keep their broker names
+"WTI": "WTI.m", "BRENT": "BRENT.m",
+"XNGUSD": "XNGUSD.m", "XPDUSD": "XPDUSD.m", "XPTUSD": "XPTUSD.m",
+# Crypto-Crypto cross
+"BTCXAU": "BTCXAU.m",
+},
+},
+# ── JustMarkets Live (same terminal, different server) ───────────────────
+"JustMarkets-Live": {
+"default_suffix": ".m",
+"strip_suffix": {".m"},
+"overrides": {
+"US30": "US30.std", "US500": "US500.std", "US100": "US100.std",
+"UK100": "UK100.std", "DE40": "DE40.std", "FR40": "FR40.std",
+"JP225": "JP225.std", "AU200": "AU200.std",
+"WTI": "WTI.m", "BRENT": "BRENT.m",
+"XNGUSD": "XNGUSD.m", "XPDUSD": "XPDUSD.m", "XPTUSD": "XPTUSD.m",
+"BTCXAU": "BTCXAU.m",
+},
+},
+# ── Generic fallback (any non-JustMarkets MT5 broker) ───────────────────
+# Most non-JustMarkets brokers use no suffix or their own convention.
+# Add entries here as you test them.
+"default": {
+"default_suffix": "",
+"strip_suffix": set(),
+"overrides": {},
+},
+}
+
+
+def resolve_broker_symbol(canonical: str, server: str = "") -> str:
+    """Return the broker-specific terminal name for a canonical symbol.
+
+    Example
+    -------
+    resolve_broker_symbol("EURUSD", "JustMarkets-Demo3") → "EURUSD.m"
+    resolve_broker_symbol("US500", "JustMarkets-Demo3") → "US500.std"
+    resolve_broker_symbol("BRENT", "JustMarkets-Demo3") → "BRENT.m"
+    resolve_broker_symbol("EURUSD", "") → "EURUSD"
+    """
+    entry = BROKER_MAP.get(server) or BROKER_MAP.get("default", {"default_suffix": ""})
+    # Check explicit override first
+    upper = canonical.upper()
+    if upper in entry.get("overrides", {}):
+        return entry["overrides"][upper]
+    # Strip any existing suffix, re-apply the default
+    base = canonical
+    for sfx in entry.get("strip_suffix", set()):
+        if base.endswith(sfx):
+            base = base[: -len(sfx)]
+    default_sfx = entry.get("default_suffix", "")
+    return base + default_sfx if default_sfx else base
 
 
 # ── Config dataclasses ─────────────────────────────────────────────────────────
@@ -44,7 +182,7 @@ class DatabaseConfig:
 class AuthConfig:
     secret_key: str = "CHANGE_ME_IN_PRODUCTION_USE_OPENSSL_RAND"
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 480
     refresh_token_expire_days: int = 7
     bcrypt_rounds: int = 12
     default_admin_user: str = "admin"
@@ -71,10 +209,8 @@ class RiskConfig:
     lot_step: float = 0.01
     point_sizes: dict = field(default_factory=lambda: {
         "EURUSD": 0.00001, "GBPUSD": 0.00001, "USDJPY": 0.001,
-        "XAUUSD": 0.01, "XAGUSD": 0.001,
-        "BTCUSD": 0.01, "ETHUSD": 0.01,
+        "XAUUSD": 0.01, "XAGUSD": 0.001, "BTCUSD": 0.01, "ETHUSD": 0.01,
         "AAPL": 0.01, "TSLA": 0.01, "NVDA": 0.01,
-        "USOIL": 0.01, "UKOIL": 0.01,
     })
 
 
@@ -126,12 +262,52 @@ class MLConfig:
 @dataclass
 class AIAdvisorConfig:
     enabled: bool = False
+    provider: str = "anthropic"        # anthropic | nvidia | gemini | openrouter
+    # ── Global defaults (used when no per-use-case override is set) ──
     model: str = "claude-sonnet-4-20250514"
     max_tokens: int = 500
     min_confidence_to_show: float = 0.7
     lookback_bars: int = 50
     cooldown_minutes: int = 15
+    # NVIDIA-specific
+    stream: bool = False               # stream responses token-by-token (NVIDIA only)
+    reasoning_budget: int = 0          # extended thinking tokens for reasoning models (0=off)
+    # ── Per-use-case overrides (set in .env, fall back to global above) ──
+    suggest_model: str = ""            # model for trade suggestions (empty = use global model)
+    suggest_max_tokens: int = 0       # 0 = use global max_tokens
+    suggest_reasoning_budget: int = -1 # -1 = use global reasoning_budget
+    chat_model: str = ""               # model for research terminal (empty = use global)
+    chat_max_tokens: int = 0           # 0 = use global
+    chat_reasoning_budget: int = -1    # -1 = use global
+    chat_stream: bool = ""             # empty = use global stream setting
+    # Provider API keys — only fill the one(s) you use
     anthropic_api_key: str = ""
+    nvidia_api_key: str = ""
+    gemini_api_key: str = ""
+    openrouter_api_key: str = ""
+
+    def effective_model(self, use_case: str = "suggest") -> str:
+        """Return the model for a given use case."""
+        if use_case == "chat":
+            return self.chat_model or self.model
+        return self.suggest_model or self.model
+
+    def effective_max_tokens(self, use_case: str = "suggest") -> int:
+        """Return max_tokens for a given use case."""
+        val = self.chat_max_tokens if use_case == "chat" else self.suggest_max_tokens
+        return val if val > 0 else self.max_tokens
+
+    def effective_reasoning_budget(self, use_case: str = "suggest") -> int:
+        """Return reasoning_budget for a given use case."""
+        val = self.chat_reasoning_budget if use_case == "chat" else self.suggest_reasoning_budget
+        return val if val >= 0 else self.reasoning_budget
+
+    def effective_stream(self, use_case: str = "suggest") -> bool:
+        """Return stream setting for a given use case."""
+        if use_case == "chat":
+            if self.chat_stream != "":
+                return str(self.chat_stream).lower() in ("1", "true", "yes")
+        return self.stream
 
 
 @dataclass
@@ -180,8 +356,37 @@ class PlatformConfig:
         cfg.mt5.login = int(os.environ.get("MT5_LOGIN", cfg.mt5.login or 0))
         cfg.mt5.password = os.environ.get("MT5_PASSWORD", cfg.mt5.password)
         cfg.mt5.server = os.environ.get("MT5_SERVER", cfg.mt5.server)
+        cfg.mt5.path = os.environ.get("MT5_PATH", cfg.mt5.path)
+
+        # ── AI provider config ────────────────────────────────────────────
+        cfg.ai.provider = os.environ.get("AI_PROVIDER", cfg.ai.provider).lower()
+        # Global model settings
+        cfg.ai.model = os.environ.get("AI_MODEL", cfg.ai.model)
+        cfg.ai.stream = os.environ.get("AI_STREAM", "false").lower() in ("1", "true", "yes")
+        cfg.ai.reasoning_budget = int(os.environ.get("AI_REASONING_BUDGET", "0"))
+        cfg.ai.max_tokens = int(os.environ.get("AI_MAX_TOKENS", str(cfg.ai.max_tokens)))
+        # Per-use-case overrides
+        cfg.ai.suggest_model = os.environ.get("AI_SUGGEST_MODEL", cfg.ai.suggest_model)
+        cfg.ai.chat_model = os.environ.get("AI_CHAT_MODEL", cfg.ai.chat_model)
+        cfg.ai.suggest_max_tokens = int(os.environ.get("AI_SUGGEST_MAX_TOKENS", str(cfg.ai.suggest_max_tokens)))
+        cfg.ai.chat_max_tokens = int(os.environ.get("AI_CHAT_MAX_TOKENS", str(cfg.ai.chat_max_tokens)))
+        cfg.ai.suggest_reasoning_budget = int(os.environ.get("AI_SUGGEST_REASONING_BUDGET", str(cfg.ai.suggest_reasoning_budget)))
+        cfg.ai.chat_reasoning_budget = int(os.environ.get("AI_CHAT_REASONING_BUDGET", str(cfg.ai.chat_reasoning_budget)))
+        cfg.ai.chat_stream = os.environ.get("AI_CHAT_STREAM", cfg.ai.chat_stream)
+        # Provider API keys
         cfg.ai.anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", cfg.ai.anthropic_api_key)
-        cfg.ai.enabled = bool(cfg.ai.anthropic_api_key)
+        cfg.ai.nvidia_api_key = os.environ.get("NVIDIA_API_KEY", cfg.ai.nvidia_api_key)
+        cfg.ai.gemini_api_key = os.environ.get("GEMINI_API_KEY", cfg.ai.gemini_api_key)
+        cfg.ai.openrouter_api_key = os.environ.get("OPENROUTER_API_KEY", cfg.ai.openrouter_api_key)
+
+        # Enabled if ANY provider key is present
+        has_key = any([
+            cfg.ai.anthropic_api_key,
+            cfg.ai.nvidia_api_key,
+            cfg.ai.gemini_api_key,
+            cfg.ai.openrouter_api_key,
+        ])
+        cfg.ai.enabled = has_key
         return cfg
 
 

@@ -1,7 +1,8 @@
-"""dashboard/app.py – Savanna Capital Quant OS dashboard."""
+"""dashboard/app.py — Savanna Capital Quant OS dashboard."""
 from __future__ import annotations
 
 import logging
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,7 @@ from fastapi import (
     Request,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
@@ -30,6 +31,7 @@ from db.models import (
     Hypothesis,
     MLModel,
     OHLCVBar,
+    OptimisationRun,
     PlatformSetting,
     StrategyConfig,
     Trade,
@@ -55,6 +57,8 @@ app.add_middleware(
 )
 
 
+# ── Security headers middleware ────────────────────────────────────────────────
+
 @app.middleware("http")
 async def _security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -64,9 +68,41 @@ async def _security_headers(request: Request, call_next):
     return response
 
 
+# ── Auth guard middleware ──────────────────────────────────────────────────────
+# All HTML page routes render regardless of auth state — the page itself
+# fetches data via apiFetch and _base.html handles 401 → /login redirects.
+# API routes enforce auth via the _get_current_user dependency on each handler.
+# Public paths below bypass the middleware entirely.
+
+_PUBLIC_PREFIXES = (
+    "/auth/",              # login / refresh (router prefix = /auth, not /api/auth)
+    "/health",             # health
+    "/static/",            # css/js assets
+    "/login",              # login page itself
+)
+
+@app.middleware("http")
+async def _auth_guard(request: Request, call_next):
+    path = request.url.path
+
+    # Allow OPTIONS preflight
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    # Allow explicitly public paths
+    for prefix in _PUBLIC_PREFIXES:
+        if path == prefix.rstrip("/") or path.startswith(prefix):
+            return await call_next(request)
+
+    # All other routes pass through — API endpoints self-protect via
+    # _get_current_user, HTML pages will redirect via apiFetch 401 handling.
+    return await call_next(request)
+
+
 # Resolve templates directory once at module load time — absolute, CWD-independent
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 _tpl = None
+
 
 def _get_templates() -> "Jinja2Templates":
     global _tpl
@@ -75,110 +111,20 @@ def _get_templates() -> "Jinja2Templates":
         _tpl = Jinja2Templates(directory=str(_TEMPLATES_DIR))
     return _tpl
 
+
 app.include_router(auth_router)
 
+# ── ML Center routes (train / deploy / predict / feature importance) ───────────
+from dashboard.routes.ml import router as ml_router # noqa: E402
+app.include_router(ml_router)
 
-def _render_page(
-    slug: str,
-    title: str,
-    active: str,
-    request: Request,
-) -> HTMLResponse:
-    """Render a page template with auth token."""
-    tpl = _get_templates()
-    token = ""
-    auth_header = request.headers.get("authorization", "")
-    if auth_header.startswith("Bearer "):
-        token = auth_header[7:]
-    return tpl.TemplateResponse(
-        request,
-        f"pages/page_{slug}.html",
-        {
-            "title": title,
-            "active": active,
-            "page_title": title,
-            "jwt_token": token,
-        },
-    )
+# ── Portfolio Risk Monitor routes ─────────────────────────────────────────────
+from dashboard.routes.risk import router as risk_router # noqa: E402
+app.include_router(risk_router, prefix="/api/risk")
 
-
-@app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request) -> HTMLResponse:
-    path = Path(__file__).parent / "templates" / "login.html"
-    html = path.read_text(encoding="utf-8")
-    return HTMLResponse(html)
-
-
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    return _render_page("mission_control", "Mission Control", "mission_control", request)
-
-
-@app.get("/executive", response_class=HTMLResponse)
-def executive(request: Request):
-    return _render_page("executive", "Executive Analytics", "executive", request)
-
-
-@app.get("/portfolio-risk", response_class=HTMLResponse)
-def portfolio_risk(request: Request):
-    return _render_page("portfolio_risk", "Portfolio Risk Monitor", "portfolio_risk", request)
-
-
-@app.get("/multi-account", response_class=HTMLResponse)
-def multi_account(request: Request):
-    return _render_page("multi_account", "Multi-Account MT5", "multi_account", request)
-
-
-@app.get("/trade-ops", response_class=HTMLResponse)
-def trade_ops(request: Request):
-    return _render_page("trade_ops", "Trade Operations", "trade_ops", request)
-
-
-@app.get("/risk-compliance", response_class=HTMLResponse)
-def risk_compliance(request: Request):
-    return _render_page("risk_compliance", "Risk & Compliance", "risk_compliance", request)
-
-
-@app.get("/ml", response_class=HTMLResponse)
-def ml(request: Request):
-    return _render_page("ml", "ML Center", "ml", request)
-
-
-@app.get("/ai-research", response_class=HTMLResponse)
-def ai_research(request: Request):
-    return _render_page("ai_research", "AI Research", "ai_research", request)
-
-
-@app.get("/optimization", response_class=HTMLResponse)
-def optimization(request: Request):
-    return _render_page("optimization", "Optimization Hub", "optimization", request)
-
-
-@app.get("/hypotheses", response_class=HTMLResponse)
-def hypotheses(request: Request):
-    return _render_page("hypotheses", "Hypotheses", "hypotheses", request)
-
-
-@app.get("/research", response_class=HTMLResponse)
-def research(request: Request):
-    return _render_page("research", "Research Lab", "research", request)
-
-
-@app.get("/strategies", response_class=HTMLResponse)
-def strategies(request: Request):
-    return _render_page("strategies", "Strategy Library", "strategies", request)
-
-
-@app.get("/backtest", response_class=HTMLResponse)
-def backtest(request: Request):
-    return _render_page("backtesting_center", "Backtesting Center", "backtesting_center", request)
-
-
-@app.get("/settings", response_class=HTMLResponse)
-def settings(request: Request):
-    return _render_page("settings", "Settings", "settings", request)
-
-
+# --- v2 API sub-application ---
+from dashboard.v2.app import app as v2_app  # noqa: E402
+app.mount("/api/v2", v2_app)
 # --- Internal helper ---
 
 def _mt5_adapter():
@@ -219,6 +165,9 @@ def api_trades_recent(limit: int = 50, current_user: User = Depends(_get_current
 
 @app.get("/api/strategies")
 def api_strategies_list(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
+    from strategies.registry import StrategyRegistry
+    reg = StrategyRegistry(db)
+    reg._seed_if_needed(db)
     configs = db.query(StrategyConfig).order_by(StrategyConfig.name).all()
     return [sc.to_dict() for sc in configs]
 
@@ -269,13 +218,14 @@ def api_strategy_toggle(name: str, current_user: User = Depends(_get_current_use
         rec = reg.toggle(name)
     except ValueError as exc:
         raise HTTPException(404, str(exc)) from exc
-    return {"name": rec.name, "is_active": rec.is_enabled}
+    return {"name": rec.name, "is_active": rec.is_active}
 
 
 @app.post("/api/strategies/{name}/deploy")
 def api_strategy_deploy(name: str, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     from strategies.registry import StrategyRegistry
     reg = StrategyRegistry(db)
+    reg._seed_if_needed(db)
     rec = reg.get_by_name(name)
     if rec is None:
         raise HTTPException(404, f"Strategy {name} not found")
@@ -323,7 +273,7 @@ def api_hypothesis_delete(hypothesis_id: str, current_user: User = Depends(_get_
     if h is None:
         raise HTTPException(404, "Hypothesis not found")
     db.delete(h)
-    return {"deleted": str(hypothesis_id)}
+    return {"deleted": str(h.id)}
 
 
 @app.get("/api/quant/backtests")
@@ -346,10 +296,160 @@ def api_backtest_create(body: dict, current_user: User = Depends(_get_current_us
     return {"id": str(run.id), "status": "pending"}
 
 
-@app.get("/api/ml/models")
-def api_ml_models(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
-    models = db.query(MLModel).order_by(MLModel.created_at.desc()).all()
-    return [m.to_dict() for m in models]
+# NOTE: /api/ml/models is now provided by the ML router — no duplicate inline handler.
+
+# ── Optimization Hub endpoints ───────────────────────────────────────────────
+
+@app.get("/api/quant/optimise")
+def api_optimise_list(
+    current_user: User = Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    runs = db.query(OptimisationRun).order_by(OptimisationRun.created_at.desc()).all()
+    return [r.to_dict() for r in runs]
+
+
+@app.post("/api/quant/optimise")
+def api_optimise_create(
+    body: dict,
+    current_user: User = Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    strategy_name = body.get("strategy_name", "")
+    symbol = body.get("symbol", "")
+    timeframe = body.get("timeframe", "")
+    search_method = body.get("search_method", "grid")
+    fitness_metric = body.get("fitness_metric", "sharpe")
+    param_overrides = body.get("param_overrides")
+
+    if not all([strategy_name, symbol, timeframe]):
+        raise HTTPException(400, "strategy_name, symbol, and timeframe are required")
+
+    from strategies.registry import StrategyRegistry
+    reg = StrategyRegistry(db)
+    reg._seed_if_needed(db)
+    cls = reg.classes.get(strategy_name)
+    if cls is None:
+        raise HTTPException(404, f"Strategy not found: {strategy_name}")
+
+    if param_overrides:
+        param_bounds = param_overrides
+    else:
+        sc = db.query(StrategyConfig).filter(StrategyConfig.name == strategy_name).first()
+        if sc and sc.param_bounds:
+            param_bounds = sc.param_bounds
+        else:
+            raise HTTPException(
+                400,
+                "No param_bounds provided and none found in StrategyConfig. Supply param_overrides.",
+            )
+
+    n_iterations = int(body.get("n_iterations", 200))
+
+    run = OptimisationRun(
+        strategy_name=strategy_name,
+        symbol=symbol,
+        timeframe=timeframe,
+        search_method=search_method,
+        fitness_metric=fitness_metric,
+        status="pending",
+        n_iterations=n_iterations,
+    )
+    db.add(run)
+    db.flush()
+
+    def _bg():
+        from db.session import SessionLocal
+        sdb = SessionLocal()
+        try:
+            opt = sdb.query(OptimisationRun).filter(OptimisationRun.id == run.id).first()
+            if opt is None:
+                return
+            opt.status = "running"
+            opt.started_at = datetime.now(timezone.utc)
+            sdb.flush()
+
+            try:
+                from quant.optimiser import run as optimiser_run
+                result = optimiser_run(
+                    strategy_name=strategy_name,
+                    symbol=symbol,
+                    timeframe=timeframe,
+                    param_bounds=param_bounds,
+                    search_method=search_method,
+                    fitness_metric=fitness_metric,
+                    n_iterations=n_iterations,
+                    db_session=sdb,
+                )
+                opt.best_params = result["best_params"]
+                opt.best_score = result["best_score"]
+                opt.heatmap_data = result["heatmap_data"]
+                opt.top_n_results = result["top_n_results"]
+                opt.n_iterations = result["n_iterations"]
+                opt.status = "complete"
+                opt.completed_at = datetime.now(timezone.utc)
+            except Exception as exc:
+                log.exception("Optimisation run %d failed: %s", run.id, exc)
+                opt.status = "failed"
+                opt.error_message = str(exc)
+                opt.completed_at = datetime.now(timezone.utc)
+            sdb.commit()
+        finally:
+            sdb.close()
+
+    t = threading.Thread(target=_bg, daemon=True)
+    t.start()
+
+    return {"id": str(run.id), "status": "pending"}
+
+
+@app.get("/api/quant/optimise/{run_id}")
+def api_optimise_get(
+    run_id: str,
+    current_user: User = Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    run = db.query(OptimisationRun).filter(OptimisationRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(404, "Optimisation run not found")
+    return run.to_dict()
+
+
+@app.patch("/api/quant/optimise/{run_id}/deploy")
+def api_optimise_deploy(
+    run_id: str,
+    body: dict,
+    current_user: User = Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    run = db.query(OptimisationRun).filter(OptimisationRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(404, "Optimisation run not found")
+    if run.status != "complete":
+        raise HTTPException(400, "Cannot deploy an incomplete optimisation run")
+    if not run.best_params:
+        raise HTTPException(400, "No best_params recorded for this run")
+
+    new_params = body.get("params", run.best_params)
+    sc = (
+        db.query(StrategyConfig)
+        .filter(StrategyConfig.name == run.strategy_name)
+        .first()
+    )
+    if sc is None:
+        raise HTTPException(404, f"StrategyConfig not found: {run.strategy_name}")
+
+    sc.params = new_params
+    sc.version = (sc.version or 1) + 1
+    db.flush()
+
+    log.info(
+        "Optimisation %d deployed: strategy=%s new_params=%s",
+        run.id,
+        run.strategy_name,
+        new_params,
+    )
+    return {"status": "deployed", "strategy": run.strategy_name, "params": new_params}
 
 
 @app.get("/api/ai_advisor/suggestions")
@@ -377,14 +477,7 @@ def api_datasets(current_user: User = Depends(_get_current_user)):
             bar_counts[f"{sym}|{tf}"] = cnt
     except Exception:
         pass
-    assets = []
-    for asset, tfs in tf_map.items():
-        assets.append({
-            "asset_class": asset,
-            "symbols": list(tfs.keys()),
-            "timeframes": tfs,
-        })
-    return {"assets": assets, "timeframes_by_asset": tf_map, "bar_counts": bar_counts}
+    return {"assets": tf_map, "timeframes_by_asset": tf_map, "bar_counts": bar_counts}
 
 
 @app.get("/api/data/datasets/{symbol}/ohlcv")
@@ -506,4 +599,107 @@ def health():
 
 @app.on_event("startup")
 async def startup():
-    log.info("Backend ready — backend_restored v2 routes loaded")
+    log.info("Backend ready — v2 routes loaded")
+
+
+# ── Page renderers ─────────────────────────────────────────────────────────────
+
+def _render_page(
+    slug: str,
+    title: str,
+    active: str,
+    request: Request,
+) -> HTMLResponse:
+    """Render a page template with auth token."""
+    tpl = _get_templates()
+    token = ""
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    return tpl.TemplateResponse(
+        request,
+        f"pages/page_{slug}.html",
+        {
+            "title": title,
+            "active": active,
+            "page_title": title,
+            "jwt_token": token,
+        },
+    )
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request) -> HTMLResponse:
+    path = Path(__file__).parent / "templates" / "login.html"
+    html = path.read_text(encoding="utf-8")
+    return HTMLResponse(html)
+
+
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return _render_page("mission_control", "Mission Control", "mission_control", request)
+
+
+@app.get("/executive", response_class=HTMLResponse)
+def executive(request: Request):
+    return _render_page("executive", "Executive Analytics", "executive", request)
+
+
+@app.get("/portfolio-risk", response_class=HTMLResponse)
+def portfolio_risk(request: Request):
+    return _render_page("portfolio_risk", "Portfolio Risk Monitor", "portfolio_risk", request)
+
+
+@app.get("/multi-account", response_class=HTMLResponse)
+def multi_account(request: Request):
+    return _render_page("multi_account", "Multi-Account MT5", "multi_account", request)
+
+
+@app.get("/trade-ops", response_class=HTMLResponse)
+def trade_ops(request: Request):
+    return _render_page("trade_ops", "Trade Operations", "trade_ops", request)
+
+
+@app.get("/risk-compliance", response_class=HTMLResponse)
+def risk_compliance(request: Request):
+    return _render_page("risk_compliance", "Risk & Compliance", "risk_compliance", request)
+
+
+@app.get("/ml", response_class=HTMLResponse)
+def ml(request: Request):
+    return _render_page("ml", "ML Center", "ml", request)
+
+
+@app.get("/ai-research", response_class=HTMLResponse)
+def ai_research(request: Request):
+    return _render_page("ai_research", "AI Research", "ai_research", request)
+
+
+@app.get("/optimization", response_class=HTMLResponse)
+def optimization(request: Request):
+    return _render_page("optimization", "Optimization Hub", "optimization", request)
+
+
+@app.get("/hypotheses", response_class=HTMLResponse)
+def hypotheses(request: Request):
+    return _render_page("hypotheses", "Hypotheses", "hypotheses", request)
+
+
+@app.get("/research", response_class=HTMLResponse)
+def research(request: Request):
+    return _render_page("research", "Research Lab", "research", request)
+
+
+@app.get("/strategies", response_class=HTMLResponse)
+def strategies(request: Request):
+    return _render_page("strategies", "Strategy Library", "strategies", request)
+
+
+@app.get("/backtest", response_class=HTMLResponse)
+def backtest(request: Request):
+    return _render_page("backtesting_center", "Backtesting Center", "backtesting_center", request)
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings(request: Request):
+    return _render_page("settings", "Settings", "settings", request)

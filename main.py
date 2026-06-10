@@ -291,6 +291,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--server", default="", help="MT5 broker server"
     )
+    p.add_argument(
+    "--path", default="", help="MT5 terminal executable path"
+  )
     return p.parse_args()
 
 
@@ -317,6 +320,8 @@ def main() -> None:
             log.info("Falling back to dashboard-only mode")
         else:
             adapter = MT5Adapter()
+        if args.path:
+            adapter.cfg.path = args.path
             connected = adapter.connect()
             if connected:
                 log.info(

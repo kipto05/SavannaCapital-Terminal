@@ -1,41 +1,253 @@
 {% extends "partials/_base.html" %}
 
 {% block title %}Savanna Capital — Strategy Library{% endblock %}
-
 {% set page_title = "Strategy Library" %}
-
 {% set active = "strategies" %}
 
 {% block content %}
 <div class="p-container-padding overflow-y-auto h-full">
 
-<!-- Top actions -->
-<div class="flex items-center gap-2 mb-unit*4">
-<a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">Deploy Strategy</a>
-<a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">+ New Strategy</a>
+  <!-- Top actions -->
+  <div class="flex items-center gap-2 mb-unit*4">
+    <button onclick="openNewModal()" class="px-3 py-1.5 text-label-sm font-medium bg-primary-container text-on-primary-fixed rounded hover:bg-primary-fixed transition-colors">+ New Strategy</button>
+    <button onclick="loadAll()" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">Refresh</button>
+    <div class="flex-1"></div>
+    <!-- Tab switcher -->
+    <div class="flex border border-outline-variant rounded overflow-hidden">
+      <button onclick="switchTab('table')" id="tab-table" class="px-3 py-1.5 text-label-sm bg-surface-variant text-primary">Table</button>
+      <button onclick="switchTab('grid')" id="tab-grid" class="px-3 py-1.5 text-label-sm text-on-surface-variant hover:bg-surface-container">Grid</button>
+      <button onclick="switchTab('evidence')" id="tab-evidence" class="px-3 py-1.5 text-label-sm text-on-surface-variant hover:bg-surface-container">Evidence</button>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="grid grid-cols-4 gap-1 mb-unit*4" id="stats-bar">
+    <div class="bg-surface-container-low border border-outline-variant p-3 text-center">
+      <div class="font-label-sm text-label-sm text-outline uppercase">Total</div>
+      <div class="font-data-lg text-data-lg font-bold text-primary mt-1" id="stat-total">—</div>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant p-3 text-center">
+      <div class="font-label-sm text-label-sm text-outline uppercase">Active</div>
+      <div class="font-data-lg text-data-lg font-bold text-green-400 mt-1" id="stat-active">—</div>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant p-3 text-center">
+      <div class="font-label-sm text-label-sm text-outline uppercase">Inactive</div>
+      <div class="font-data-lg text-data-lg font-bold text-outline mt-1" id="stat-inactive">—</div>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant p-3 text-center">
+      <div class="font-label-sm text-label-sm text-outline uppercase">Deploying</div>
+      <div class="font-data-lg text-data-lg font-bold text-amber-400 mt-1" id="stat-deploying">—</div>
+    </div>
+  </div>
+
+  <!-- TABLE VIEW -->
+  <div id="view-table" class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="border-b border-outline-variant text-label-sm text-outline">
+            <th class="px-cell-padding-x py-cell-padding-y">Name</th>
+            <th class="px-cell-padding-x py-cell-padding-y">Label</th>
+            <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+            <th class="px-cell-padding-x py-cell-padding-y">TF</th>
+            <th class="px-cell-padding-x py-cell-padding-y">Status</th>
+            <th class="px-cell-padding-x py-cell-padding-y">Version</th>
+            <th class="px-cell-padding-x py-cell-padding-y text-right">Trades</th>
+            <th class="px-cell-padding-x py-cell-padding-y text-right">Win Rate</th>
+            <th class="px-cell-padding-x py-cell-padding-y text-right">PF</th>
+            <th class="px-cell-padding-x py-cell-padding-y text-right">Sharpe</th>
+            <th class="px-cell-padding-x py-cell-padding-y text-right">Max DD</th>
+            <th class="px-cell-padding-x py-cell-padding-y">ML</th>
+            <th class="px-cell-padding-x py-cell-padding-y">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="strat-tbody" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+          <tr><td colspan="13" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GRID VIEW -->
+  <div id="view-grid" class="hidden mb-unit*4">
+    <div id="strat-grid" class="trading-grid">
+      <div class="grid-card p-3 text-outline col-span-full text-center py-6">Loading…</div>
+    </div>
+  </div>
+
+  <!-- EVIDENCE VIEW -->
+  <div id="view-evidence" class="hidden bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
+    <div class="flex items-center gap-2 mb-3">
+      <label class="font-label-sm text-label-sm text-on-surface-variant">Filter by strategy:</label>
+      <select id="evidence-strat" onchange="loadEvidence()" class="bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
+        <option value="">All strategies</option>
+      </select>
+    </div>
+    <div id="evidence-log" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+      <div class="py-3 text-outline">Select a strategy or load all evidence.</div>
+    </div>
+  </div>
+
 </div>
 
-<div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-<h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Strategy Library</h3>
-<div class="overflow-x-auto">
-<table class="w-full text-left border-collapse">
-<thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-<th class="px-cell-padding-x py-cell-padding-y">Name</th>
-<th class="px-cell-padding-x py-cell-padding-y">Label</th>
-<th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
-<th class="px-cell-padding-x py-cell-padding-y">TF</th>
-<th class="px-cell-padding-x py-cell-padding-y">Active</th>
-<th class="px-cell-padding-x py-cell-padding-y">Version</th>
-<th class="px-cell-padding-x py-cell-padding-y">Trades</th>
-<th class="px-cell-padding-x py-cell-padding-y">Win Rate</th>
-<th class="px-cell-padding-x py-cell-padding-y">Avg PnL</th>
-<th class="px-cell-padding-x py-cell-padding-y">Actions</th>
-</tr></thead>
-<tbody id="strats-tbody" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-<tr><td colspan="10" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-</tbody>
-</table>
+<!-- ============ STRATEGY DETAIL PANEL (slides up from bottom) ============ -->
+<div id="detail-panel" class="hidden fixed inset-0 z-40 bg-black/40" onclick="if(event.target===this)closeDetail()">
+  <div class="absolute bottom-0 left-0 right-0 bg-surface-container-low border-t border-outline-variant max-h-[75vh] overflow-y-auto">
+    <div class="sticky top-0 bg-surface-container-low border-b border-outline-variant p-3 flex items-center justify-between z-10">
+      <div class="flex items-center gap-3">
+        <span class="font-headline-md text-headline-md font-bold text-primary" id="detail-name">—</span>
+        <span class="text-label-sm text-outline" id="detail-label">—</span>
+        <span id="detail-badge" class="px-1.5 py-0.5 text-label-sm rounded">—</span>
+      </div>
+      <button onclick="closeDetail()" class="p-1 text-outline hover:text-primary material-symbols-outlined">close</button>
+    </div>
+
+    <!-- Sub-controls (regime + ML) -->
+    <div class="flex items-center gap-4 p-3 border-b border-outline-variant/50">
+      <div class="flex items-center gap-2">
+        <label class="font-label-sm text-label-sm text-on-surface-variant">Regime filter:</label>
+        <select id="detail-regime" onchange="saveRegime()" class="bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
+          <option value="all">All regimes</option>
+          <option value="trending">Trending only</option>
+          <option value="ranging">Ranging only</option>
+          <option value="volatile">Volatile only</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="font-label-sm text-label-sm text-on-surface-variant">ML override:</label>
+        <button id="detail-ml-btn" onclick="toggleML()" class="px-2 py-1 text-label-sm border border-outline-variant rounded">Off</button>
+      </div>
+      <div class="flex-1"></div>
+      <button onclick="exportStrategy()" class="px-2 py-1 text-label-sm border border-outline-variant text-outline hover:text-primary">Export</button>
+      <button onclick="copyStrategy()" class="px-2 py-1 text-label-sm border border-outline-variant text-outline hover:text-primary">Copy</button>
+    </div>
+
+    <!-- Charts row -->
+    <div class="grid grid-cols-2 gap-3 p-3">
+      <div class="bg-surface-container border border-outline-variant/50 p-2">
+        <h4 class="font-label-sm text-label-sm text-outline uppercase mb-2">Equity Curve</h4>
+        <canvas id="detail-equity-chart" height="180"></canvas>
+      </div>
+      <div class="bg-surface-container border border-outline-variant/50 p-2">
+        <h4 class="font-label-sm text-label-sm text-outline uppercase mb-2">Monte Carlo (20 sims)</h4>
+        <canvas id="detail-mc-chart" height="180"></canvas>
+      </div>
+    </div>
+
+    <!-- Performance metrics -->
+    <div class="grid grid-cols-7 gap-1 px-3 pb-3" id="detail-metrics">
+      <div class="bg-surface-container p-2 text-center"><div class="font-label-sm text-label-sm text-outline">Trades</div><div class="font-data-lg text-data-lg text-on-surface" id="dm-trades">—</div></div>
+      <div class="bg-surface-container p-2 text-center"><div class="font-label-sm text-label-sm text-outline">Win Rate</div><div class="font-data-lg text-data-lg text-on-surface" id="dm-winrate">—</div></div>
+      <div class="bg-surface-container p-2 text-center"><div class="font-label-sm text-label-sm text-outline">Net PnL</div><div class="font-data-lg text-data-lg" id="dm-net">—</div></div>
+      <div class="bg-surface-container p-2 text-center"><div class="font-label-sm text-label-sm text-outline">Profit Factor</div><div class="font-data-lg text-data-lg text-on-surface" id="dm-pf">—</div></div>
+      <div class="bg-surface-container p-2 text-center"><div class="font-label-sm text-label-sm text-outline">Sharpe</div><div class="font-data-lg text-data-lg text-on-surface" id="dm-sharpe">—</div></div>
+      <div class="bg-surface-container p-2 text-center"><div class="font-label-sm text-label-sm text-outline">Max DD</div><div class="font-data-lg text-data-lg text-red-400" id="dm-mdd">—</div></div>
+      <div class="bg-surface-container p-2 text-center"><div class="font-label-sm text-label-sm text-outline">Avg R</div><div class="font-data-lg text-data-lg" id="dm-avg">—</div></div>
+    </div>
+
+    <!-- Monthly returns bar -->
+    <div class="px-3 pb-3">
+      <h4 class="font-label-sm text-label-sm text-outline uppercase mb-2">Monthly Returns (R-multiples)</h4>
+      <canvas id="detail-monthly-chart" height="100"></canvas>
+    </div>
+
+    <!-- Trade history -->
+    <div class="p-3 border-t border-outline-variant">
+      <h4 class="font-label-sm text-label-sm text-outline uppercase mb-2">Recent Trades</h4>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
+            <th class="px-cell-padding-x py-cell-padding-y">Time</th>
+            <th class="px-cell-padding-x py-cell-padding-y">Side</th>
+            <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+            <th class="px-cell-padding-x py-cell-padding-y">Entry</th>
+            <th class="px-cell-padding-x py-cell-padding-y">Exit</th>
+            <th class="px-cell-padding-x py-cell-padding-y text-right">SL</th>
+            <th class="px-cell-padding-x py-cell-padding-y text-right">TP</th>
+            <th class="px-cell-padding-x py-cell-padding-y text-right">PnL (R)</th>
+          </tr></thead>
+          <tbody id="detail-trades-tbody" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+            <tr><td colspan="8" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Backtest results summary -->
+    <div class="p-3 border-t border-outline-variant">
+      <h4 class="font-label-sm text-label-sm text-outline uppercase mb-2">Backtest Results (PF / Sharpe / Max DD)</h4>
+      <div id="detail-backtests" class="space-y-1">
+        <div class="text-outline text-label-sm">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Versions / history -->
+    <div class="p-3 border-t border-outline-variant">
+      <h4 class="font-label-sm text-label-sm text-outline uppercase mb-2">Version History</h4>
+      <div id="detail-versions" class="space-y-1">
+        <div class="text-outline text-label-sm">Loading…</div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<!-- ============ MODALS ============ -->
+
+<!-- Edit Params Modal -->
+<div id="modal-edit" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onclick="if(event.target===this)closeModal('modal-edit')">
+  <div class="bg-surface-container-low border border-outline-variant rounded-lg w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
+    <div class="p-4 border-b border-outline-variant flex items-center justify-between">
+      <h3 class="font-headline-md text-headline-md text-primary">Edit Parameters — <span id="edit-modal-name" class="font-mono">—</span></h3>
+      <button onclick="closeModal('modal-edit')" class="text-outline hover:text-primary material-symbols-outlined">close</button>
+    </div>
+    <div class="p-4">
+      <pre id="edit-params-pre" class="bg-surface-container border border-outline-variant rounded p-3 text-data-md text-on-surface font-data-md whitespace-pre-wrap mb-4">Loading…</pre>
+      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Paste JSON params to apply</label>
+      <textarea id="edit-params-input" class="w-full bg-surface-variant border border-outline-variant text-data-md px-2 py-1 rounded h-48 font-data-md" placeholder='{"key": "value"}'></textarea>
+      <div class="flex gap-2 mt-4">
+        <button onclick="saveParams()" class="px-4 py-1.5 text-label-sm bg-primary-container text-on-primary-fixed rounded hover:bg-primary-fixed transition-colors">Save as New Version</button>
+        <button onclick="closeModal('modal-edit')" class="px-4 py-1.5 text-label-sm border border-outline-variant text-outline hover:text-on-surface">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Copy / New Strategy Modal -->
+<div id="modal-copy" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onclick="if(event.target===this)closeModal('modal-copy')">
+  <div class="bg-surface-container-low border border-outline-variant rounded-lg w-full max-w-md mx-4">
+    <div class="p-4 border-b border-outline-variant flex items-center justify-between">
+      <h3 class="font-headline-md text-headline-md text-primary" id="modal-copy-title">Copy Strategy</h3>
+      <button onclick="closeModal('modal-copy')" class="text-outline hover:text-primary material-symbols-outlined">close</button>
+    </div>
+    <div class="p-4 space-y-3">
+      <div>
+        <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Name (lowercase, underscores)</label>
+        <input type="text" id="copy-name" class="w-full bg-surface-variant border border-outline-variant text-data-md px-2 py-1 rounded font-mono" placeholder="e.g. momentum_reversion_v2">
+      </div>
+      <div>
+        <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Display Label (optional)</label>
+        <input type="text" id="copy-label" class="w-full bg-surface-variant border border-outline-variant text-data-md px-2 py-1 rounded" placeholder="e.g. Momentum Reversion v2">
+      </div>
+      <div id="copy-toast" class="text-label-sm hidden"></div>
+      <div class="flex gap-2">
+        <button onclick="confirmCopy()" class="px-4 py-1.5 text-label-sm bg-primary-container text-on-primary-fixed rounded hover:bg-primary-fixed transition-colors">Create</button>
+        <button onclick="closeModal('modal-copy')" class="px-4 py-1.5 text-label-sm border border-outline-variant text-outline hover:text-on-surface">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Backtest Results Modal -->
+<div id="modal-backtests" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onclick="if(event.target===this)closeModal('modal-backtests')">
+  <div class="bg-surface-container-low border border-outline-variant rounded-lg w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+    <div class="p-4 border-b border-outline-variant flex items-center justify-between">
+      <h3 class="font-headline-md text-headline-md text-primary">Backtest Results — <span id="bt-modal-name" class="font-mono">—</span></h3>
+      <button onclick="closeModal('modal-backtests')" class="text-outline hover:text-primary material-symbols-outlined">close</button>
+    </div>
+    <div id="bt-modal-body" class="p-4">
+      <div class="text-outline">Loading…</div>
+    </div>
+  </div>
 </div>
 
 </div>
@@ -43,44 +255,564 @@
 
 {% block scripts %}
 <script>window.__PAGE_INIT__ = "strategies";</script>
-
 <script>
-async function initStrats() {
-const r = await apiFetch('/api/strategies/library');
-renderStrats(r);
+// ── Helpers ──────────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '—';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-function renderStrats(list) {
-const tb = document.getElementById('strats-tbody');
-if (!tb) return;
-tb.innerHTML = list.map(function(s) {
-var wr = (s.win_rate * 100).toFixed(1);
-var pnlc = (s.avg_pnl_r || 0) > 0 ? '#10b981' : (s.avg_pnl_r || 0) < 0 ? '#ef4444' : '#64748b';
-return '<tr>' +
-'<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface">' + s.name + '</td>' +
-'<td class="px-cell-padding-x py-cell-padding-y text-on-surface">' + s.label + '</td>' +
-'<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface-variant">' + s.symbol + '</td>' +
-'<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant">' + s.timeframe + '</td>' +
-'<td class="px-cell-padding-x py-cell-padding-y"><span class="px-1 py-0.5 text-label-sm rounded ' + (s.is_active ? 'bg-primary/15 text-primary' : 'bg-surface-variant text-outline') + '">' + (s.is_active ? 'Active' : 'Inactive') + '</span></td>' +
-'<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface-variant">v' + s.version + '</td>' +
-'<td class="px-cell-padding-x py-cell-padding-y text-right">' + s.total_trades + '</td>' +
-'<td class="px-cell-padding-x py-cell-padding-y text-right font-mono">' + wr + '%</td>' +
-'<td class="px-cell-padding-x py-cell-padding-y text-right font-mono" style="color:' + pnlc + '">' + (s.avg_pnl_r != null ? parseFloat(s.avg_pnl_r).toFixed(2) : '—') + '</td>' +
-'<td class="px-cell-padding-x py-cell-padding-y"><div class="flex gap-1">' +
-'<button class="px-2 py-0.5 text-label-sm border border-outline-variant" onclick="toggleStrat(\'' + s.name + '\',' + !s.is_active + ')">Toggle</button>' +
-'<button class="px-2 py-0.5 text-label-sm border border-outline-variant" onclick="deployStrat(\'' + s.name + '\')">Deploy</button>' +
-'</div></td></tr>';
-}).join('');
+function htmlId(s) { return 's_' + s.replace(/[^a-zA-Z0-9_]/g, '_'); }
+function pnlColor(v) { return (v || 0) > 0 ? '#10b981' : (v || 0) < 0 ? '#ef4444' : '#64748b'; }
+function badgeColor(status) {
+  if (status === 'active' || status === true) return 'bg-primary/15 text-primary';
+  if (status === 'running' || status === 'pending') return 'bg-amber-700/25 text-amber-300';
+  return 'bg-surface-variant text-outline';
 }
-async function toggleStrat(name, active) {
-await apiFetch('/api/strategies/' + name + '/toggle', {method: 'PATCH', body: JSON.stringify({is_active: active})});
-initStrats();
+function fmtDate(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso);
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 }
-async function deployStrat(name) {
-if (!confirm('Deploy ' + name + '? Version will increment.')) return;
-await apiFetch('/api/strategies/' + name + '/deploy', {method: 'POST', body: JSON.stringify({reason: 'Dashboard deploy'})});
-initStrats();
-}
-document.addEventListener('DOMContentLoaded', function() { if (window.__PAGE_INIT__ === 'strategies') initStrats(); });
-</script>
+function col(val, cls) { return '<span class="' + cls + '">' + esc(val) + '</span>'; }
 
+// ── Tab switcher ─────────────────────────────────────────────
+var currentTab = 'table';
+
+function switchTab(tab) {
+  currentTab = tab;
+  ['table','grid','evidence'].forEach(function(t) {
+    var v = document.getElementById('view-' + t);
+    var btn = document.getElementById('tab-' + t);
+    if (!v || !btn) return;
+    if (t === tab) {
+      v.classList.remove('hidden');
+      btn.className = 'px-3 py-1.5 text-label-sm bg-surface-variant text-primary';
+    } else {
+      v.classList.add('hidden');
+      btn.className = 'px-3 py-1.5 text-label-sm text-on-surface-variant hover:bg-surface-container';
+    }
+  });
+  if (tab === 'evidence') loadEvidence();
+  if (tab === 'grid') renderGrid();
+}
+
+// ── Stats bar ────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    var s = await apiFetch('/api/v2/strategies/stats/overview');
+    document.getElementById('stat-total').textContent = s.total || 0;
+    document.getElementById('stat-active').textContent = s.active || 0;
+    document.getElementById('stat-inactive').textContent = s.inactive || 0;
+    document.getElementById('stat-deploying').textContent = s.deploying || 0;
+  } catch(e) { console.warn('stats:', e); }
+}
+
+// ── Strategy list (enriched, v2) ─────────────────────────────
+var allStrategies = [];
+
+async function loadAll() {
+  try {
+    allStrategies = await apiFetch('/api/v2/strategies');
+    renderTable(allStrategies);
+    populateEvidenceSelect(allStrategies);
+    await loadStats();
+  } catch(e) { console.error('loadAll:', e); }
+}
+
+function renderTable(list) {
+  var tb = document.getElementById('strat-tbody');
+  if (!tb) return;
+  if (!list || !list.length) {
+    tb.innerHTML = '<tr><td colspan="13" class="px-cell-padding-x py-3 text-outline">No strategies found.</td></tr>';
+    return;
+  }
+  tb.innerHTML = list.map(function(s) {
+    var wr = ((s.win_rate || 0) * 100).toFixed(1) + '%';
+    var netCls = pnlColor(s.net_pnl_r);
+    var pfCls = pnlColor(s.profit_factor); // profit factor > 1 is good
+    if (s.profit_factor > 1 && s.profit_factor != null) pfCls = '#10b981';
+    var ddCls = (s.max_drawdown || 0) > 0.2 ? 'text-red-400' : 'text-amber-300';
+    var mlOn = (s.params && s.params.ml_override && s.params.ml_override.enabled) ? 'On' : 'Off';
+    var mlCls = mlOn === 'On' ? 'text-primary' : 'text-outline';
+    return '<tr>' +
+      '<td class="px-cell-padding-x py-cell-padding-y font-mono text-primary cursor-pointer hover:underline" onclick="openDetail(\'' + esc(s.name) + '\')">' + esc(s.name) + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-on-surface">' + esc(s.label) + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface-variant">' + esc(s.symbol) + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant">' + esc(s.timeframe) + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y"><span class="px-1 py-0.5 text-label-sm rounded ' + badgeColor(s.is_active) + '">' + (s.is_active ? 'Active' : 'Inactive') + '</span></td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface-variant">v' + esc(s.version) + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-right">' + (s.total_trades || 0) + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono" style="color:' + pnlColor(s.win_rate - 0.5) + '">' + wr + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono">' + (s.profit_factor != null ? parseFloat(s.profit_factor).toFixed(2) : '—') + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono">' + (s.sharpe != null ? parseFloat(s.sharpe).toFixed(2) : '—') + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono text-red-400">' + (s.max_drawdown != null ? (s.max_drawdown * 100).toFixed(1) + '%' : '—') + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y font-label-sm ' + mlCls + '">' + mlOn + '</td>' +
+      '<td class="px-cell-padding-x py-cell-padding-y"><div class="flex gap-1 flex-wrap">' +
+        '<button onclick="toggleStrat(\'' + esc(s.name) + '\')" class="px-2 py-0.5 text-label-sm border border-outline-variant hover:text-primary" title="Toggle active">' + (s.is_active ? 'Deactivate' : 'Activate') + '</button>' +
+        '<button onclick="openEditModal(\'' + esc(s.name) + '\')" class="px-2 py-0.5 text-label-sm border border-outline-variant hover:text-primary" title="Edit params">Edit</button>' +
+        '<button onclick="openCopyModal(\'' + esc(s.name) + '\')" class="px-2 py-0.5 text-label-sm border border-outline-variant hover:text-primary" title="Duplicate">Copy</button>' +
+        '<button onclick="openDetail(\'' + esc(s.name) + '\');loadBacktestsModal(\'' + esc(s.name) + '\')" class="px-2 py-0.5 text-label-sm border border-outline-variant hover:text-primary" title="Backtests">BT</button>' +
+      '</div></td></tr>';
+  }).join('');
+}
+
+function renderGrid() {
+  var grid = document.getElementById('strat-grid');
+  if (!grid) return;
+  var list = allStrategies;
+  if (!list || !list.length) {
+    grid.innerHTML = '<div class="grid-card p-3 text-outline col-span-full text-center py-6">No strategies found.</div>';
+    return;
+  }
+  grid.innerHTML = list.map(function(s) {
+    var wr = ((s.win_rate || 0) * 100).toFixed(1) + '%';
+    return '<div class="grid-card p-3 cursor-pointer hover:border-primary transition-colors" onclick="openDetail(\'' + esc(s.name) + '\')">' +
+      '<div class="flex items-center justify-between mb-2">' +
+        '<span class="font-mono text-label-sm text-primary">' + esc(s.name) + '</span>' +
+        '<span class="px-1 py-0.5 text-label-sm rounded ' + badgeColor(s.is_active) + '">' + (s.is_active ? 'Active' : 'Inactive') + '</span>' +
+      '</div>' +
+      '<div class="font-body-md text-on-surface mb-1">' + esc(s.label) + '</div>' +
+      '<div class="font-label-sm text-label-sm text-outline mb-2">' + esc(s.symbol) + ' · ' + esc(s.timeframe) + '</div>' +
+      '<div class="grid grid-cols-3 gap-1 text-center">' +
+        '<div><div class="font-label-sm text-label-sm text-outline">WR</div><div class="font-data-md text-data-md" style="color:' + pnlColor(s.win_rate - 0.5) + '">' + wr + '</div></div>' +
+        '<div><div class="font-label-sm text-label-sm text-outline">Trades</div><div class="font-data-md text-data-md text-on-surface">' + (s.total_trades || 0) + '</div></div>' +
+        '<div><div class="font-label-sm text-label-sm text-outline">PF</div><div class="font-data-md text-data-md">' + (s.profit_factor != null ? parseFloat(s.profit_factor).toFixed(2) : '—') + '</div></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Toggle strategy ──────────────────────────────────────────
+async function toggleStrat(name) {
+  try {
+    var r = await apiFetch('/api/v2/strategies/' + name + '/toggle', {method: 'POST'});
+    await loadAll();
+  } catch(e) { console.error('toggle:', e); alert('Toggle failed: ' + e.message); }
+}
+
+// ── Modals: Edit Params ───────────────────────────────────────
+var _editName = '';
+async function openEditModal(name) {
+  _editName = name;
+  document.getElementById('edit-modal-name').textContent = name;
+  try {
+    var detail = await apiFetch('/api/v2/strategies/' + name);
+    document.getElementById('edit-params-pre').textContent = JSON.stringify(detail.params || {}, null, 2);
+    document.getElementById('edit-params-input').value = JSON.stringify(detail.params || {}, null, 2);
+    openModal('modal-edit');
+  } catch(e) { alert('Failed to load params: ' + e.message); }
+}
+async function saveParams() {
+  try {
+    var params = JSON.parse(document.getElementById('edit-params-input').value);
+    await apiFetch('/api/v2/strategies/' + _editName + '/params', {
+      method: 'PUT',
+      body: JSON.stringify({params: params})
+    });
+    closeModal('modal-edit');
+    await loadAll();
+    if (_editName === currentDetailName) openDetail(_editName);
+  } catch(e) { alert('Save failed: ' + e.message); }
+}
+
+// ── Modals: Copy / New Strategy ──────────────────────────────
+var _copySource = '';
+function openCopyModal(name) {
+  _copySource = name;
+  document.getElementById('modal-copy-title').textContent = 'Copy Strategy: ' + name;
+  document.getElementById('copy-name').value = name + '_copy';
+  document.getElementById('copy-label').value = '';
+  document.getElementById('copy-toast').classList.add('hidden');
+  openModal('modal-copy');
+}
+function openNewModal() {
+  _copySource = '';
+  document.getElementById('modal-copy-title').textContent = 'New Strategy';
+  document.getElementById('copy-name').value = '';
+  document.getElementById('copy-label').value = '';
+  document.getElementById('copy-toast').classList.add('hidden');
+  openModal('modal-copy');
+}
+async function confirmCopy() {
+  var name = document.getElementById('copy-name').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'_');
+  var label = document.getElementById('copy-label').value.trim();
+  if (!name) { alert('Name is required'); return; }
+  try {
+    if (_copySource) {
+      await apiFetch('/api/v2/strategies/' + _copySource + '/copy', {
+        method: 'POST',
+        body: JSON.stringify({new_name: name, label: label || name.replace(/_/g, ' ').replace(/\b\w/g, function(c){return c.toUpperCase();})})
+      });
+    } else {
+      await apiFetch('/api/v2/strategies/new', {
+        method: 'POST',
+        body: JSON.stringify({name: name, label: label || name.replace(/_/g, ' ').replace(/\b\w/g, function(c){return c.toUpperCase();})})
+      });
+    }
+    closeModal('modal-copy');
+    await loadAll();
+  } catch(e) { alert('Create failed: ' + e.message); }
+}
+
+// ── Strategy detail panel ────────────────────────────────────
+var currentDetailName = '';
+var detailCharts = { equity: null, mc: null, monthly: null };
+
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+async function openDetail(name) {
+  currentDetailName = name;
+  var panel = document.getElementById('detail-panel');
+  panel.classList.remove('hidden');
+  document.getElementById('detail-name').textContent = name;
+  try {
+    var detail = await apiFetch('/api/v2/strategies/' + name);
+    var badge = document.getElementById('detail-badge');
+    badge.textContent = detail.is_active ? 'Active' : 'Inactive';
+    badge.className = 'px-1.5 py-0.5 text-label-sm rounded ' + badgeColor(detail.is_active);
+    document.getElementById('detail-label').textContent = detail.label || '';
+
+    // Metrics row
+    document.getElementById('dm-trades').textContent = detail.total_trades || 0;
+    document.getElementById('dm-winrate').textContent = ((detail.win_rate || 0) * 100).toFixed(1) + '%';
+    document.getElementById('dm-net').textContent = (detail.net_pnl_r || 0).toFixed(3) + 'R';
+    document.getElementById('dm-net').style.color = pnlColor(detail.net_pnl_r);
+    document.getElementById('dm-pf').textContent = detail.profit_factor != null ? parseFloat(detail.profit_factor).toFixed(2) : '—';
+    document.getElementById('dm-sharpe').textContent = detail.sharpe != null ? parseFloat(detail.sharpe).toFixed(2) : '—';
+    document.getElementById('dm-mdd').textContent = detail.max_drawdown != null ? (detail.max_drawdown * 100).toFixed(1) + '%' : '—';
+    document.getElementById('dm-avg').textContent = (detail.avg_pnl_r || 0).toFixed(3) + 'R';
+    document.getElementById('dm-avg').style.color = pnlColor(detail.avg_pnl_r);
+
+    // Regime + ML state
+    try {
+      var p = detail.params || {};
+      document.getElementById('detail-regime').value = (p.regime_filter && p.regime_filter.mode) || 'all';
+      var mlOn = (p.ml_override && p.ml_override.enabled) || false;
+      var mlBtn = document.getElementById('detail-ml-btn');
+      mlBtn.textContent = mlOn ? 'On' : 'Off';
+      mlBtn.className = 'px-2 py-1 text-label-sm border rounded ' + (mlOn ? 'border-primary text-primary' : 'border-outline-variant text-outline');
+    } catch(e) {}
+
+    // Charts
+    loadEquityChart(name);
+    loadMCChart(name);
+    loadMonthlyChart(name);
+
+    // Trade history
+    loadDetailTrades(name);
+
+    // Backtests
+    loadDetailBacktests(name);
+
+    // Versions
+    loadDetailVersions(name);
+  } catch(e) { console.error('openDetail:', e); }
+}
+function closeDetail() {
+  document.getElementById('detail-panel').classList.add('hidden');
+  if (detailCharts.equity) { detailCharts.equity.destroy(); detailCharts.equity = null; }
+  if (detailCharts.mc) { detailCharts.mc.destroy(); detailCharts.mc = null; }
+  if (detailCharts.monthly) { detailCharts.monthly.destroy(); detailCharts.monthly = null; }
+  currentDetailName = '';
+}
+
+// ── Detail charts ────────────────────────────────────────────
+function destroyChart(ref, key) {
+  if (ref) { ref.destroy(); ref = null; }
+  detailCharts[key] = null;
+}
+async function loadEquityChart(name) {
+  destroyChart(detailCharts.equity, 'equity');
+  try {
+    var data = await apiFetch('/api/v2/strategies/' + name + '/equity');
+    var ctx = document.getElementById('detail-equity-chart');
+    if (!ctx) return;
+    detailCharts.equity = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.points.map(function(p) { return p.index; }),
+        datasets: [{
+          label: 'Equity (normalised)',
+          data: data.points.map(function(p) { return p.equity; }),
+          borderColor: '#3B82F6',
+          backgroundColor: 'rgba(59,130,246,0.1)',
+          fill: true,
+          tension: 0.1,
+          pointRadius: 0,
+          borderWidth: 1.5,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { ticks: { color: '#849396', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(59,73,76,0.4)' } }
+        }
+      }
+    });
+  } catch(e) { console.warn('equity chart:', e); }
+}
+
+async function loadMCChart(name) {
+  destroyChart(detailCharts.mc, 'mc');
+  try {
+    var data = await apiFetch('/api/v2/strategies/' + name + '/monte-carlo?simulations=20');
+    var ctx = document.getElementById('detail-mc-chart');
+    if (!ctx || !data.curves || !data.curves.length) return;
+    var COLORS = ['#3B82F6','#10B981','#F59E0B','#8B5CF6','#EF4444','#6B7280','#EC4899','#14B8A6','#F97316','#6366F1','#84CC16','#06B6D4','#D946EF','#FBBF24','#A855F7','#22D3EE','#FB7185','#A3E635','#C084FC','#38BDF8'];
+    var datasets = data.curves.map(function(curve, i) {
+      return {
+        label: 'Sim ' + (i+1),
+        data: curve,
+        borderColor: COLORS[i % COLORS.length],
+        borderWidth: 1,
+        pointRadius: 0,
+        tension: 0.1,
+      };
+    });
+    detailCharts.mc = new Chart(ctx, {
+      type: 'line',
+      data: { labels: Array.from({length: (data.curves[0]||[]).length}, function(_,i){return i;}), datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { ticks: { color: '#849396', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(59,73,76,0.4)' } }
+        }
+      }
+    });
+  } catch(e) { console.warn('mc chart:', e); }
+}
+
+async function loadMonthlyChart(name) {
+  destroyChart(detailCharts.monthly, 'monthly');
+  try {
+    var data = await apiFetch('/api/v2/strategies/' + name + '/performance');
+    var monthly = data.monthly_returns || [];
+    if (!monthly.length) return;
+    var ctx = document.getElementById('detail-monthly-chart');
+    if (!ctx) return;
+    detailCharts.monthly = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: monthly.map(function(m) { return m.month; }),
+        datasets: [{
+          label: 'R-multiple',
+          data: monthly.map(function(m) { return m.pnl_r; }),
+          backgroundColor: monthly.map(function(m) { return pnlColor(m.pnl_r); }),
+          borderRadius: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#849396', font: { family: 'JetBrains Mono', size: 9 }, maxRotation: 45 }, grid: { display: false } },
+          y: { ticks: { color: '#849396', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(59,73,76,0.4)' } }
+        }
+      }
+    });
+  } catch(e) { console.warn('monthly chart:', e); }
+}
+
+// ── Detail trades ────────────────────────────────────────────
+async function loadDetailTrades(name) {
+  var tb = document.getElementById('detail-trades-tbody');
+  if (!tb) return;
+  try {
+    var data = await apiFetch('/api/v2/strategies/' + name + '/trades?limit=30');
+    var trades = data.trades || [];
+    if (!trades.length) {
+      tb.innerHTML = '<tr><td colspan="8" class="px-cell-padding-x py-3 text-outline">No trades recorded.</td></tr>';
+      return;
+    }
+    tb.innerHTML = trades.map(function(t) {
+      var sideCls = (t.side === 'BUY' || t.side === 'buy') ? 'text-green-400' : 'text-red-400';
+      var pnlCls = pnlColor(t.pnl_r);
+      return '<tr>' +
+        '<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant">' + fmtDate(t.entry_time) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y font-mono ' + sideCls + '">' + esc(t.side) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface-variant">' + esc(t.symbol) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface-variant">' + esc(t.entry_price) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface-variant">' + esc(t.exit_price) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono text-red-400">' + esc(t.stop_loss) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono text-green-400">' + esc(t.take_profit) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono" style="color:' + pnlCls + '">' + (t.pnl_r != null ? parseFloat(t.pnl_r).toFixed(3) : '—') + '</td>' +
+      '</tr>';
+    }).join('');
+  } catch(e) { tb.innerHTML = '<tr><td colspan="8" class="px-cell-padding-x py-3 text-outline">Error loading trades.</td></tr>'; }
+}
+
+// ── Detail backtests ─────────────────────────────────────────
+async function loadDetailBacktests(name) {
+  var el = document.getElementById('detail-backtests');
+  if (!el) return;
+  try {
+    var runs = await apiFetch('/api/v2/strategies/' + name + '/backtests?limit=10');
+    if (!runs || !runs.length) { el.innerHTML = '<div class="text-outline text-label-sm">No backtests yet.</div>'; return; }
+    el.innerHTML = runs.map(function(r) {
+      var pf = r.equity_curve ? '' : '';
+      var pfDisplay = r.equity_curve ? '—' : '';
+      return '<div class="flex items-center gap-3 bg-surface-container p-2 rounded">' +
+        '<span class="text-label-sm text-on-surface-variant">#' + r.id + '</span>' +
+        '<span class="px-1 py-0.5 text-label-sm rounded ' + badgeColor(r.status) + '">' + esc(r.status) + '</span>' +
+        '<span class="text-label-sm text-on-surface-variant">' + esc(r.symbol) + '/' + esc(r.timeframe) + '</span>' +
+        '<span class="text-label-sm text-outline">' + fmtDate(r.created_at) + '</span>' +
+        '<button onclick="loadBacktestsModal(\'' + esc(name) + '\')" class="ml-auto px-2 py-0.5 text-label-sm border border-outline-variant hover:text-primary">View Results</button>' +
+      '</div>';
+    }).join('');
+  } catch(e) { el.innerHTML = '<div class="text-outline text-label-sm">Error loading backtests.</div>'; }
+}
+
+// ── Backtest results modal ───────────────────────────────────
+async function loadBacktestsModal(name) {
+  document.getElementById('bt-modal-name').textContent = name;
+  openModal('modal-backtests');
+  var body = document.getElementById('bt-modal-body');
+  try {
+    var runs = await apiFetch('/api/v2/strategies/' + name + '/backtests?limit=10');
+    if (!runs || !runs.length) { body.innerHTML = '<div class="text-outline">No backtests yet.</div>'; return; }
+    body.innerHTML = '<div class="space-y-3">' + runs.map(function(r) {
+      var equityJson = r.equity_curve ? '<details class="mt-1"><summary class="text-label-sm text-primary cursor-pointer">Equity curve data (JSON)</summary><pre class="mt-1 bg-surface-container p-2 rounded text-data-sm text-on-surface-variant overflow-x-auto">' + esc(JSON.stringify(r.equity_curve, null, 2).substring(0, 2000)) + '</pre></details>' : '';
+      return '<div class="bg-surface-container border border-outline-variant/50 p-3 rounded">' +
+        '<div class="flex items-center gap-3 mb-1">' +
+          '<span class="font-mono text-label-sm text-primary">Run #' + r.id + '</span>' +
+          '<span class="px-1 py-0.5 text-label-sm rounded ' + badgeColor(r.status) + '">' + esc(r.status) + '</span>' +
+          '<span class="text-label-sm text-outline">' + esc(r.symbol) + '/' + esc(r.timeframe) + '</span>' +
+          '<span class="text-label-sm text-outline">' + fmtDate(r.created_at) + '</span>' +
+        '</div>' +
+        '<pre class="text-data-sm text-on-surface-variant bg-surface-container-low p-2 rounded mt-1">' + esc(JSON.stringify(r.params || {}, null, 2)) + '</pre>' +
+        equityJson +
+      '</div>';
+    }).join('') + '</div>';
+  } catch(e) { body.innerHTML = '<div class="text-red-400">Error: ' + esc(e.message) + '</div>'; }
+}
+
+// ── Versions ─────────────────────────────────────────────────
+async function loadDetailVersions(name) {
+  var el = document.getElementById('detail-versions');
+  if (!el) return;
+  try {
+    var entries = await apiFetch('/api/v2/strategies/' + name + '/versions');
+    if (!entries || !entries.length) { el.innerHTML = '<div class="text-outline text-label-sm">No versions.</div>'; return; }
+    el.innerHTML = entries.map(function(v) {
+      return '<div class="flex items-center gap-3 bg-surface-container p-2 rounded">' +
+        '<span class="font-mono text-label-sm text-primary">v' + esc(v.version) + '</span>' +
+        '<span class="text-label-sm text-outline">' + fmtDate(v.updated_at) + '</span>' +
+        '<span class="text-label-sm ' + (v.is_active ? 'text-green-400' : 'text-outline') + '">' + (v.is_active ? 'Active' : 'Inactive') + '</span>' +
+        (v.backtest_status !== undefined ? '<span class="text-label-sm text-outline">backtest: ' + esc(v.backtest_status) + '</span>' : '') +
+      '</div>';
+    }).join('');
+  } catch(e) { el.innerHTML = '<div class="text-outline text-label-sm">Error.</div>'; }
+}
+
+// ── Regime + ML saves ────────────────────────────────────────
+async function saveRegime() {
+  if (!currentDetailName) return;
+  var mode = document.getElementById('detail-regime').value;
+  try {
+    await apiFetch('/api/v2/strategies/' + currentDetailName + '/regime-filter', {
+      method: 'PUT',
+      body: JSON.stringify({mode: mode})
+    });
+  } catch(e) { console.error('regime:', e); }
+}
+async function toggleML() {
+  if (!currentDetailName) return;
+  var btn = document.getElementById('detail-ml-btn');
+  var current = btn.textContent.trim() === 'On';
+  try {
+    await apiFetch('/api/v2/strategies/' + currentDetailName + '/ml-override', {
+      method: 'PUT',
+      body: JSON.stringify({enabled: !current})
+    });
+    btn.textContent = !current ? 'On' : 'Off';
+    btn.className = 'px-2 py-1 text-label-sm border rounded ' + (!current ? 'border-primary text-primary' : 'border-outline-variant text-on-surface-variant');
+    await loadAll();
+  } catch(e) { console.error('ml toggle:', e); }
+}
+
+// ── Export ───────────────────────────────────────────────────
+async function exportStrategy() {
+  if (!currentDetailName) return;
+  try {
+    var detail = await apiFetch('/api/v2/strategies/' + currentDetailName + '/export');
+    var blob = new Blob([JSON.stringify(detail, null, 2)], {type: 'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = currentDetailName + '_config.json'; a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('Export failed: ' + e.message); }
+}
+
+function copyStrategy() {
+  if (!currentDetailName) return;
+  closeDetail();
+  openCopyModal(currentDetailName);
+}
+
+// ── Evidence log ─────────────────────────────────────────────
+var evidenceInterval = null;
+function populateEvidenceSelect(list) {
+  var sel = document.getElementById('evidence-strat');
+  if (!sel) return;
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">All strategies</option>';
+  (list || []).forEach(function(s) {
+    sel.innerHTML += '<option value="' + esc(s.name) + '">' + esc(s.name) + '</option>';
+  });
+  sel.value = cur;
+}
+async function loadEvidence() {
+  var name = document.getElementById('evidence-strat').value;
+  var url = '/api/v2/strategies/' + (name || '') + '/evidence?limit=50';
+  var el = document.getElementById('evidence-log');
+  if (!el) return;
+  try {
+    var events = await apiFetch(name ? '/api/v2/strategies/' + name + '/evidence?limit=50' : '/api/v2/strategies/evidence?limit=50');
+    if (!events || !events.length) {
+      el.innerHTML = '<div class="py-3 text-outline">No events.</div>';
+      return;
+    }
+    el.innerHTML = events.map(function(ev) {
+      var typeIcon = ev.type === 'backtest' ? 'analytics' : 'receipt_long';
+      var typeColor = ev.type === 'backtest' ? 'text-primary' : 'text-amber-400';
+      var pnlStr = '';
+      if (ev.pnl_r != null) {
+        pnlStr = '<span class="font-mono" style="color:' + pnlColor(ev.pnl_r) + '">' + parseFloat(ev.pnl_r).toFixed(3) + 'R</span>';
+      }
+      var statusTag = ev.status ? '<span class="px-1 py-0.5 text-label-sm rounded ' + badgeColor(ev.status) + '">' + esc(ev.status) + '</span>' : '';
+      return '<div class="flex items-center gap-3 py-2">' +
+        '<span class="material-symbols-outlined ' + typeColor + ' text-[18px]">' + typeIcon + '</span>' +
+        '<span class="font-mono text-label-sm text-primary min-w-[140px]">' + esc(ev.strategy_name || name) + '</span>' +
+        statusTag +
+        '<span class="text-label-sm text-outline flex-1">' +
+          (ev.side ? esc(ev.side) + ' @ ' + esc(ev.symbol) + ' ' : '') +
+          (ev.params ? 'params updated' : '') +
+        '</span>' +
+        pnlStr +
+        '<span class="text-label-sm text-outline ml-auto">' + fmtDate(ev.timestamp) + '</span>' +
+      '</div>';
+    }).join('');
+  } catch(e) { el.innerHTML = '<div class="py-3 text-red-400">Error: ' + esc(e.message) + '</div>'; }
+}
+
+// ── Init ─────────────────────────────────────────────────────
+var _autoRefreshInterval = null;
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.__PAGE_INIT__ !== 'strategies') return;
+  loadAll();
+  loadEvidence();
+  _autoRefreshInterval = setInterval(function() {
+    loadStats();
+    if (currentDetailName) openDetail(currentDetailName);
+  }, 30000);
+});
+</script>
 {% endblock scripts %}

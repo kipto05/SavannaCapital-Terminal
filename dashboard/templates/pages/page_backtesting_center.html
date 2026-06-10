@@ -3,134 +3,786 @@
 {% block title %}Savanna Capital — Backtesting Center{% endblock %}
 
 {% set page_title = "Backtesting Center" %}
-
 {% set active = "backtesting_center" %}
 
 {% block content %}
 <div class="p-container-padding overflow-y-auto h-full">
 
-  <!-- Top actions -->
-  <div class="flex items-center gap-2 mb-unit*4">
-    <a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">+ New Backtest</a>
+  <!-- ========== Configuration Panel (col-span-3) ========== -->
+  <div class="mb-unit*4">
+    <div class="bg-surface-container-low border border-outline-variant p-4">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-label-sm text-label-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">settings_input_component</span>
+          Configuration
+        </h2>
+      </div>
+
+      <!-- Strategy Template -->
+      <div class="mb-3">
+        <label class="font-label-sm text-label-sm text-on-surface-variant/70 block mb-1">Strategy Template</label>
+        <div class="relative">
+          <select id="bt-strategy" class="w-full bg-surface-variant/50 border border-outline-variant text-label-sm px-2 py-1.5 rounded appearance-none focus:border-primary outline-none text-on-surface">
+            <option value="">Loading strategies…</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-2 top-2 text-on-surface-variant pointer-events-none text-sm">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Selected Symbols -->
+      <div class="mb-3">
+        <label class="font-label-sm text-label-sm text-on-surface-variant/70 block mb-1">Selected Symbol</label>
+        <div class="relative">
+          <select id="bt-symbol" class="w-full bg-surface-variant/50 border border-outline-variant text-label-sm px-2 py-1.5 rounded appearance-none focus:border-primary outline-none text-on-surface mono-data">
+            <option value="">Loading symbols…</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-2 top-2 text-on-surface-variant pointer-events-none text-sm">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Timeframe + Execution -->
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant/70 block mb-1">Timeframe</label>
+          <div class="relative">
+            <select id="bt-timeframe" class="w-full bg-surface-variant/50 border border-outline-variant text-label-sm px-2 py-1.5 rounded appearance-none focus:border-primary outline-none text-on-surface mono-data">
+              <option value="">Loading…</option>
+            </select>
+            <span class="material-symbols-outlined absolute right-2 top-2 text-on-surface-variant pointer-events-none text-sm">expand_more</span>
+          </div>
+        </div>
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant/70 block mb-1">Execution</label>
+          <div class="relative">
+            <select id="bt-execution" class="w-full bg-surface-variant/50 border border-outline-variant text-label-sm px-2 py-1.5 rounded appearance-none focus:border-primary outline-none text-on-surface mono-data">
+              <option value="OHLC" selected>OHLC</option>
+              <option value="Every Tick">Every Tick</option>
+            </select>
+            <span class="material-symbols-outlined absolute right-2 top-2 text-on-surface-variant pointer-events-none text-sm">expand_more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date Range -->
+      <div class="mb-4">
+        <label class="font-label-sm text-label-sm text-on-surface-variant/70 block mb-1">Date Range</label>
+        <div class="flex items-center gap-2">
+          <input id="bt-start" type="text"
+            class="w-full bg-surface-variant/50 border border-outline-variant text-label-sm px-2 py-1.5 rounded focus:border-primary outline-none text-on-surface mono-data text-center"
+            value="2024-01-01" placeholder="YYYY-MM-DD">
+          <span class="text-on-surface-variant/40 text-label-sm">→</span>
+          <input id="bt-end" type="text"
+            class="w-full bg-surface-variant/50 border border-outline-variant text-label-sm px-2 py-1.5 rounded focus:border-primary outline-none text-on-surface mono-data text-center"
+            value="2025-01-01" placeholder="YYYY-MM-DD">
+        </div>
+      </div>
+
+      <!-- Parameter Overrides Table -->
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="font-label-sm text-label-sm text-on-surface-variant/70 uppercase font-bold">Parameter Overrides</label>
+          <button id="bt-reset-params" class="font-label-sm text-label-sm text-primary/60 hover:text-primary transition-colors cursor-pointer">Reset Defaults</button>
+        </div>
+        <div class="border border-outline-variant rounded overflow-hidden">
+          <table class="w-full text-label-sm mono-data">
+            <thead class="bg-surface-variant/50 text-on-surface-variant/60 border-b border-outline-variant">
+              <tr>
+                <th class="px-2 py-1.5 text-left font-medium text-label-sm">Variable</th>
+                <th class="px-2 py-1.5 text-right font-medium text-label-sm">Value</th>
+              </tr>
+            </thead>
+            <tbody id="bt-params-tbody" class="divide-y divide-outline-variant/40">
+              <tr><td colspan="2" class="px-2 py-2 text-on-surface-variant/50 text-center">No strategy selected</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Run Button -->
+      <button id="bt-run-btn"
+        class="w-full py-2.5 bg-primary text-on-primary font-bold uppercase tracking-widest text-label-sm flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled>
+        <span class="material-symbols-outlined text-sm">play_arrow</span>
+        Run Backtest
+      </button>
+      <div id="bt-run-status" class="mt-2 text-center text-label-sm text-on-surface-variant/60 hidden"></div>
+    </div>
   </div>
 
-  <!-- Filters -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4 flex flex-wrap gap-x-4 gap-y-2 items-end">
-    <div>
-      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Strategy Template</label>
-      <select class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
-        <option>Momentum Reversion</option>
-        <option>Band Reversion</option>
-        <option>Stochastic Trend</option>
-        <option>Session Breakout</option>
-      </select>
+  <!-- ========== Main Charts Column (col-span-7) ========== -->
+  <div class="flex flex-col gap-4">
+
+    <!-- Summary Metrics -->
+    <div class="grid grid-cols-5 gap-3">
+      <div class="bg-surface-container-low border border-outline-variant p-3 flex flex-col gap-1 border-l-4 border-l-primary">
+        <span class="text-[10px] uppercase font-bold text-on-surface-variant/50">Net Profit</span>
+        <span id="bt-m-net-profit" class="text-lg font-bold mono-data text-on-surface">—</span>
+        <div id="bt-m-net-profit-sub" class="flex items-center gap-1 text-[10px] text-outline">—</div>
+      </div>
+      <div class="bg-surface-container-low border border-outline-variant p-3 flex flex-col gap-1 border-l-4 border-l-primary">
+        <span class="text-[10px] uppercase font-bold text-on-surface-variant/50">Sharpe Ratio</span>
+        <span id="bt-m-sharpe" class="text-lg font-bold mono-data text-on-surface">—</span>
+        <span id="bt-m-sharpe-sub" class="text-[10px] text-on-surface-variant/40 italic">—</span>
+      </div>
+      <div class="bg-surface-container-low border border-outline-variant p-3 flex flex-col gap-1 border-l-4 border-l-error">
+        <span class="text-[10px] uppercase font-bold text-on-surface-variant/50">Max Drawdown</span>
+        <span id="bt-m-maxdd" class="text-lg font-bold mono-data text-error">—</span>
+        <span id="bt-m-maxdd-sub" class="text-[10px] text-on-surface-variant/40">—</span>
+      </div>
+      <div class="bg-surface-container-low border border-outline-variant p-3 flex flex-col gap-1 border-l-4 border-l-primary">
+        <span class="text-[10px] uppercase font-bold text-on-surface-variant/50">Profit Factor</span>
+        <span id="bt-m-pf" class="text-lg font-bold mono-data text-on-surface">—</span>
+        <span id="bt-m-pf-sub" class="text-[10px] text-on-surface-variant/40">—</span>
+      </div>
+      <div class="bg-surface-container-low border border-outline-variant p-3 flex flex-col gap-1 border-l-4 border-l-primary">
+        <span class="text-[10px] uppercase font-bold text-on-surface-variant/50">Win Rate</span>
+        <span id="bt-m-winrate" class="text-lg font-bold mono-data text-on-surface">—</span>
+        <span id="bt-m-winrate-sub" class="text-[10px] text-on-surface-variant/40">—</span>
+      </div>
     </div>
-    <div>
-      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Selected Symbols</label>
-      <select class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
-        <option>EURUSD</option>
-        <option>GBPUSD</option>
-        <option>XAUUSD</option>
-        <option>BTCUSD</option>
-        <option>XAGUSD</option>
-        <option>AAPL</option>
-        <option>TSLA</option>
-      </select>
+
+    <!-- Equity & Drawdown Curve -->
+    <div class="bg-surface-container-low border border-outline-variant p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase">Equity &amp; Drawdown Curve</h3>
+          <p class="text-[10px] text-on-surface-variant/50 mt-0.5">Portfolio Valuation Over Backtest Period</p>
+        </div>
+        <div class="flex gap-1.5">
+          <button class="bt-scale-btn px-2 py-1 bg-surface-variant text-label-sm font-bold text-on-surface border border-outline-variant" data-scale="linear">Linear</button>
+          <button class="bt-scale-btn px-2 py-1 hover:bg-surface-variant text-label-sm font-bold text-on-surface-variant/60 border border-outline-variant transition-colors" data-scale="log">Log</button>
+        </div>
+      </div>
+      <div class="border border-outline-variant/30 overflow-hidden bg-surface/20" style="height:280px">
+        <canvas id="btEquityChart"></canvas>
+      </div>
     </div>
-    <div>
-      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Timeframe</label>
-      <select class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
-        <option>M1</option>
-        <option>M5</option>
-        <option>M15</option>
-        <option>H1</option>
-        <option>H4</option>
-        <option>D1</option>
-      </select>
+
+    <!-- Bottom Row: Histogram + Heatmap -->
+    <div class="grid grid-cols-2 gap-4">
+      <!-- Trade Distribution -->
+      <div class="bg-surface-container-low border border-outline-variant p-4">
+        <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase tracking-wide mb-3">Trade Distribution</h3>
+        <div style="height:180px">
+          <canvas id="btDistChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Monthly Returns Heatmap -->
+      <div class="bg-surface-container-low border border-outline-variant p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase tracking-wide">Returns Heatmap</h3>
+          <span id="bt-heatmap-range" class="text-[10px] mono-data text-on-surface-variant/40">—</span>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <!-- Month headers -->
+          <div class="grid grid-cols-12 gap-1.5">
+            <div class="text-[8px] text-center text-on-surface-variant/40">J</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">F</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">M</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">A</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">M</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">J</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">J</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">A</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">S</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">O</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">N</div>
+            <div class="text-[8px] text-center text-on-surface-variant/40">D</div>
+          </div>
+          <div id="bt-heatmap-grid" class="grid grid-cols-12 gap-1.5">
+            <div class="col-span-12 text-center text-on-surface-variant/40 text-label-sm py-6">Run a backtest to see monthly returns</div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-3">
+          <div class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 bg-error rounded-sm"></span>
+            <span class="text-[8px] text-on-surface-variant/60 uppercase font-bold">Loss</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 bg-primary rounded-sm"></span>
+            <span class="text-[8px] text-on-surface-variant/60 uppercase font-bold">Gain</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div>
-      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Execution</label>
-      <select class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
-        <option>Market</option>
-        <option>Limit</option>
-        <option>Stop</option>
-      </select>
-    </div>
-    <div>
-      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Date Range</label>
-      <input type="text" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="2024-01-01 → 2024-12-31">
-    </div>
-    <div class="flex-1">
-      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Parameter Overrides</label>
-      <textarea class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded h-16"></textarea>
+
+    <!-- Run History Table -->
+    <div class="bg-surface-container-low border border-outline-variant p-4">
+      <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase tracking-wide mb-3">Run History</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-outline-variant text-label-sm text-outline">
+              <th class="px-3 py-2 font-medium">ID</th>
+              <th class="px-3 py-2 font-medium">Symbol</th>
+              <th class="px-3 py-2 font-medium">TF</th>
+              <th class="px-3 py-2 font-medium">Strategy</th>
+              <th class="px-3 py-2 font-medium">Status</th>
+              <th class="px-3 py-2 font-medium text-right">Trades</th>
+              <th class="px-3 py-2 font-medium text-right">Win Rate</th>
+              <th class="px-3 py-2 font-medium text-right">Net PnL (R)</th>
+              <th class="px-3 py-2 font-medium">Created</th>
+            </tr>
+          </thead>
+          <tbody id="bt-run-tbl" class="divide-y divide-outline-variant/30 font-data-sm text-data-sm text-on-surface-variant">
+            <tr><td colspan="9" class="px-3 py-4 text-outline text-center">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-
-  <!-- Charts -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Equity & Drawdown Curve</h3>
-    <canvas id="btEquityChart" height="200"></canvas>
-  </div>
-
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Trade Distribution</h3>
-    <canvas id="btDistChart" height="200"></canvas>
-  </div>
-
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Run History</h3>
-    <div class="overflow-x-auto">
-    <table class="w-full text-left border-collapse">
-      <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-        <th class="px-cell-padding-x py-cell-padding-y">ID</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
-        <th class="px-cell-padding-x py-cell-padding-y">TF</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Strategy</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Status</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Trades</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Win Rate</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Net PnL</th>
-        <th class="px-cell-padding-x py-cell-padding-y">Created</th>
-      </tr></thead>
-      <tbody id="bt-run-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-        <tr><td colspan="9" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-      </tbody>
-    </table>
-    </div>
-  </div>
-
 </div>
 {% endblock content %}
 
 {% block scripts %}
-<script>window.__PAGE_INIT__ = "backtesting_center";</script>
-
 <script>
+window.__PAGE_INIT__ = "backtesting_center";
+// Shared palette — matches CLAUDE.md spec
+const BT_COLORS = {
+  equity:  '#3B82F6',
+  drawdown:'rgba(239,68,68,0.2)',
+  win:     '#10B981',
+  loss:    '#EF4444',
+  neutral: '#6B7280',
+  primary: '#00E5FF',
+  error:   '#FF5252',
+  surface: '#1A1C1E',
+};
+
+// ── State ─────────────────────────────────────────────────────────────
+let btState = {
+  strategies: [],
+  symbols: {},
+  timeframes: [],
+  selectedStrategy: null,
+  selectedSymbol: '',
+  selectedTF: 'M15',
+  runId: null,
+  equityChart: null,
+  distChart: null,
+  pollTimer: null,
+};
+
+// ── API helpers ───────────────────────────────────────────────────────
+async function btFetch(url, opts = {}) {
+  const res = await window.apiFetch(url, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({detail: res.statusText}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.__PAGE_INIT__ !== 'backtesting_center') return;
+  initBT();
+});
+
 async function initBT() {
-  const r = await apiFetch('/api/quant/backtests?page_size=20');
-  const tb = document.getElementById('bt-run-tbody');
-  if (!tb) return;
-  const items = r.items || [];
-  if (!items.length) {
-    tb.innerHTML = '<tr><td colspan="9" class="px-cell-padding-x py-4 text-outline text-center">No backtest runs yet</td></tr>';
+  await Promise.all([loadStrategies(), loadSymbols(), loadTimeframes(), loadRuns()]);
+  wireEvents();
+}
+
+// ── Load config data ──────────────────────────────────────────────────
+async function loadStrategies() {
+  try {
+    btState.strategies = await btFetch('/api/v2/backtest/strategies');
+    const sel = document.getElementById('bt-strategy');
+    sel.innerHTML = btState.strategies.map(s =>
+      `<option value="${esc(s.class_name)}">${esc(s.label || s.class_name)}</option>`
+    ).join('');
+    if (btState.strategies.length) onStrategyChange(btState.strategies[0].class_name);
+  } catch (e) {
+    console.error('loadStrategies:', e);
+  }
+}
+
+async function loadSymbols() {
+  try {
+    const data = await btFetch('/api/v2/backtest/symbols');
+    btState.symbols = data.pool || {};
+    const sel = document.getElementById('bt-symbol');
+    // flatten
+    const all = [];
+    Object.values(btState.symbols).forEach(arr => all.push(...arr));
+    sel.innerHTML = all.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    if (all.length) btState.selectedSymbol = all[0];
+  } catch (e) {
+    console.error('loadSymbols:', e);
+  }
+}
+
+async function loadTimeframes() {
+  try {
+    const data = await btFetch('/api/v2/backtest/timeframes');
+    btState.timeframes = data.timeframes || [];
+    const sel = document.getElementById('bt-timeframe');
+    sel.innerHTML = btState.timeframes.map(t =>
+      `<option value="${esc(t)}">${esc(t)}</option>`
+    ).join('');
+    btState.selectedTF = btState.timeframes[0] || 'M15';
+  } catch (e) {
+    console.error('loadTimeframes:', e);
+  }
+}
+
+function onStrategyChange(class_name) {
+  btState.selectedStrategy = class_name;
+  const cls = btState.strategies.find(s => s.class_name === class_name);
+  if (!cls) return;
+  // Update symbol dropdown to preferred symbols
+  updateSymbolDropdown(cls);
+  // Build parameter table
+  buildParamTable(cls);
+  // Enable Run button
+  document.getElementById('bt-run-btn').disabled = false;
+}
+
+function updateSymbolDropdown(cls) {
+  const symbol = cls.default_symbol || '';
+  const sel = document.getElementById('bt-symbol');
+  // Keep existing options but select preferred
+  if (symbol && [...sel.options].some(o => o.value === symbol)) {
+    sel.value = symbol;
+    btState.selectedSymbol = symbol;
+  }
+}
+
+function buildParamTable(cls) {
+  const tbody = document.getElementById('bt-params-tbody');
+  const params = cls.default_params || {};
+  if (!Object.keys(params).length) {
+    tbody.innerHTML = '<tr><td colspan="2" class="px-2 py-2 text-on-surface-variant/50 text-center">No configurable parameters</td></tr>';
     return;
   }
-  tb.innerHTML = items.map(function(run) {
-    var sc = run.status === 'complete' ? '#10b981' : run.status === 'running' ? '#8b5cf6' : '#849396';
-    return '<tr>' +
-      '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + run.id + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y font-mono text-on-surface">' + run.symbol + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant">' + run.timeframe + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y">' + run.strategy_name + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y"><span class="px-1 py-0.5 text-label-sm rounded" style="background:rgba(0,229,255,0.12);color:' + sc + '">' + run.status + '</span></td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono">' + (run.n_trades != null ? run.n_trades : '—') + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono">' + (run.win_rate != null ? (run.win_rate * 100).toFixed(1) + '%' : '—') + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y text-right font-mono">' + (run.net_pnl_r != null ? parseFloat(run.net_pnl_r).toFixed(2) + ' R' : '—') + '</td>' +
-      '<td class="px-cell-padding-x py-cell-padding-y text-on-surface-variant text-label-sm">' + (run.created_at ? new Date(run.created_at).toLocaleDateString() : '—') + '</td>' +
-    '</tr>';
+  tbody.innerHTML = Object.entries(params).map(([key, val]) =>
+    `<tr class="hover:bg-primary/5 group">
+      <td class="px-2 py-1.5 text-on-surface-variant">${esc(key)}</td>
+      <td class="px-2 py-1.5 text-right">
+        <input data-param="${esc(key)}" type="text" value="${esc(String(val))}"
+          class="w-full bg-transparent border-b border-outline-variant/50 focus:border-primary outline-none text-right mono-data text-label-sm py-0.5">
+      </td>
+    </tr>`
+  ).join('');
+}
+
+function getParamOverrides() {
+  const inputs = document.querySelectorAll('#bt-params-tbody input[data-param]');
+  const overrides = {};
+  inputs.forEach(inp => {
+    const key = inp.dataset.param;
+    const raw = inp.value.trim();
+    // Try to parse as number
+    const num = Number(raw);
+    overrides[key] = isNaN(num) ? raw : num;
+  });
+  return overrides;
+}
+
+// ── Wire events ───────────────────────────────────────────────────────
+function wireEvents() {
+  document.getElementById('bt-strategy').addEventListener('change', e => {
+    onStrategyChange(e.target.value);
+  });
+  document.getElementById('bt-run-btn').addEventListener('click', runBacktest);
+
+  // Scale buttons
+  document.querySelectorAll('.bt-scale-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.bt-scale-btn').forEach(b => {
+        b.classList.remove('bg-surface-variant', 'text-on-surface');
+        b.classList.add('text-on-surface-variant/60');
+      });
+      btn.classList.add('bg-surface-variant', 'text-on-surface');
+      btn.classList.remove('text-on-surface-variant/60');
+      if (btState.runId) loadEquity(btn.dataset.scale);
+    });
+  });
+
+  // Reset params
+  document.getElementById('bt-reset-params').addEventListener('click', () => {
+    const cls = btState.strategies.find(s => s.class_name === btState.selectedStrategy);
+    if (cls) buildParamTable(cls);
+  });
+}
+
+// ── Run Backtest ──────────────────────────────────────────────────────
+async function runBacktest() {
+  const strategy = document.getElementById('bt-strategy').value;
+  const symbol = document.getElementById('bt-symbol').value;
+  const timeframe = document.getElementById('bt-timeframe').value;
+  const execution = document.getElementById('bt-execution').value;
+  const startDate = document.getElementById('bt-start').value;
+  const endDate = document.getElementById('bt-end').value;
+  const cls = btState.strategies.find(s => s.class_name === strategy);
+  if (!cls || !symbol || !timeframe) {
+    alert('Please select a strategy, symbol, and timeframe.');
+    return;
+  }
+
+  const params = getParamOverrides();
+  // Merge with defaults — only pass overrides (backend merges with defaults)
+  const runBtn = document.getElementById('bt-run-btn');
+  const statusEl = document.getElementById('bt-run-status');
+  runBtn.disabled = true;
+  statusEl.classList.remove('hidden');
+  statusEl.textContent = 'Submitting…';
+
+  try {
+    const result = await btFetch('/api/v2/backtest/run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        strategy,
+        symbol,
+        timeframe,
+        execution,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        params_overrides: params,
+        n_bars: 5000,
+        initial_equity: 10000,
+        risk_per_trade: 0.01,
+      })
+    });
+    btState.runId = result.run_id;
+    statusEl.textContent = 'Running (polling for completion)…';
+    startPolling();
+  } catch (e) {
+    statusEl.textContent = 'Error: ' + e.message;
+    runBtn.disabled = false;
+  }
+}
+
+// ── Polling ───────────────────────────────────────────────────────────
+function startPolling() {
+  stopPolling();
+  btState.pollTimer = setInterval(async () => {
+    try {
+      const data = await btFetch(`/api/v2/backtest/run/${btState.runId}`);
+      if (data.status === 'complete') {
+        stopPolling();
+        document.getElementById('bt-run-status').textContent = 'Complete!';
+        document.getElementById('bt-run-status').classList.remove('hidden');
+        document.getElementById('bt-run-status').classList.add('text-success');
+        document.getElementById('bt-run-btn').disabled = false;
+        renderResults(data);
+      } else if (data.status === 'failed') {
+        stopPolling();
+        document.getElementById('bt-run-status').textContent = 'Failed: ' + (data.error || 'unknown error');
+        document.getElementById('bt-run-status').classList.add('text-error');
+        document.getElementById('bt-run-btn').disabled = false;
+      } else {
+        document.getElementById('bt-run-status').textContent =
+          `Status: ${data.status} — ${data.n_trades || 0} trades so far`;
+      }
+    } catch (e) {
+      console.error('poll error:', e);
+    }
+  }, 2000);
+}
+
+function stopPolling() {
+  if (btState.pollTimer) { clearInterval(btState.pollTimer); btState.pollTimer = null; }
+  const el = document.getElementById('bt-run-status');
+  el.classList.remove('text-error');
+}
+
+// ── Render results ────────────────────────────────────────────────────
+async function renderResults(runData) {
+  // Metrics
+  const p = v => v != null ? v : '—';
+  setText('bt-m-net-profit', runData.net_pnl_r != null ? formatR(runData.net_pnl_r) : '—');
+  setText('bt-m-net-profit-sub', runData.net_pnl_dollars != null ? `$${fmtD(runData.net_pnl_dollars)} USD` : '—');
+  setText('bt-m-sharpe', p(runData.sharpe_approx));
+  setText('bt-m-sharpe-sub', runData.sharpe_approx ? (runData.sharpe_approx >= 1.5 ? 'High Performance' : 'Moderate') : '—');
+  setText('bt-m-maxdd', runData.max_drawdown != null ? (runData.max_drawdown * 100).toFixed(1) + '%' : '—');
+  setText('bt-m-maxdd-sub', runData.n_trades ? `${runData.n_trades} trades executed` : '—');
+  setText('bt-m-pf', runData.profit_factor != null ? runData.profit_factor.toFixed(2) : '—');
+  setText('bt-m-pf-sub', runData.profit_factor ? (runData.profit_factor > 1.5 ? 'Skewed Positive' : 'Near 1.0') : '—');
+  setText('bt-m-winrate', runData.win_rate != null ? (runData.win_rate * 100).toFixed(0) + '%' : '—');
+  setText('bt-m-winrate-sub', runData.n_trades ? `${runData.n_trades} trades` : '—');
+
+  // Charts
+  await Promise.all([loadEquity('linear'), loadDistribution(), loadMonthly()]);
+
+  // Refresh run history
+  await loadRuns();
+}
+
+async function loadEquity(scale) {
+  if (!btState.runId) return;
+  try {
+    const data = await btFetch(`/api/v2/backtest/run/${btState.runId}/equity`);
+    renderEquityChart(data, scale);
+  } catch (e) { console.error('loadEquity:', e); }
+}
+
+function renderEquityChart(data, scale) {
+  const canvas = document.getElementById('btEquityChart');
+  if (btState.equityChart) { btState.equityChart.destroy(); btState.equityChart = null; }
+
+  const equity = data.equity_curve || [];
+  const drawdown = data.drawdown_curve || [];
+  const labels = equity.map((_, i) => i);
+
+  const isLog = scale === 'log';
+
+  const datasets = [
+    {
+      label: 'Equity',
+      data: equity,
+      borderColor: BT_COLORS.equity,
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      pointRadius: 0,
+      pointHitRadius: 10,
+      tension: 0.1,
+      yAxisID: 'y',
+    },
+    {
+      label: 'Drawdown',
+      data: drawdown.map(d => d * 100),
+      borderColor: BT_COLORS.error,
+      backgroundColor: BT_COLORS.drawdown,
+      borderWidth: 1,
+      pointRadius: 0,
+      fill: true,
+      tension: 0.1,
+      yAxisID: 'y1',
+    },
+  ];
+
+  btState.equityChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#C4C7C9', boxWidth: 12, font: { size: 10 } } },
+        tooltip: {
+          backgroundColor: 'rgba(26,28,30,0.9)',
+          titleColor: '#E1E3E4',
+          bodyColor: '#C4C7C9',
+          borderColor: '#2D3135',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}`,
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          ticks: { color: '#C4C7C9', maxTicksLimit: 8, font: { size: 10 } },
+          grid: { color: 'rgba(45,49,53,0.5)' },
+          title: { display: false },
+        },
+        y: {
+          type: isLog ? 'logarithmic' : 'linear',
+          position: 'left',
+          ticks: { color: '#3B82F6', font: { size: 10, family: 'JetBrains Mono' }, callback: v => v.toFixed(2) },
+          grid: { color: 'rgba(45,49,53,0.3)' },
+          title: { display: true, text: 'Equity', color: '#3B82F6', font: { size: 10 } },
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          min: -50,
+          max: 0,
+          ticks: { color: '#EF4444', font: { size: 10 }, callback: v => v.toFixed(0) + '%' },
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'DD %', color: '#EF4444', font: { size: 10 } },
+        },
+      },
+    },
+  });
+}
+
+async function loadDistribution() {
+  if (!btState.runId) return;
+  try {
+    const data = await btFetch(`/api/v2/backtest/run/${btState.runId}/distribution?bins=30`);
+    renderDistChart(data);
+  } catch (e) { console.error('loadDistribution:', e); }
+}
+
+function renderDistChart(data) {
+  const canvas = document.getElementById('btDistChart');
+  if (btState.distChart) { btState.distChart.destroy(); btState.distChart = null; }
+
+  const counts = data.counts || [];
+  const labels = data.labels || [];
+  const bgColors = labels.map(l => parseFloat(l) < 0 ? 'rgba(239,68,68,0.7)' : 'rgba(59,130,246,0.7)');
+  const borderColors = labels.map(l => parseFloat(l) < 0 ? '#EF4444' : '#3B82F6');
+
+  btState.distChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Trade Count',
+        data: counts,
+        backgroundColor: bgColors,
+        borderColor: borderColors,
+        borderWidth: 0.5,
+        barPercentage: 1.0,
+        categoryPercentage: 1.0,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(26,28,30,0.9)',
+          titleColor: '#E1E3E4',
+          bodyColor: '#C4C7C9',
+          borderColor: '#2D3135',
+          borderWidth: 1,
+          callbacks: {
+            title: items => `R = ${items[0].label}`,
+            label: ctx => `${ctx.parsed.y} trades`,
+          }
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#C4C7C9', maxTicksLimit: 8, font: { size: 9, family: 'JetBrains Mono' } },
+          grid: { display: false },
+          title: { display: true, text: 'R-multiple', color: '#C4C7C9', font: { size: 10 } },
+        },
+        y: {
+          ticks: { color: '#C4C7C9', font: { size: 10 } },
+          grid: { color: 'rgba(45,49,53,0.4)' },
+          title: { display: true, text: 'Count', color: '#C4C7C9', font: { size: 10 } },
+        },
+      },
+    },
+  });
+}
+
+async function loadMonthly() {
+  if (!btState.runId) return;
+  try {
+    const data = await btFetch(`/api/v2/backtest/run/${btState.runId}/monthly`);
+    renderHeatmap(data);
+  } catch (e) { console.error('loadMonthly:', e); }
+}
+
+function renderHeatmap(data) {
+  const grid = document.getElementById('bt-heatmap-grid');
+  const monthly = data.monthly || {};
+  const years = Object.keys(monthly).sort();
+  if (!years.length) {
+    grid.innerHTML = '<div class="col-span-12 text-center text-on-surface-variant/40 text-label-sm py-6">No monthly data</div>';
+    document.getElementById('bt-heatmap-range').textContent = '—';
+    return;
+  }
+
+  // Collect all PnL values for colour scaling
+  const allPnL = Object.values(monthly).flatMap(obj => Object.values(obj));
+  const maxAbs = Math.max(Math.abs(Math.min(...allPnL)), Math.abs(Math.max(...allPnL)), 0.01);
+
+  const minYear = years[0], maxYear = years[years.length - 1];
+  document.getElementById('bt-heatmap-range').textContent = `${minYear} — ${maxYear}`;
+
+  // Render year blocks
+  grid.innerHTML = years.map(year => {
+    const yearData = monthly[year] || {};
+    const cells = [];
+    for (let m = 1; m <= 12; m++) {
+      const val = yearData[String(m).padStart(2, '0')] || 0;
+      const intensity = Math.min(Math.abs(val) / maxAbs, 1);
+      if (val > 0) {
+        const alpha = 0.15 + intensity * 0.7;
+        cells.push(`<div class="aspect-square rounded-[1px] hover:ring-1 ring-primary cursor-pointer transition-all" style="background:rgba(0,229,255,${alpha.toFixed(2)})" title="${year}-${String(m).padStart(2,'0')}: +${val.toFixed(3)}R"></div>`);
+      } else if (val < 0) {
+        const alpha = 0.15 + intensity * 0.7;
+        cells.push(`<div class="aspect-square rounded-[1px] hover:ring-1 ring-error cursor-pointer transition-all" style="background:rgba(255,82,82,${alpha.toFixed(2)})" title="${year}-${String(m).padStart(2,'0')}: ${val.toFixed(3)}R"></div>`);
+      } else {
+        cells.push(`<div class="aspect-square bg-surface-variant/30 border border-outline-variant/30 opacity-40"></div>`);
+      }
+    }
+    // Add year label before the first month cell
+    return `<div class="text-[9px] mono-data text-on-surface-variant/50 leading-none">${year.slice(2)}</div>` + cells.join('');
   }).join('');
 }
-document.addEventListener('DOMContentLoaded', function() { if (window.__PAGE_INIT__ === 'backtesting_center') initBT(); });
-</script>
 
+// ── Run History ───────────────────────────────────────────────────────
+async function loadRuns() {
+  try {
+    const items = await btFetch('/api/v2/backtest/runs?limit=20');
+    const tbody = document.getElementById('bt-run-tbl');
+    if (!Array.isArray(items) || !items.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="px-3 py-4 text-outline text-center">No backtest runs yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = items.map(row => {
+      const sc = row.status === 'complete' ? '#10B981' : row.status === 'running' ? '#8B5CF6' : '#849396';
+      return `<tr class="hover:bg-surface-variant/30 cursor-pointer transition-colors" data-run="${row.id}">
+        <td class="px-3 py-2 mono-data text-on-surface">${row.id}</td>
+        <td class="px-3 py-2 mono-data text-on-surface">${esc(row.symbol || '—')}</td>
+        <td class="px-3 py-2 text-on-surface-variant mono-data">${esc(row.timeframe || '—')}</td>
+        <td class="px-3 py-2 text-on-surface">${esc(row.strategy_name || '—')}</td>
+        <td class="px-3 py-2"><span class="px-1.5 py-0.5 text-label-sm rounded-sm font-bold" style="background:${sc}22;color:${sc}">${row.status}</span></td>
+        <td class="px-3 py-2 text-right mono-data">${row.n_trades != null ? row.n_trades : '—'}</td>
+        <td class="px-3 py-2 text-right mono-data">${row.win_rate != null ? (row.win_rate * 100).toFixed(1) + '%' : '—'}</td>
+        <td class="px-3 py-2 text-right mono-data ${row.net_pnl_r > 0 ? 'text-success' : row.net_pnl_r < 0 ? 'text-error' : ''}">${row.net_pnl_r != null ? formatR(row.net_pnl_r) : '—'}</td>
+        <td class="px-3 py-2 text-on-surface-variant text-label-sm mono-data">${row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'}</td>
+      </tr>`;
+    }).join('');
+
+    // Click row to load that run's results
+    tbody.querySelectorAll('tr[data-run]').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const runId = parseInt(tr.dataset.run, 10);
+        loadRunDetail(runId);
+      });
+    });
+  } catch (e) {
+    console.error('loadRuns:', e);
+    document.getElementById('bt-run-tbl').innerHTML =
+      `<tr><td colspan="9" class="px-3 py-4 text-error text-center">Error loading runs: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+async function loadRunDetail(runId) {
+  try {
+    const data = await btFetch(`/api/v2/backtest/run/${runId}`);
+    btState.runId = runId;
+    document.getElementById('bt-run-status').classList.add('hidden');
+    renderResults(data);
+  } catch (e) {
+    console.error('loadRunDetail:', e);
+  }
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val != null ? val : '—';
+}
+
+function formatR(r) {
+  if (r == null) return '—';
+  const sign = r > 0 ? '+' : '';
+  return `${sign}${parseFloat(r).toFixed(2)}R`;
+}
+
+function fmtD(n) {
+  if (n == null) return '—';
+  return parseFloat(n).toLocaleString('en-US', {maximumFractionDigits: 0});
+}
+</script>
 {% endblock scripts %}

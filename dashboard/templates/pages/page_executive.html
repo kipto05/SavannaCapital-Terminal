@@ -5,52 +5,228 @@
 {% set active = "executive" %}
 
 {% block content %}
-<div class="p-container-padding overflow-y-auto h-full">
+<div class="flex flex-col h-full overflow-hidden bg-background">
 
-  <!-- Top actions -->
-  <div class="flex items-center gap-2 mb-unit*4">
-    <a href="#" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">Export Report</a>
+  <!-- ═══ TOP BAR ═══ -->
+  <header class="h-14 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-container-padding shrink-0">
+    <div class="flex items-center gap-4">
+      <h2 class="font-headline-md text-headline-md font-semibold text-on-surface tracking-tight">Executive Analytics</h2>
+      <span class="text-label-sm text-outline uppercase font-label-sm hidden sm:inline">Quant Performance Tear Sheet</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="ex-refresh-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-sm font-label-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container hover:text-on-surface rounded transition-colors">
+        <span class="material-symbols-outlined text-[14px]">refresh</span> Refresh
+      </button>
+      <button id="ex-generate-report-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-sm font-label-sm font-bold uppercase bg-primary text-on-primary rounded hover:opacity-90 transition-opacity">
+        <span class="material-symbols-outlined text-[14px]">auto_awesome</span> Generate New Report
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ SCROLLABLE WIDGET CANVAS ═══ -->
+  <div class="flex-grow overflow-y-auto p-container-padding space-y-3 custom-scrollbar">
+
+    <!-- ── ROW 1: Four KPI tiles ── -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+      <!-- W1: Cumulative Return -->
+      <section class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">trending_up</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">Cumulative Return</span>
+          </div>
+          <span class="text-outline text-[10px] font-label-sm uppercase">All-time</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="ex-cumret-val" class="font-data-lg text-[28px] tabular-nums font-medium">—</span>
+        </div>
+        <span id="ex-cumret-delta" class="text-outline text-[11px] font-label-sm">loading…</span>
+      </section>
+
+      <!-- W2: Sharpe Ratio -->
+      <section class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">analytics</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">Sharpe Ratio</span>
+          </div>
+          <span id="ex-sharpe-tier" class="text-outline text-[10px] font-label-sm uppercase">—</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="ex-sharpe-val" class="font-data-lg text-[28px] tabular-nums font-medium">—</span>
+        </div>
+        <span class="text-outline text-[11px] font-label-sm">annualised</span>
+      </section>
+
+      <!-- W3: Alpha vs Risk-Free -->
+      <section class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">bolt</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">Alpha vs Risk-Free</span>
+          </div>
+          <span id="ex-alpha-rf" class="text-outline text-[10px] font-label-sm uppercase">— baseline</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="ex-alpha-val" class="font-data-lg text-[28px] tabular-nums font-medium">—</span>
+        </div>
+        <span class="text-outline text-[11px] font-label-sm">excess return over risk-free</span>
+      </section>
+
+      <!-- W4: Calmar Ratio -->
+      <section class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">shield</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">Calmar Ratio</span>
+          </div>
+          <span id="ex-calmar-tag" class="text-outline text-[10px] font-label-sm uppercase">CAGR ÷ Max DD</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="ex-calmar-val" class="font-data-lg text-[28px] tabular-nums font-medium">—</span>
+        </div>
+        <span class="text-outline text-[11px] font-label-sm">risk-adjusted return</span>
+      </section>
+    </div>
+
+    <!-- ── ROW 2: NAV Growth (8 cols) + Capital Allocation (4 cols) ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+      <!-- W5: NAV Growth -->
+      <section class="lg:col-span-8 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col" style="min-height:400px">
+        <div class="px-4 py-2.5 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">show_chart</span>
+            <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider">NAV Growth — Composite Strategy Index</h3>
+          </div>
+          <div class="flex gap-1.5">
+            <button data-range="1H" class="ex-range-btn bg-background px-2 py-0.5 text-label-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors">1H</button>
+            <button data-range="4H" class="ex-range-btn bg-background px-2 py-0.5 text-label-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors">4H</button>
+            <button data-range="1D" class="ex-range-btn bg-primary text-on-primary px-2 py-0.5 text-label-sm rounded transition-colors">1D</button>
+            <button data-range="MAX" class="ex-range-btn bg-background px-2 py-0.5 text-label-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors">MAX</button>
+          </div>
+        </div>
+        <div class="flex-grow relative px-4 py-3 bg-surface-container-lowest/40" style="min-height:340px">
+          <canvas id="ex-nav-canvas"></canvas>
+          <div class="absolute top-3 right-4 flex flex-col gap-1.5">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-0.5 rounded bg-primary inline-block"></span>
+              <span class="text-[10px] text-on-surface-variant font-label-sm uppercase">Composite NAV</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-0.5 inline-block border-t border-dashed border-outline"></span>
+              <span class="text-[10px] text-on-surface-variant font-label-sm uppercase">Risk-Free Trend</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- W6: Capital Allocation -->
+      <section class="lg:col-span-4 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col" style="min-height:400px">
+        <div class="px-4 py-2.5 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">pie_chart</span>
+            <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider">Capital Allocation by Strategy</h3>
+          </div>
+          <span id="ex-alloc-aum" class="text-outline text-[10px] font-label-sm uppercase">— AUM</span>
+        </div>
+        <div class="flex-grow p-4 flex flex-col items-center justify-center gap-4">
+          <div class="relative" style="width:200px;height:200px">
+            <canvas id="ex-alloc-canvas"></canvas>
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span id="ex-alloc-center" class="font-data-lg text-[18px] text-on-surface tabular-nums">—</span>
+              <span class="text-[10px] text-outline font-label-sm uppercase">active</span>
+            </div>
+          </div>
+          <div id="ex-alloc-legend" class="w-full space-y-1"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ── ROW 3: Strategy Risk/Return (4 cols) + Drawdown Profile (5 cols) + Report Panel (3 cols) ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+      <!-- W7: Risk / Return Scatter -->
+      <section class="lg:col-span-4 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col" style="min-height:360px">
+        <div class="px-4 py-2.5 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">scatter_plot</span>
+            <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider">Strategy Risk / Return Profile</h3>
+          </div>
+          <span class="text-outline text-[10px] font-label-sm uppercase">drawdown vs return</span>
+        </div>
+        <div class="flex-grow p-4 relative" style="min-height:290px">
+          <canvas id="ex-scatter-canvas"></canvas>
+          <div class="absolute bottom-2 right-4 text-[9px] text-on-surface-variant font-label-sm uppercase">Risk (Max DD %)</div>
+          <div class="absolute top-4 left-2 text-[9px] text-on-surface-variant font-label-sm" style="writing-mode:vertical-rl;transform:rotate(180deg)">Return (Net PnL R)</div>
+        </div>
+      </section>
+
+      <!-- W8: Drawdown Profile -->
+      <section class="lg:col-span-5 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col" style="min-height:360px">
+        <div class="px-4 py-2.5 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">downward</span>
+            <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider">Drawdown Profile (LTM)</h3>
+          </div>
+          <span id="ex-dd-max" class="text-error font-data-md text-data-md tabular-nums">—</span>
+        </div>
+        <div class="flex-grow p-4" style="min-height:270px">
+          <canvas id="ex-dd-canvas"></canvas>
+        </div>
+        <div class="px-4 py-2 border-t border-outline-variant flex justify-between bg-surface-container-high/50">
+          <span id="ex-dd-recovery" class="text-[10px] text-on-surface-variant font-label-sm uppercase">Recovery: —</span>
+          <span id="ex-dd-avg" class="text-[10px] text-on-surface-variant font-label-sm uppercase">Avg Depth: —</span>
+        </div>
+      </section>
+
+      <!-- W9: Report Generation Panel -->
+      <section class="lg:col-span-3 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col" style="min-height:360px">
+        <div class="px-4 py-2.5 border-b border-outline-variant flex items-center gap-2 bg-surface-container-high shrink-0">
+          <span class="material-symbols-outlined text-primary text-[16px]">description</span>
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider">Investor Reporting</h3>
+        </div>
+        <div class="flex-grow p-4 flex flex-col">
+          <span class="text-label-sm text-on-surface-variant font-label-sm uppercase tracking-wider mb-2">Recent Reports</span>
+          <div id="ex-report-history" class="flex-grow space-y-2 overflow-y-auto custom-scrollbar text-outline text-[12px]">
+            <div class="text-center py-6">No reports generated yet.</div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-outline-variant/50">
+            <button id="ex-generate-modal-btn" class="w-full flex items-center justify-center gap-2 bg-primary text-on-primary font-label-sm text-label-sm font-bold uppercase tracking-wider py-2.5 rounded hover:opacity-90 transition-opacity">
+              <span class="material-symbols-outlined text-[14px]">add</span> Generate New Report
+            </button>
+            <p class="text-outline text-[10px] text-center mt-1.5 font-label-sm">Produces a full quant tearsheet</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="h-6"></div>
   </div>
 
-  <!-- Performance Attribution (NAV Growth) -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Performance Attribution (NAV Growth)</h3>
-    <canvas id="navChart" height="200"></canvas>
-  </div>
-
-  <!-- Capital Allocation -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Capital Allocation</h3>
-    <canvas id="allocChart" height="200"></canvas>
-  </div>
-
-  <!-- Strategy Risk / Return -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Strategy Risk / Return</h3>
-    <canvas id="rrChart" height="200"></canvas>
-  </div>
-
-  <!-- Drawdown Profile -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Drawdown Profile (LTM)</h3>
-    <canvas id="ddChart" height="200"></canvas>
-  </div>
-
-  <!-- Investor Reporting -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Investor Reporting</h3>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse">
-        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-          <th class="px-cell-padding-x py-cell-padding-y">Period</th>
-          <th class="px-cell-padding-x py-cell-padding-y">NAV</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Max Drawdown</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Status</th>
-        </tr></thead>
-        <tbody id="investor-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-          <tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-        </tbody>
-      </table>
+  <!-- ═══ TEARSHEET MODAL ═══ -->
+  <div id="ex-tearsheet-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div id="ex-modal-backdrop" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+    <div class="absolute inset-3 md:inset-6 lg:inset-10 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-5 py-2.5 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-primary text-[18px]">auto_awesome</span>
+          <h2 class="font-headline-md text-headline-md font-semibold text-on-surface">Quant Tear Sheet</h2>
+          <span id="ex-modal-date" class="text-outline text-[11px] font-label-sm"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="ex-modal-pdf-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-sm font-label-sm bg-primary text-on-primary rounded hover:opacity-90 transition-opacity">
+            <span class="material-symbols-outlined text-[14px]">download</span> Download PDF
+          </button>
+          <button id="ex-modal-close-btn" class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded transition-colors">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+      </div>
+      <div id="ex-tearsheet-body" class="flex-grow overflow-y-auto p-6 custom-scrollbar bg-surface-container-lowest">
+        <div class="text-outline text-center py-12">Compiling tearsheet…</div>
+      </div>
     </div>
   </div>
 
@@ -60,113 +236,635 @@
 {% block scripts %}
 <script>window.__PAGE_INIT__ = "executive";</script>
 <script>
-(function() {
-  if (window.__PAGE_INIT__ !== 'executive') return;
+(function () {
+  "use strict";
+  if (window.__PAGE_INIT__ !== "executive") return;
 
-  function destroy(id) {
-    var c = document.getElementById(id);
-    if (c && c._ch) { c._ch.destroy(); c._ch = null; }
+  const COLORS = {
+    primary: "#00e5ff",
+    primaryDim: "#00daf3",
+    secondary: "#bcc7de",
+    error: "#EF4444",
+    errorBg: "rgba(239,68,68,0.15)",
+    success: "#10B981",
+    warning: "#F59E0B",
+    outline: "#849396",
+    surfaceContainerLowest: "#0a0e13",
+    onSurface: "#e0e2ea",
+    onSurfaceVariant: "#bac9cc",
+    grid: "rgba(255,255,255,0.03)",
+    gridStrong: "rgba(255,255,255,0.06)",
+  };
+
+  const PALETTE = ["#00e5ff","#bcc7de","#F59E0B","#EF4444","#10B981","#8B5CF6","#EC4899","#6366F1"];
+
+  /* ── helpers ── */
+  function esc(s) { if (s == null) return "—"; const d = document.createElement("div"); d.textContent = String(s); return d.innerHTML; }
+  function fmtCurrency(v) {
+    if (v == null || isNaN(v)) return "—";
+    const a = Math.abs(v), sign = v < 0 ? "-" : "";
+    if (a >= 1e9) return sign + "$" + (a/1e9).toFixed(2) + "B";
+    if (a >= 1e6) return sign + "$" + (a/1e6).toFixed(2) + "M";
+    if (a >= 1e3) return sign + "$" + (a/1e3).toFixed(1) + "k";
+    return sign + "$" + a.toFixed(2);
+  }
+  function fmtPct(v) { if (v == null || isNaN(v)) return "—"; return (v >= 0 ? "+" : "") + (v * 100).toFixed(2) + "%"; }
+  function fmtBps(v) { if (v == null || isNaN(v)) return "—"; return (v >= 0 ? "+" : "") + (v * 10000).toFixed(0) + " bps"; }
+  function fmtR(v) { if (v == null || isNaN(v)) return "—"; return (v >= 0 ? "+" : "") + v.toFixed(2) + " R"; }
+  function destroyChart(id) { const c = document.getElementById(id); if (c && c._ch) { c._ch.destroy(); c._ch = null; } }
+  function setText(id, t) { const e = document.getElementById(id); if (e) e.textContent = t; }
+  function setCls(id, cls) { const e = document.getElementById(id); if (e) e.className = cls; }
+
+  /* ── config lookup ── */
+  function getRiskFreeRate() {
+    try { return (config && config.risk && config.risk.risk_free_rate) || 0.04; } catch (_) { return 0.04; }
   }
 
-  Promise.all([
-    apiFetch('/api/account/snapshots?limit=200'),
-    apiFetch('/api/strategies/library'),
-    apiFetch('/api/trades/recent?limit=50'),
-  ]).then(function(results) {
-    var snaps = results[0] || [];
-    var strats = results[1] || [];
-    var trades = results[2] || [];
+  /* ══════════════════════════════════════════════════════
+     DATA LAYER
+     ══════════════════════════════════════════════════════ */
+  let snapshots = [];
+  let strategies = [];
+  let accountInfo = null;
 
-    // ── NAV Chart (equity curve from snapshots) ──
-    if (snaps.length > 1) {
-      destroy('navChart');
-      var initial = snaps[0].equity || 1;
-      var eq = snaps.map(function(s){ return parseFloat((s.equity/initial).toFixed(4)); });
-      var labels = snaps.map(function(s){ var d=new Date(s.created_at); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); });
-      var ctx = document.getElementById('navChart');
-      ctx._ch = new Chart(ctx, {
-        type: 'line',
-        data: { labels: labels, datasets: [{ label: 'NAV', data: eq, borderColor: '#3B82F6', borderWidth: 1.5, pointRadius: 0, tension: 0.1, fill: true, backgroundColor: 'rgba(59,130,246,0.08)' }] },
-        options: { responsive: true, plugins: { legend: { labels: { color: '#bac9cc' } } }, scales: { x: { ticks: { color: '#849396', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { ticks: { color: '#bac9cc' }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
-      });
+  async function loadAllData() {
+    try {
+      [snapshots, strategies, accountInfo] = await Promise.all([
+        apiFetch("/api/account/snapshots?limit=500").catch(() => []),
+        apiFetch("/api/v2/strategies/").catch(() => []),
+        apiFetch("/api/v2/mt5/account").catch(() => null),
+      ]);
+      snapshots = Array.isArray(snapshots) ? snapshots : [];
+      strategies = Array.isArray(strategies) ? strategies : [];
+      accountInfo = accountInfo && !accountInfo.error ? accountInfo : null;
+    } catch (e) { console.warn("executive data load:", e); }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     METRICS
+     ══════════════════════════════════════════════════════ */
+  function equitySeries() { return snapshots.map(s => s.equity || s.balance || 0).filter(v => v > 0); }
+
+  function cumReturn(eq) { return eq.length >= 2 ? (eq[eq.length-1] - eq[0]) / eq[0] : null; }
+
+  function cagr(eq, snaps) {
+    if (eq.length < 2) return null;
+    const spanMs = new Date(snaps[snaps.length-1].created_at) - new Date(snaps[0].created_at);
+    const years = spanMs / (365.25 * 864e5);
+    if (years <= 0) return null;
+    return Math.pow(eq[eq.length-1] / eq[0], 1 / years) - 1;
+  }
+
+  function annVol(eq, snaps) {
+    if (eq.length < 2) return null;
+    const rets = []; for (let i = 1; i < eq.length; i++) rets.push((eq[i]-eq[i-1])/eq[i-1]);
+    if (rets.length < 2) return null;
+    const mean = rets.reduce((a,b)=>a+b,0)/rets.length;
+    const var_ = rets.reduce((s,r)=>s+(r-mean)**2,0)/(rets.length-1);
+    const std = Math.sqrt(var_);
+    const spanMs = new Date(snaps[snaps.length-1].created_at) - new Date(snaps[0].created_at);
+    const days = spanMs / 864e5;
+    const bpd = rets.length / Math.max(days, 1);
+    return std * Math.sqrt(bpd * 252);
+  }
+
+  function sharpe(eq, snaps, rf) {
+    const c = cagr(eq, snaps), v = annVol(eq, snaps);
+    if (c == null || v == null || v === 0) return null;
+    return (c - rf) / v;
+  }
+
+  function maxDrawdown(eq) {
+    if (eq.length < 2) return 0;
+    let peak = eq[0], maxDd = 0;
+    for (const v of eq) { if (v > peak) peak = v; const dd = (peak-v)/peak; if (dd > maxDd) maxDd = dd; }
+    return maxDd;
+  }
+
+  function calmar(eq, snaps) {
+    const c = cagr(eq, snaps), dd = maxDrawdown(eq);
+    if (!c || dd === 0) return null;
+    return c / dd;
+  }
+
+  function alphaExcess(eq, snaps, rf) { const c = cagr(eq, snaps); return c != null ? c - rf : null; }
+
+  function underwater(eq) {
+    const out = []; let peak = eq[0];
+    for (const v of eq) { if (v > peak) peak = v; out.push((v-peak)/peak*100); }
+    return out;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     W1–W4: KPI TILES
+     ══════════════════════════════════════════════════════ */
+  function renderKPIs() {
+    const eq = equitySeries();
+    if (eq.length < 2) {
+      ["ex-cumret-val","ex-sharpe-val","ex-alpha-val","ex-calmar-val"].forEach(id => setText(id,"—"));
+      return;
+    }
+    const rf = getRiskFreeRate();
+
+    // W1
+    const cr = cumReturn(eq);
+    setText("ex-cumret-val", fmtPct(cr));
+    setCls("ex-cumret-val", "font-data-lg text-[28px] tabular-nums font-medium " + (cr >= 0 ? "text-primary" : "text-error"));
+    setText("ex-cumret-delta", "From " + fmtCurrency(eq[0]) + " → " + fmtCurrency(eq[eq.length-1]) + "  ·  " + snapshots.length + " snapshots");
+
+    // W2
+    const sh = sharpe(eq, snapshots, rf);
+    setText("ex-sharpe-val", sh != null ? sh.toFixed(2) : "—");
+    if (sh != null) {
+      let tier="Below Threshold", tc="text-error";
+      if (sh >= 2.0) { tier="Tier 1 Alpha"; tc="text-primary"; }
+      else if (sh >= 1.0) { tier="Acceptable"; tc="text-on-surface"; }
+      else if (sh >= 0.0) { tier="Below Target"; tc="text-yellow-400"; }
+      setText("ex-sharpe-tier", tier);
+      const te = document.getElementById("ex-sharpe-tier"); if (te) te.className = "text-[10px] font-label-sm uppercase " + tc;
+      setCls("ex-sharpe-val", "font-data-lg text-[28px] tabular-nums font-medium " + tc);
     }
 
-    // ── Capital Allocation (donut — current equity per strategy from trades) ──
-    if (strats.length > 0) {
-      destroy('allocChart');
-      var allocCtx = document.getElementById('allocChart');
-      var allocLabels = strats.map(function(s){ return s.label || s.name; });
-      var allocData = strats.map(function(s){ return Math.abs(s.net_pnl_r || 0); });
-      allocCtx._ch = new Chart(allocCtx, {
-        type: 'doughnut',
-        data: { labels: allocLabels, datasets: [{ data: allocData, backgroundColor: ['#3B82F6','#8B5CF6','#10B981','#F59E0B','#EF4444','#00e5ff','#ec4899'] }] },
-        options: { responsive: true, plugins: { legend: { labels: { color: '#bac9cc' } } } }
-      });
-    }
+    // W3: Alpha vs Risk-Free
+    const al = alphaExcess(eq, snapshots, rf);
+    setText("ex-alpha-val", al != null ? fmtPct(al) : "—");
+    setText("ex-alpha-rf", "risk-free rate: " + (rf*100).toFixed(1) + "%");
+    if (al != null) setCls("ex-alpha-val", "font-data-lg text-[28px] tabular-nums font-medium " + (al >= 0 ? "text-primary" : "text-error"));
 
-    // ── Risk / Return scatter ──
-    if (strats.length > 0) {
-      destroy('rrChart');
-      var rrCtx = document.getElementById('rrChart');
-      var rrPoints = strats.map(function(s){ return { x: parseFloat((s.win_rate||0).toFixed(2)), y: parseFloat((s.avg_pnl_r||0).toFixed(2)), label: s.label }; });
-      rrCtx._ch = new Chart(rrCtx, {
-        type: 'scatter',
-        data: {
-          datasets: rrPoints.map(function(p, i){ return { label: p.label, data: [{x:p.x, y:p.y}], backgroundColor: ['#3B82F6','#8B5CF6','#10B981','#F59E0B','#EF4444','#00e5ff','#ec4899'][i%7], pointRadius: 6 }; })
-        },
-        options: { responsive: true, plugins: { legend: { labels: { color: '#bac9cc' } } }, scales: { x: { title: { display: true, text: 'Win Rate', color: '#bac9cc' }, ticks: { color: '#849396' }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { title: { display: true, text: 'Avg PnL (R)', color: '#bac9cc' }, ticks: { color: '#849396' }, grid: { color: 'rgba(255,255,255,0.03)' } } } }
-      });
+    // W4
+    const ca = calmar(eq, snapshots);
+    setText("ex-calmar-val", ca != null ? ca.toFixed(2) : "—");
+    if (ca != null) {
+      const cc = ca >= 3 ? "text-primary" : ca >= 1 ? "text-on-surface" : "text-error";
+      setCls("ex-calmar-val", "font-data-lg text-[28px] tabular-nums font-medium " + cc);
+      const tag = document.getElementById("ex-calmar-tag"); if (tag) { tag.textContent = ca >= 3 ? "Excellent" : ca >= 1 ? "Adequate" : "Elevated Risk"; tag.className = "text-[10px] font-label-sm uppercase " + cc; }
     }
+  }
 
-    // ── Drawdown Profile (bar chart from snapshots) ──
-    if (snaps.length > 1) {
-      destroy('ddChart');
-      var eqArr = snaps.map(function(s){ return s.equity; });
-      var peak = eqArr[0], ddVals = [], ddLabels = [];
-      eqArr.forEach(function(v, i){
-        if (v > peak) peak = v;
-        var dd = ((v - peak) / peak * 100);
-        ddVals.push(parseFloat(dd.toFixed(2)));
-        var d = new Date(snaps[i].created_at);
-        ddLabels.push(d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}));
-      });
-      var ddCtx = document.getElementById('ddChart');
-      ddCtx._ch = new Chart(ddCtx, {
-        type: 'bar',
-        data: { labels: ddLabels, datasets: [{ label: 'Drawdown %', data: ddVals, backgroundColor: ddVals.map(function(v){ return v < -5 ? '#EF4444' : v < -2 ? '#F59E0B' : '#10B981'; }) }] },
-        options: { responsive: true, plugins: { legend: { labels: { color: '#bac9cc' } } }, scales: { x: { ticks: { color: '#849396', maxRotation: 0, maxTicksLimit: 12 }, grid: { color: 'rgba(255,255,255,0.03)' } }, y: { ticks: { color: '#849396', callback: function(v){ return v+'%'; } }, grid: { color: 'rgba(255,255,255,0.04)' } } } }
-      });
+  /* ══════════════════════════════════════════════════════
+     W5: NAV GROWTH CHART
+     ══════════════════════════════════════════════════════ */
+  let navChart_ = null;
+
+  function filterSnaps(range) {
+    if (!snapshots.length) return [];
+    const now = Date.now();
+    const ms = { "1H": 36e5, "4H": 144e5, "1D": 864e5, "MAX": Infinity };
+    const win = ms[range] || Infinity;
+    return snapshots.filter(s => now - new Date(s.created_at).getTime() <= win);
+  }
+
+  function renderNavChart() {
+    const snaps = filterSnaps(activeNavRange);
+    const eq = snaps.map(s => s.equity || s.balance || 0).filter(v => v > 0);
+    destroyChart("ex-nav-canvas");
+    const ctx = document.getElementById("ex-nav-canvas");
+    if (!ctx || eq.length < 2) {
+      if (ctx) ctx._ch = new Chart(ctx, { type:"line", data:{labels:[],datasets:[{data:[],borderColor:COLORS.primary,borderWidth:1.5,pointRadius:0,tension:0.1,fill:true,backgroundColor:"rgba(0,229,255,0.06)"}]}, options:{plugins:{legend:{labels:{color:COLORS.outline}}},scales:{x:{display:false},y:{ticks:{color:COLORS.onSurfaceVariant},grid:{color:COLORS.grid}}}} });
+      return;
     }
-
-    // ── Investor Reporting table (monthly buckets from snapshots) ──
-    var invTb = document.getElementById('investor-tbl');
-    if (snaps.length > 0) {
-      var months = {};
-      snaps.forEach(function(s) {
-        var d = new Date(s.created_at);
-        var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-        if (!months[key]) months[key] = { nav: s.equity, maxDd: 0, peak: s.equity };
-        if (s.equity > months[key].peak) months[key].peak = s.equity;
-        var dd = ((s.equity - months[key].peak) / months[key].peak) * 100;
-        if (dd < months[key].maxDd) months[key].maxDd = dd;
-        months[key].nav = s.equity;
-      });
-      var rows = Object.keys(months).sort().reverse().slice(0, 12).map(function(k) {
-        var m = months[k];
-        var statusCls = m.maxDd > -10 ? 'text-green-300' : m.maxDd > -20 ? 'text-yellow-300' : 'text-red-300';
-        var statusTxt = m.maxDd > -10 ? 'Healthy' : m.maxDd > -20 ? 'Elevated' : 'Critical';
-        return '<tr>'
-          + '<td class="px-cell-padding-x py-cell-padding-y">' + esc(k) + '</td>'
-          + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat(m.nav).toFixed(2) + '</td>'
-          + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + parseFloat(m.maxDd).toFixed(1) + '%</td>'
-          + '<td class="px-cell-padding-x py-cell-padding-y ' + statusCls + '">' + statusTxt + '</td>'
-          + '</tr>';
-      }).join('');
-      invTb.innerHTML = rows || '<tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">No data.</td></tr>';
+    const base = eq[0];
+    const norm = eq.map(v => v / base);
+    const rfRate = getRiskFreeRate();
+    const startMs = new Date(snaps[0].created_at).getTime();
+    const endMs = new Date(snaps[snaps.length-1].created_at).getTime();
+    const spanYears = (endMs - startMs) / (365.25*864e5);
+    const benchmark = [];
+    if (spanYears > 0) {
+      for (let i = 0; i < norm.length; i++) {
+        const t = (new Date(snaps[i].created_at).getTime() - startMs) / (endMs - startMs);
+        benchmark.push(1 + rfRate * spanYears * t);
+      }
     } else {
-      invTb.innerHTML = '<tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">No snapshots yet.</td></tr>';
+      for (let i = 0; i < norm.length; i++) benchmark.push(1);
     }
-  }).catch(function(e) { console.error('executive load:', e); });
+    const labels = snaps.map(s => { const d = new Date(s.created_at); return d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"}); });
+
+    navChart_ = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          { label:"Composite NAV", data:norm, borderColor:COLORS.primary, borderWidth:2, pointRadius:0, tension:0.1, fill:true, backgroundColor:"rgba(0,229,255,0.07)" },
+          { label:"Risk-Free Trend", data:benchmark, borderColor:COLORS.outline, borderWidth:1, pointRadius:0, borderDash:[5,4], fill:false },
+        ],
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{ mode:"index", intersect:false, backgroundColor:"#1c2025", titleColor:COLORS.onSurface, bodyColor:COLORS.onSurfaceVariant, borderColor:COLORS.outline, borderWidth:1 } },
+        scales:{
+          x:{ ticks:{color:COLORS.outline, maxRotation:0, maxTicksLimit:8, font:{size:10}}, grid:{color:COLORS.grid} },
+          y:{ ticks:{color:COLORS.onSurfaceVariant, font:{size:10}, callback:v=>(v*100).toFixed(0)+"%" }, grid:{color:COLORS.grid} },
+        },
+        interaction:{ mode:"index", intersect:false },
+      },
+    });
+  }
+
+  // Range buttons
+  document.querySelectorAll(".ex-range-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".ex-range-btn").forEach(b => b.className = "ex-range-btn bg-background px-2 py-0.5 text-label-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors");
+      btn.className = "ex-range-btn bg-primary text-on-primary px-2 py-0.5 text-label-sm rounded transition-colors";
+      activeNavRange = btn.dataset.range;
+      renderNavChart();
+    });
+  });
+
+  /* ══════════════════════════════════════════════════════
+     W6: CAPITAL ALLOCATION DONUT
+     ══════════════════════════════════════════════════════ */
+  let allocChart_ = null;
+
+  function renderAllocation() {
+    destroyChart("ex-alloc-canvas");
+    const ctx = document.getElementById("ex-alloc-canvas");
+    if (!ctx) return;
+
+    const active = strategies.filter(s => s.is_active !== false);
+    const sorted = [...active].sort((a,b) => Math.abs(b.net_pnl_r||0) - Math.abs(a.net_pnl_r||0));
+    const top = sorted.slice(0, 7);
+    const rest = sorted.slice(7);
+    const restPnl = rest.reduce((s, x) => s + Math.abs(x.net_pnl_r||0), 0);
+
+    const slices = [...top];
+    if (restPnl > 0) slices.push({ label:"Other ("+rest.length+")", net_pnl_r: restPnl, total_trades: rest.reduce((s,x)=>s+(x.total_trades||0),0) });
+
+    const labels = slices.map(s => esc(s.label || s.name));
+    const data = slices.map(s => Math.abs(s.net_pnl_r || 0));
+    const bg = slices.map((_,i) => PALETTE[i % PALETTE.length]);
+
+    setText("ex-alloc-center", String(slices.length));
+    const totalPnl = data.reduce((a,b)=>a+b,0);
+    setText("ex-alloc-aum", accountInfo ? "AUM: " + fmtCurrency(accountInfo.equity || accountInfo.balance) : "— AUM");
+
+    allocChart_ = new Chart(ctx, {
+      type: "doughnut",
+      data: { labels, datasets: [{ data, backgroundColor:bg, borderColor:COLORS.surfaceContainerLowest, borderWidth:2 }] },
+      options: {
+        responsive:true, maintainAspectRatio:false, cutout:"62%",
+        plugins:{ legend:{display:false}, tooltip:{ backgroundColor:"#1c2025", titleColor:COLORS.onSurface, bodyColor:COLORS.onSurfaceVariant, borderColor:COLORS.outline, borderWidth:1, callbacks:{ label: ctx => ctx.label + ": " + fmtPct(ctx.raw / (totalPnl||1)) } } },
+      },
+    });
+
+    // Custom legend
+    const legendEl = document.getElementById("ex-alloc-legend");
+    if (legendEl) {
+      legendEl.innerHTML = slices.map((s, i) => {
+        const pct = totalPnl > 0 ? (Math.abs(s.net_pnl_r||0) / totalPnl * 100).toFixed(1) : "0.0";
+        return `<div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:${PALETTE[i%PALETTE.length]}"></span>
+            <span class="text-[11px] text-on-surface font-body-md truncate" style="max-width:140px">${esc(s.label || s.name)}</span>
+          </div>
+          <span class="text-[11px] font-data-md text-on-surface-variant tabular-nums">${pct}%</span>
+        </div>`;
+      }).join("");
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     W7: STRATEGY RISK / RETURN SCATTER
+     ══════════════════════════════════════════════════════ */
+  function renderScatter() {
+    destroyChart("ex-scatter-canvas");
+    const ctx = document.getElementById("ex-scatter-canvas");
+    if (!ctx) return;
+
+    const withTrades = strategies.filter(s => (s.total_trades || 0) > 0);
+    if (!withTrades.length) {
+      ctx._ch = new Chart(ctx, { type:"scatter", data:{datasets:[{data:[],pointRadius:0}]}, options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:COLORS.outline},grid:{color:COLORS.grid}},y:{ticks:{color:COLORS.outline},grid:{color:COLORS.grid}}}} });
+      return;
+    }
+
+    const datasets = withTrades.map((s, i) => ({
+      label: s.label || s.name,
+      data: [{ x: parseFloat(((s.max_drawdown||0)*100).toFixed(2)), y: parseFloat(((s.net_pnl_r||0)*100).toFixed(2)) }],
+      backgroundColor: PALETTE[i % PALETTE.length],
+      pointRadius: Math.min(8, Math.max(4, Math.sqrt(s.total_trades||1) * 1.2)),
+      pointHoverRadius: 10,
+    }));
+
+    ctx._ch = new Chart(ctx, {
+      type: "scatter",
+      data: { datasets },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{ display:withTrades.length <= 7, position:"bottom", labels:{ color:COLORS.onSurfaceVariant, boxWidth:10, padding:8, font:{size:10} } },
+          tooltip:{ backgroundColor:"#1c2025", titleColor:COLORS.onSurface, bodyColor:COLORS.onSurfaceVariant, borderColor:COLORS.outline, borderWidth:1,
+            callbacks:{ label: ctx => { const s = withTrades[ctx.datasetIndex]; return s.label + ": DD " + ctx.raw.x.toFixed(1) + "% · Return " + fmtPct(ctx.raw.y/100); } }
+          },
+        },
+        scales:{
+          x:{ title:{display:true,text:"Max Drawdown (%)",color:COLORS.outline,font:{size:10}}, ticks:{color:COLORS.outline,font:{size:10},callback:v=>v+"%"}, grid:{color:COLORS.grid} },
+          y:{ title:{display:true,text:"Net Return (Rmultiple)",color:COLORS.outline,font:{size:10}}, ticks:{color:COLORS.outline,font:{size:10},callback:v=>v+"%"}, grid:{color:COLORS.grid} },
+        },
+      },
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════
+     W8: DRAWDDOWN PROFILE BAR CHART
+     ══════════════════════════════════════════════════════ */
+  function renderDrawdown() {
+    destroyChart("ex-dd-canvas");
+    const ctx = document.getElementById("ex-dd-canvas");
+    if (!ctx) return;
+
+    const eq = equitySeries();
+    const uw = underwater(eq);
+    if (!uw.length) {
+      ctx._ch = new Chart(ctx, { type:"bar", data:{labels:[],datasets:[{data:[],backgroundColor:COLORS.success}]}, options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}} });
+      return;
+    }
+
+    // Sample to ~60 bars max for readability
+    const step = Math.max(1, Math.floor(uw.length / 60));
+    const sampled = []; const sampledLabels = [];
+    for (let i = 0; i < uw.length; i += step) { sampled.push(uw[i]); sampledLabels.push(""); }
+
+    const maxDD = Math.min(0, Math.min(...uw));
+    const colors = sampled.map(v => v < -8 ? COLORS.error : v < -4 ? "#F59E0B" : COLORS.success);
+
+    ctx._ch = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: sampledLabels,
+        datasets: [{ label:"Drawdown %", data: sampled, backgroundColor: colors, barPercentage:1.0, categoryPercentage:1.0 }],
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{ enabled:false } },
+        scales:{
+          x:{ display:false },
+          y:{ min: Math.min(maxDD - 1, -1), ticks:{color:COLORS.outline,font:{size:10},callback:v=>v.toFixed(0)+"%"}, grid:{color:COLORS.grid} },
+        },
+      },
+    });
+
+    setText("ex-dd-max", "Max DD: " + maxDD.toFixed(2) + "%");
+    setText("ex-dd-recovery", "Recovery: " + findLastRecovery(uw));
+    setText("ex-dd-avg", "Avg Depth: " + avgDrawdownDepth(uw));
+  }
+
+  function findLastRecovery(uw) {
+    let lastZero = -1;
+    for (let i = uw.length - 1; i >= 0; i--) { if (uw[i] >= -0.1) { lastZero = i; break; } }
+    if (lastZero < 0) return "N/A";
+    const bars = uw.length - 1 - lastZero;
+    const days = Math.round(bars / 24);
+    return days + " trading days (est.)";
+  }
+
+  function avgDrawdownDepth(uw) {
+    const neg = uw.filter(v => v < 0);
+    if (!neg.length) return "—";
+    return (neg.reduce((a,b)=>a+b,0)/neg.length).toFixed(2) + "%";
+  }
+
+  /* ══════════════════════════════════════════════════════
+     W9: REPORT GENERATION + TEARSHEET MODAL
+     ══════════════════════════════════════════════════════ */
+  const reportHistory = [];
+
+  function addReportToHistory(type, status, url) {
+    const ts = new Date().toLocaleString("en-GB",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+    reportHistory.unshift({ type, status, url, ts });
+    renderReportHistory();
+  }
+
+  function renderReportHistory() {
+    const el = document.getElementById("ex-report-history");
+    if (!el) return;
+    if (!reportHistory.length) { el.innerHTML = '<div class="text-center py-6 text-outline text-[12px]">No reports generated yet.</div>'; return; }
+    el.innerHTML = reportHistory.slice(0, 10).map(r => {
+      const icon = r.type === "monthly" ? "calendar_month" : r.type === "quarterly" ? "date_range" : "summarize";
+      return `<div class="flex items-center justify-between border border-outline-variant rounded px-3 py-2 hover:bg-surface-container-high transition-colors ${r.url ? 'cursor-pointer' : ''}">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[16px] ${r.url ? 'text-primary' : 'text-outline'}">${icon}</span>
+          <div>
+            <div class="text-[12px] ${r.url ? 'text-on-surface' : 'text-on-surface-variant'}">${esc(r.type === 'full_tearsheet' ? 'Full Tear Sheet' : r.type)}</div>
+            <div class="text-[10px] text-outline">${esc(r.ts)} · ${esc(r.status)}</div>
+          </div>
+        </div>
+        ${r.url ? '<span class="material-symbols-outlined text-[14px] text-outline">download</span>' : '<span class="text-[10px] text-outline">—</span>'}
+      </div>`;
+    }).join("");
+  }
+
+  function compileTearsheet() {
+    const eq = equitySeries();
+    const uw = underwater(eq);
+    const rf = getRiskFreeRate();
+    const cr = cumReturn(eq);
+    const annRet = cagr(eq, snapshots);
+    const vol = annVol(eq, snapshots);
+    const sh = sharpe(eq, snapshots, rf);
+    const ca = calmar(eq, snapshots);
+    const mdd = maxDrawdown(eq);
+    const al = alphaExcess(eq, snapshots, rf);
+
+    // Trade-derived stats
+    const allTrades = [];
+    strategies.forEach(s => { if (s.recent_trades) allTrades.push(...s.recent_trades); });
+    const wins = allTrades.filter(t => t.pnl_r > 0).length;
+    const losses = allTrades.filter(t => t.pnl_r < 0).length;
+    const winRate = allTrades.length ? wins / allTrades.length : null;
+    const grossWin = allTrades.filter(t => t.pnl_r > 0).reduce((s,t) => s + t.pnl_r, 0);
+    const grossLoss = Math.abs(allTrades.filter(t => t.pnl_r < 0).reduce((s,t) => s + t.pnl_r, 0));
+    const profitFactor = grossLoss > 0 ? grossWin / grossLoss : null;
+    const best = allTrades.length ? Math.max(...allTrades.map(t=>t.pnl_r)) : null;
+    const worst = allTrades.length ? Math.min(...allTrades.map(t=>t.pnl_r)) : null;
+
+    // Monthly returns
+    const monthly = {};
+    snapshots.forEach(s => {
+      const d = new Date(s.created_at);
+      const key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+      if (!monthly[key]) monthly[key] = { start: s.equity, end: s.equity };
+      monthly[key].end = s.equity;
+    });
+    const monthlyRows = Object.entries(monthly).sort((a,b) => a[0].localeCompare(b[0])).slice(-12).map(([k,v]) => {
+      const ret = v.start > 0 ? (v.end - v.start) / v.start : 0;
+      return `<tr><td class="...">${esc(k)}</td><td class="...">${fmtCurrency(v.end)}</td><td class="... ${ret>=0?'text-success':'text-error'}">${fmtPct(ret)}</td></tr>`;
+    }).join("");
+
+    const now = new Date().toLocaleString("en-GB",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
+    setText("ex-modal-date", "Generated: " + now);
+
+    // Render tearsheet
+    const body = document.getElementById("ex-tearsheet-body");
+    if (!body) return;
+    body.innerHTML = `
+      <div class="max-w-4xl mx-auto" id="ex-print-area">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-outline-variant">
+          <div>
+            <h2 class="font-display-lg text-display-lg font-bold text-primary-container" style="font-size:24px">Savanna Capital — Quant Tear Sheet</h2>
+            <p class="text-outline text-[11px] font-label-sm uppercase mt-1">Institutional Performance Report · ${esc(now)}</p>
+          </div>
+          <div class="text-right text-outline text-[10px] font-label-sm">
+            <div>Risk-Free Rate: ${(rf*100).toFixed(2)}%</div>
+            <div>Period: ${snapshots.length ? new Date(snapshots[0].created_at).toLocaleDateString("en-GB") : "—"} → ${snapshots.length ? new Date(snapshots[snapshots.length-1].created_at).toLocaleDateString("en-GB") : "—"}</div>
+          </div>
+        </div>
+
+        <!-- Primary Metrics -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          ${kpiTile("Cumulative Return", fmtPct(cr), cr >= 0 ? COLORS.primary : COLORS.error)}
+          ${kpiTile("Annualised Return", fmtPct(annRet), annRet >= 0 ? COLORS.primary : COLORS.error)}
+          ${kpiTile("Annualised Volatility", fmtPct(vol), null)}
+          ${kpiTile("Sharpe Ratio", sh != null ? sh.toFixed(2) : "—", sh != null && sh >= 1 ? COLORS.primary : COLORS.error)}
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          ${kpiTile("Calmar Ratio", ca != null ? ca.toFixed(2) : "—", ca != null && ca >= 1 ? COLORS.primary : COLORS.error)}
+          ${kpiTile("Max Drawdown", (mdd*100).toFixed(2)+"%", COLORS.error)}
+          ${kpiTile("Alpha vs Risk-Free", fmtPct(al), al >= 0 ? COLORS.primary : COLORS.error)}
+          ${kpiTile("VaR (95%)", "—", null)}
+        </div>
+
+        <!-- Trade Statistics -->
+        <div class="bg-surface-container border border-outline-variant rounded-lg p-4 mb-6">
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider mb-3">Trade Statistics</h3>
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            ${statItem("Total Trades", String(allTrades.length))}
+            ${statItem("Win Rate", winRate != null ? (winRate*100).toFixed(1)+"%" : "—")}
+            ${statItem("Profit Factor", profitFactor != null ? profitFactor.toFixed(2) : "—")}
+            ${statItem("Best Trade", best != null ? fmtR(best) : "—")}
+            ${statItem("Worst Trade", worst != null ? fmtR(worst) : "—")}
+          </div>
+        </div>
+
+        <!-- Monthly Returns -->
+        <div class="bg-surface-container border border-outline-variant rounded-lg p-4 mb-6">
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider mb-3">Monthly Returns (LTM)</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse font-data-md text-data-md">
+              <thead><tr class="border-b border-outline-variant text-outline text-[11px] font-label-sm uppercase">
+                <th class="px-3 py-2">Month</th><th class="px-3 py-2 text-right">Ending NAV</th><th class="px-3 py-2 text-right">Return</th>
+              </tr></thead>
+              <tbody class="divide-y divide-outline-variant/30 text-on-surface-variant">${monthlyRows || '<tr><td colspan="3" class="px-3 py-4 text-outline text-center">No monthly data available</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Strategy Breakdown -->
+        <div class="bg-surface-container border border-outline-variant rounded-lg p-4 mb-6">
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider mb-3">Strategy Performance</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse font-data-md text-data-md">
+              <thead><tr class="border-b border-outline-variant text-outline text-[11px] font-label-sm uppercase">
+                <th class="px-3 py-2">Strategy</th><th class="px-3 py-2 text-right">Trades</th><th class="px-3 py-2 text-right">Win Rate</th><th class="px-3 py-2 text-right">Net PnL (R)</th><th class="px-3 py-2 text-right">Max DD</th><th class="px-3 py-2 text-right">Sharpe</th>
+              </tr></thead>
+              <tbody class="divide-y divide-outline-variant/30 text-on-surface-variant">
+                ${strategies.filter(s=>s.total_trades>0).map(s => `<tr>
+                  <td class="px-3 py-2">${esc(s.label||s.name)}</td>
+                  <td class="px-3 py-2 text-right tabular-nums">${s.total_trades||0}</td>
+                  <td class="px-3 py-2 text-right tabular-nums">${s.win_rate!=null?(s.win_rate*100).toFixed(1)+"%":"—"}</td>
+                  <td class="px-3 py-2 text-right tabular-nums ${s.net_pnl_r>=0?'text-success':'text-error'}">${fmtR(s.net_pnl_r)}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-error">${s.max_drawdown!=null?(s.max_drawdown*100).toFixed(1)+"%":"—"}</td>
+                  <td class="px-3 py-2 text-right tabular-nums">${s.sharpe!=null?s.sharpe.toFixed(2):"—"}</td>
+                </tr>`).join("")}
+              ${!strategies.filter(s=>s.total_trades>0).length ? '<tr><td colspan="6" class="px-3 py-4 text-outline text-center">No trade data</td></tr>' : ""}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-outline text-[10px] font-label-sm py-4 border-t border-outline-variant/50">
+          Generated by Savanna Capital Quant OS · ${esc(now)} · CONFIDENTIAL — FOR INTERNAL USE ONLY
+        </div>
+      </div>`;
+
+    // Open modal
+    const modal = document.getElementById("ex-tearsheet-modal");
+    const backdrop = document.getElementById("ex-modal-backdrop");
+    if (modal) modal.classList.remove("hidden");
+    if (backdrop) backdrop.style.display = "block";
+    document.body.style.overflow = "hidden";
+  }
+
+  function kpiTile(label, value, color) {
+    const cls = color || "text-on-surface";
+    return `<div class="bg-surface-container border border-outline-variant rounded-lg p-4">
+      <div class="text-outline text-[10px] font-label-sm uppercase tracking-wider mb-1">${esc(label)}</div>
+      <div class="font-data-lg text-[26px] ${cls} tabular-nums font-medium">${esc(value)}</div>
+    </div>`;
+  }
+
+  function statItem(label, value) {
+    return `<div><div class="text-outline text-[10px] font-label-sm uppercase">${esc(label)}</div><div class="font-data-md text-data-md text-on-surface tabular-nums">${esc(value)}</div></div>`;
+  }
+
+  function closeTearsheetModal() {
+    const modal = document.getElementById("ex-tearsheet-modal");
+    if (modal) modal.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+
+  /* ══════════════════════════════════════════════════════
+     INIT
+     ══════════════════════════════════════════════════════ */
+  async function init() {
+    await loadAllData();
+    renderKPIs();
+    renderNavChart();
+    renderAllocation();
+    renderScatter();
+    renderDrawdown();
+  }
+
+  // Refresh button
+  document.getElementById("ex-refresh-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("ex-refresh-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">refresh</span> Loading…';
+    await init();
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined text-[14px]">refresh</span> Refresh';
+    }, 400);
+  });
+
+  // Generate report — both top bar button and panel button
+  document.getElementById("ex-generate-report-btn").addEventListener("click", () => {
+    addReportToHistory("full_tearsheet", "compiling", null);
+    compileTearsheet();
+  });
+  document.getElementById("ex-generate-modal-btn").addEventListener("click", () => {
+    addReportToHistory("full_tearsheet", "compiling", null);
+    compileTearsheet();
+  });
+
+  // Close modal
+  document.getElementById("ex-modal-close-btn").addEventListener("click", closeTearsheetModal);
+  document.getElementById("ex-modal-backdrop").addEventListener("click", closeTearsheetModal);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeTearsheetModal(); });
+
+  // PDF download — uses browser print with print-only CSS
+  document.getElementById("ex-modal-pdf-btn").addEventListener("click", () => {
+    const style = document.createElement("style");
+    style.id = "ex-print-styles";
+    style.textContent = `
+      @media print {
+        body * { visibility: hidden !important; }
+        #ex-tearsheet-modal, #ex-tearsheet-modal * { visibility: visible !important; }
+        #ex-tearsheet-modal { position: absolute !important; inset: 0 !important; z-index: 9999 !important; background: white !important; }
+        #ex-print-area { color: #000 !important; }
+        #ex-print-area * { color: #000 !important; }
+        #ex-modal-backdrop, #ex-modal-close-btn, #ex-modal-pdf-btn { display: none !important; }
+        .bg-surface-container, .bg-surface-container-low, .bg-surface-container-lowest { background: white !important; border-color: #ccc !important; }
+      }
+    `;
+    document.head.appendChild(style);
+    setTimeout(() => { window.print(); setTimeout(() => style.remove(), 1000); }, 100);
+  });
+
+  init();
 })();
 </script>
 {% endblock scripts %}

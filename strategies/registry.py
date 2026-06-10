@@ -36,12 +36,12 @@ _KNOWN_MODULES: list[str] = [
     "strategies.divergence_swing",
     "strategies.vwap_reversion",
     "strategies.macd_impulse",
+    "strategies.ai_trading",
     "strategies.crypto",
     "strategies.forex",
     "strategies.commodities",
     "strategies.equities",
 ]
-
 
 def _discover() -> dict[str, type[BaseStrategy]]:
     """Import all strategy modules and return {name: class}."""
@@ -58,6 +58,7 @@ def _discover() -> dict[str, type[BaseStrategy]]:
                 and obj is not BaseStrategy
                 and hasattr(obj, "meta")
                 and hasattr(obj, "default_params")
+                and obj.meta.name != "base"
             ):
                 key = obj.meta.name
                 if key:

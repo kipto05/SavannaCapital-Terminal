@@ -1,50 +1,220 @@
 {% extends "partials/_base.html" %}
 
-{% block title %}Savanna Capital — AI Research Assistant{% endblock %}
-{% set page_title = "AI Research Assistant" %}
+{% block title %}Savanna Capital — AI Trading{% endblock %}
+{% set page_title = "AI Trading" %}
 {% set active = "ai_research" %}
 
 {% block content %}
-<div class="p-container-padding overflow-y-auto h-full">
+<div class="flex flex-col h-full overflow-hidden">
 
-  <!-- Top actions -->
-  <div class="flex items-center gap-2 mb-unit*4">
-    <button onclick="loadAI()" class="px-3 py-1.5 text-label-sm font-medium border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-colors">Refresh</button>
-  </div>
+  <!-- ── Top bar: title + search + AI toggle ──────────────────────────────── -->
+  <div class="flex items-center gap-4 px-container-padding py-2 border-b border-outline-variant/50 shrink-0">
+    <h2 class="font-headline-md text-headline-md font-bold text-primary whitespace-nowrap">AI Trading</h2>
 
-  <!-- Filters -->
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4 flex flex-wrap gap-x-4 gap-y-2 items-end">
-    <div>
-      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Confidence Threshold</label>
-      <input type="number" id="ai-min-conf" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded" value="0.70" step="0.05" min="0" max="1">
+    <div class="flex-1 max-w-md">
+      <input type="text" id="ai-search" placeholder="Search signals, models, or research..."
+             class="w-full bg-transparent border-none focus:ring-0 p-0 font-label-sm text-label-sm w-64 placeholder:text-outline">
     </div>
-    <div>
-      <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Result count</label>
-      <select id="ai-limit" class="w-full bg-surface-variant border border-outline-variant text-label-sm px-2 py-1 rounded">
-        <option>10</option><option>25</option><option>50</option>
-      </select>
-    </div>
-  </div>
 
-  <div class="bg-surface-container-low border border-outline-variant p-3 mb-unit*4">
-    <h3 class="font-label-sm text-label-sm font-bold text-primary uppercase mb-2">Active AI Suggestions</h3>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse">
-        <thead><tr class="border-b border-outline-variant text-label-sm text-outline">
-          <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Direction</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Conf %</th>
-          <th class="px-cell-padding-x py-cell-padding-y">Zone (E/S/T)</th>
-        </tr></thead>
-        <tbody id="ai-sugg-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
-          <tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
-        </tbody>
-      </table>
+    <div class="flex items-center gap-3 ml-auto">
+      <span id="ai-status-dot" class="material-symbols-outlined text-[18px] text-outline" title="AI status">dns</span>
+      <button id="ai-toggle-btn" class="flex items-center gap-2 px-4 py-1.5 text-label-sm font-bold rounded bg-surface-container-high border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-all">
+        <span class="material-symbols-outlined text-[16px]">smart_toy</span>
+        <span id="ai-toggle-text">Enable AI</span>
+      </button>
     </div>
   </div>
+
+  <!-- ── Three-column workspace grid ───────────────────────────────────────── -->
+  <div class="flex-1 grid grid-cols-12 gap-panel-gap p-1 bg-outline-variant overflow-hidden">
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LEFT PANEL  col-span-3
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div class="col-span-3 flex flex-col gap-panel-gap overflow-y-auto">
+
+      <!-- AI Configuration -->
+      <section class="bg-surface-container-low border border-outline-variant p-3">
+        <h3 class="font-label-sm text-label-sm font-bold text-on-surface uppercase tracking-wider mb-3">AI Configuration</h3>
+
+        <div class="mb-3">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">
+            Confidence: <span id="conf-display" class="text-primary">60%</span>
+          </label>
+          <input id="conf-slider" type="range" min="0" max="100" value="60"
+                 class="w-full h-1 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-primary">
+        </div>
+
+        <div class="mb-3">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Signal Cooldown</label>
+          <div class="flex gap-1">
+            <button data-cooldown="5"  class="cooldown-btn flex-1 font-label-sm text-label-sm bg-surface-container-high py-1 rounded hover:bg-surface-variant border border-outline-variant">5m</button>
+            <button data-cooldown="15" class="cooldown-btn flex-1 font-label-sm text-label-sm bg-primary text-on-primary py-1 rounded font-bold">15m</button>
+            <button data-cooldown="60" class="cooldown-btn flex-1 font-label-sm text-label-sm bg-surface-container-high py-1 rounded hover:bg-surface-variant border border-outline-variant">1h</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block mb-2">Knowledge Bases</label>
+          <div class="space-y-1.5">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked class="rounded border-outline text-primary focus:ring-primary bg-surface">
+              <span class="font-label-sm text-label-sm text-on-surface-variant">Market Microstructure</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked class="rounded border-outline text-primary focus:ring-primary bg-surface">
+              <span class="font-label-sm text-label-sm text-on-surface-variant">Central Bank Speeches</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" class="rounded border-outline text-primary focus:ring-primary bg-surface">
+              <span class="font-label-sm text-label-sm text-on-surface-variant">Retail Sentiment (X/Reddit)</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Signal Heatmap -->
+      <section class="bg-surface-container-low border border-outline-variant p-3 flex-1">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-label-sm text-label-sm font-bold text-on-surface uppercase tracking-wider">Signal Heatmap</h3>
+          <span id="heatmap-demo-badge" class="hidden font-label-sm text-label-sm text-outline"></span>
+        </div>
+        <div id="heatmap-grid" class="grid grid-cols-4 gap-1">
+          <!-- populated by JS -->
+        </div>
+        <div id="heatmap-legend" class="flex items-center justify-center gap-4 mt-3">
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-primary/30 border border-primary/50"></span><span class="font-label-sm text-label-sm text-outline">Bullish</span></span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-error/30 border border-error/50"></span><span class="font-label-sm text-label-sm text-outline">Bearish</span></span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-surface-variant border border-outline-variant"></span><span class="font-label-sm text-label-sm text-outline">Neutral</span></span>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         CENTER PANEL  col-span-5
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div class="col-span-5 flex flex-col gap-panel-gap overflow-y-auto">
+
+      <!-- Active AI Suggestions -->
+      <section class="bg-surface-container-low border border-outline-variant p-3">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-label-sm text-label-sm font-bold text-on-surface uppercase tracking-wider">Active AI Suggestions</h3>
+          <div class="flex items-center gap-3">
+            <span class="font-label-sm text-label-sm text-outline" id="signals-count">Signals: —</span>
+            <span class="font-label-sm text-label-sm text-outline" id="success-rate">Success Rate: —</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-outline-variant text-label-sm text-outline">
+                <th class="px-cell-padding-x py-cell-padding-y">Symbol</th>
+                <th class="px-cell-padding-x py-cell-padding-y">Direction</th>
+                <th class="px-cell-padding-x py-cell-padding-y text-right">Conf %</th>
+                <th class="px-cell-padding-x py-cell-padding-y">Entry Zone</th>
+                <th class="px-cell-padding-x py-cell-padding-y">SL Zone</th>
+                <th class="px-cell-padding-x py-cell-padding-y">TP Zone</th>
+              </tr>
+            </thead>
+            <tbody id="ai-sugg-tbl" class="divide-y divide-outline-variant/30 font-data-md text-data-md text-on-surface-variant">
+              <tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Automated Reasoning -->
+      <section class="bg-surface-container-low border border-outline-variant p-3 flex-1">
+        <h3 class="font-label-sm text-label-sm font-bold text-on-surface uppercase tracking-wider mb-3">Automated Reasoning</h3>
+        <div class="grid grid-cols-3 gap-2">
+          <!-- Market Context -->
+          <div class="bg-surface-container p-3 rounded border border-outline-variant/30 flex flex-col overflow-hidden">
+            <h4 class="font-label-sm text-label-sm text-outline uppercase mb-2">Market Context</h4>
+            <p class="font-data-md text-data-md text-on-surface-variant flex-1" id="reason-context">
+              Select a signal to view reasoning.
+            </p>
+          </div>
+          <!-- Alpha Factor Alignment -->
+          <div class="bg-surface-container p-3 rounded border border-outline-variant/30 flex flex-col overflow-hidden">
+            <h4 class="font-label-sm text-label-sm text-outline uppercase mb-2">Alpha Factor Alignment</h4>
+            <div class="space-y-2 flex-1" id="reason-alpha">
+              <p class="font-data-md text-data-md text-outline">—</p>
+            </div>
+          </div>
+          <!-- Risk Assessment -->
+          <div class="bg-surface-container p-3 rounded border border-outline-variant/30 flex flex-col overflow-hidden">
+            <h4 class="font-label-sm text-label-sm text-outline uppercase mb-2">Risk Assessment</h4>
+            <div class="space-y-1.5 flex-1" id="reason-risk">
+              <p class="font-data-md text-data-md text-outline">—</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         RIGHT PANEL  col-span-4
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div class="col-span-4 flex flex-col gap-panel-gap overflow-hidden">
+
+      <!-- Quantitative Research Terminal -->
+      <section class="bg-surface-container-low border border-outline-variant p-3 flex flex-col flex-1 overflow-hidden">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-label-sm text-label-sm font-bold text-on-surface uppercase tracking-wider">Quantitative Research Terminal</h3>
+          <span class="flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+            <span class="font-label-sm text-label-sm text-green-400">Online</span>
+          </span>
+        </div>
+
+        <!-- Terminal output -->
+        <div id="terminal-output" class="flex-1 bg-surface-container border border-outline-variant/50 rounded p-container-padding overflow-y-auto font-data-md text-data-md text-on-surface-variant mb-2 min-h-[200px] max-h-[300px]">
+          <p class="text-outline">Ready for queries. Connected to HFT execution log and TickData v5.4.</p>
+          <p class="text-primary mt-1">&#62; System initialised. AI model <span id="term-model" class="font-mono">—</span> loaded.</p>
+        </div>
+
+        <!-- Chat input -->
+        <div class="flex items-center gap-2 bg-surface-container border border-outline-variant rounded px-2 py-1">
+          <span class="material-symbols-outlined text-outline text-[18px]">terminal</span>
+          <input id="terminal-input" type="text" placeholder="Query market data or strategy..."
+                 class="bg-transparent border-none focus:ring-0 p-0 font-data-md text-data-md w-full placeholder:text-outline/50">
+          <span id="terminal-send" class="material-symbols-outlined text-outline cursor-pointer hover:text-primary text-[18px]">send</span>
+        </div>
+      </section>
+
+      <!-- Confidence Distribution -->
+      <section class="bg-surface-container-low border border-outline-variant p-3 shrink-0">
+        <h3 class="font-label-sm text-label-sm font-bold text-on-surface uppercase tracking-wider mb-3">Confidence Distribution</h3>
+        <canvas id="confidence-chart" height="120"></canvas>
+        <div class="grid grid-cols-2 gap-2 mt-3">
+          <div class="text-center">
+            <p class="text-[9px] text-outline uppercase">Signal Accuracy</p>
+            <p class="font-data-lg text-data-lg text-primary" id="stat-accuracy">—</p>
+          </div>
+          <div class="text-center">
+            <p class="text-[9px] text-outline uppercase">Avg Alpha</p>
+            <p class="font-data-lg text-data-lg text-tertiary" id="stat-alpha">—</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </div><!-- /workspace grid -->
+
+  <!-- ── Footer ────────────────────────────────────────────────────────────── -->
+  <footer class="h-8 border-t border-outline-variant/50 bg-surface-container-lowest flex items-center justify-between px-container-padding shrink-0">
+    <div class="flex items-center gap-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+      <span class="font-label-sm text-label-sm text-green-400">Quantum Core Online</span>
+    </div>
+    <span class="font-label-sm text-label-sm text-outline">Latency <span id="footer-latency">14</span>ms</span>
+    <span class="font-label-sm text-label-sm text-outline">DATA_THROUGHPUT 4.2 GB/s</span>
+    <span class="font-label-sm text-label-sm text-on-surface-variant" id="footer-clock">—</span>
+  </footer>
 
 </div>
 {% endblock content %}
+
 
 {% block scripts %}
 <script>window.__PAGE_INIT__ = "ai_research";</script>
@@ -52,37 +222,330 @@
 (function() {
   if (window.__PAGE_INIT__ !== 'ai_research') return;
 
-  window.loadAI = function() {
-    var minConf = parseFloat(document.getElementById('ai-min-conf').value || 0);
-    var limit = parseInt(document.getElementById('ai-limit').value || 10);
+  // ── State ────────────────────────────────────────────────────────────────
+  var _selectedSymbol = null;
+  var _confidenceChart = null;
+  var _aiEnabled = false;
+  var _pollInterval = null;
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function esc(s) {
+    if (s == null) return '—';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function pnlColor(v) {
+    return (v || 0) > 0 ? '#10b981' : (v || 0) < 0 ? '#ef4444' : '#64748b';
+  }
+  function fmtAge(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    var diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60) return Math.floor(diff) + 's';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm';
+    return Math.floor(diff / 3600) + 'h';
+  }
+
+  // ── Clock ────────────────────────────────────────────────────────────────
+  function updateClock() {
+    var el = document.getElementById('footer-clock');
+    if (!el) return;
+    var now = new Date();
+    el.textContent = now.toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ── AI Toggle ────────────────────────────────────────────────────────────
+  function updateToggleUI() {
+    var btn = document.getElementById('ai-toggle-btn');
+    var txt = document.getElementById('ai-toggle-text');
+    var dot = document.getElementById('ai-status-dot');
+    if (!btn) return;
+    if (_aiEnabled) {
+      btn.className = 'flex items-center gap-2 px-4 py-1.5 text-label-sm font-bold rounded bg-primary text-on-primary transition-all';
+      txt.textContent = 'Disable AI';
+      if (dot) { dot.textContent = 'check_circle'; dot.className = 'material-symbols-outlined text-[18px] text-primary'; }
+    } else {
+      btn.className = 'flex items-center gap-2 px-4 py-1.5 text-label-sm font-bold rounded bg-surface-container-high border border-outline-variant text-on-surface-variant hover:bg-surface-variant transition-all';
+      txt.textContent = 'Enable AI';
+      if (dot) { dot.textContent = 'dns'; dot.className = 'material-symbols-outlined text-[18px] text-outline'; }
+    }
+  }
+
+  document.getElementById('ai-toggle-btn').addEventListener('click', function() {
+    apiFetch('/api/v2/ai/toggle', {method: 'POST'})
+    .then(function(r) {
+      _aiEnabled = r.is_active;
+      updateToggleUI();
+    })
+    .catch(function(e) { alert('Toggle failed: ' + e.message); });
+  });
+
+  // ── Heatmap ──────────────────────────────────────────────────────────────
+  function renderHeatmap(assets) {
+    var grid = document.getElementById('heatmap-grid');
+    if (!grid) return;
+    if (!assets || !assets.length) {
+      grid.innerHTML = '<div class="col-span-full text-outline text-label-sm text-center py-4">No data</div>';
+      return;
+    }
+    grid.innerHTML = assets.map(function(a) {
+      var isBull = a.score > 0;
+      var isBear = a.score < 0;
+      var bgCls = isBull ? 'bg-primary/20 border border-primary/30 text-primary'
+               : isBear ? 'bg-error/20 border border-error/30 text-error'
+               : 'bg-surface-variant border border-outline-variant text-outline';
+      var dirLabel = a.direction || 'NEUTRAL';
+      return '<div class="' + bgCls + ' flex flex-col items-center justify-center p-1.5 rounded cursor-pointer" '
+        + 'title="' + esc(a.symbol) + ' | score=' + (a.score != null ? a.score.toFixed(2) : '?') + '">'
+        + '<span class="font-label-sm text-label-sm font-bold leading-tight">' + esc(a.symbol) + '</span>'
+        + '<span class="font-label-sm text-label-sm leading-tight">' + esc(dirLabel) + '</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  async function loadHeatmap() {
+    try {
+      var data = await apiFetch('/api/v2/ai/heatmap');
+      renderHeatmap(data.assets);
+      var badge = document.getElementById('heatmap-demo-badge');
+      if (badge && data.is_demo) {
+        badge.textContent = 'Demo data';
+        badge.classList.remove('hidden');
+      } else if (badge) {
+        badge.classList.add('hidden');
+      }
+    } catch(e) { console.warn('heatmap:', e); }
+  }
+
+  // ── Suggestions table ────────────────────────────────────────────────────
+  function renderSuggestions(list) {
     var tb = document.getElementById('ai-sugg-tbl');
-    apiFetch('/api/ai_advisor/suggestions')
-      .then(function(suggs) {
-        if (!suggs || !suggs.length) {
-          tb.innerHTML = '<tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">No AI suggestions yet.</td></tr>';
-          return;
-        }
-        var filtered = suggs.filter(function(s){ return (s.confidence||0) >= minConf; }).slice(0, limit);
-        if (!filtered.length) {
-          tb.innerHTML = '<tr><td colspan="4" class="px-cell-padding-x py-3 text-outline">No suggestions meet confidence threshold.</td></tr>';
-          return;
-        }
-        tb.innerHTML = filtered.map(function(s) {
-          var sc = (s.side==='BUY') ? '#10B981' : (s.side==='SELL') ? '#EF4444' : '#6B7280';
-          var zone = (s.market_context && s.market_context.zone) ? esc(s.market_context.zone) : '—';
-          return '<tr>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(s.symbol||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y" style="color:'+sc+'">' + esc(s.side||'—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (s.confidence!=null ? parseFloat(s.confidence*100).toFixed(0)+'%' : '—') + '</td>'
-            + '<td class="px-cell-padding-x py-cell-padding-y">' + zone + '</td>'
-            + '</tr>';
+    if (!tb) return;
+    if (!list || !list.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No suggestions yet.</td></tr>';
+      return;
+    }
+    tb.innerHTML = list.map(function(s) {
+      var sc = (s.side === 'BUY') ? 'text-green-400' : (s.side === 'SELL') ? 'text-red-400' : 'text-outline';
+      var zoneE = (s.market_context && s.market_context.key_levels && s.market_context.key_levels[0]) ? esc(s.market_context.key_levels[0]) : '—';
+      var zoneSL = (s.sl != null) ? esc(parseFloat(s.sl).toFixed(s.symbol==='BTCUSD'||s.symbol==='ETHUSD'?0:2)) : '—';
+      var zoneTP = (s.tp2 != null) ? esc(parseFloat(s.tp2).toFixed(s.symbol==='BTCUSD'||s.symbol==='ETHUSD'?0:2)) : '—';
+      return '<tr class="cursor-pointer hover:bg-surface-container-high transition-colors" onclick="selectSuggestion(\'' + esc(s.id) + '\', \'' + esc(s.symbol) + '\')">'
+        + '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium text-primary">' + esc(s.symbol) + '</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y ' + sc + '">' + esc(s.side) + '</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y font-mono text-right">' + (s.confidence!=null ? (s.confidence*100).toFixed(0)+'%' : '—') + '</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + zoneE + '</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y font-mono text-red-400/80">' + zoneSL + '</td>'
+        + '<td class="px-cell-padding-x py-cell-padding-y font-mono text-green-400/80">' + zoneTP + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  function updateStatsBar(stats) {
+    var cnt = document.getElementById('signals-count');
+    var rate = document.getElementById('success-rate');
+    if (cnt) cnt.textContent = 'Signals: ' + (stats.total_signals || 0);
+    if (rate && stats.accuracy_pct != null) rate.textContent = 'Success Rate: ' + stats.accuracy_pct.toFixed(1) + '%';
+    else if (rate) rate.textContent = 'Success Rate: —';
+    var accEl = document.getElementById('stat-accuracy');
+    var alphaEl = document.getElementById('stat-alpha');
+    if (accEl && stats.accuracy_pct != null) accEl.textContent = stats.accuracy_pct.toFixed(1) + '%';
+    if (alphaEl && stats.avg_alpha != null) alphaEl.textContent = (stats.avg_alpha >= 0 ? '+' : '') + stats.avg_alpha.toFixed(2) + '%';
+  }
+
+  async function loadSuggestions() {
+    try {
+      var data = await apiFetch('/api/v2/ai/suggestions?limit=50');
+      renderSuggestions(data.suggestions);
+      updateStatsBar(data);
+      if (data.stats) updateConfidenceChart(data.suggestions);
+    } catch(e) { console.warn('suggestions:', e); }
+  }
+
+  // ── Select suggestion → load reasoning ───────────────────────────────────
+  window.selectSuggestion = function(id, symbol) {
+    if (_selectedSymbol === symbol) return;
+    _selectedSymbol = symbol;
+    apiFetch('/api/v2/ai/reasoning/' + encodeURIComponent(symbol))
+    .then(function(d) {
+      document.getElementById('reason-context').textContent = d.market_context || '—';
+      // Alpha factors
+      var alphaEl = document.getElementById('reason-alpha');
+      if (alphaEl && d.alpha_factors && d.alpha_factors.length) {
+        alphaEl.innerHTML = d.alpha_factors.map(function(f) {
+          return '<div class="flex items-center justify-between">'
+            + '<span class="font-label-sm text-label-sm text-outline">' + esc(f.name) + '</span>'
+            + '<span class="font-data-md text-data-md text-primary">' + esc(f.value) + '</span>'
+            + '</div>';
         }).join('');
-      })
-      .catch(function() { tb.innerHTML = '<tr><td colspan="4" class="px-cell-padding-x py-3 text-error">Error loading suggestions.</td></tr>'; });
+      }
+      // Risk bullets
+      var riskEl = document.getElementById('reason-risk');
+      if (riskEl && d.risk_bullets && d.risk_bullets.length) {
+        riskEl.innerHTML = d.risk_bullets.map(function(b) {
+          return '<div class="flex items-start gap-2">'
+            + '<span class="material-symbols-outlined text-[14px] text-tertiary mt-0.5">' + esc(b.icon) + '</span>'
+            + '<span class="font-label-sm text-label-sm text-on-surface-variant">' + esc(b.text) + '</span>'
+            + '</div>';
+        }).join('');
+      }
+      // Highlight selected row
+      var rows = document.querySelectorAll('#ai-sugg-tbl tr');
+      rows.forEach(function(r) { r.classList.remove('bg-surface-container-high'); });
+      var target = document.querySelector('#ai-sugg-tbl tr[onclick*="' + esc(symbol) + '"]');
+      if (target) target.classList.add('bg-surface-container-high');
+    })
+    .catch(function(e) { console.warn('reasoning:', e); });
   };
 
-  loadAI();
-  setInterval(loadAI, 30000);
+  // ── Confidence distribution chart ────────────────────────────────────────
+  function updateConfidenceChart(suggestions) {
+    var ctx = document.getElementById('confidence-chart');
+    if (!ctx) return;
+    if (_confidenceChart) { _confidenceChart.destroy(); _confidenceChart = null; }
+
+    var bins = [0, 0, 0, 0]; // 30-50, 50-70, 70-90, 90+
+    (suggestions || []).forEach(function(s) {
+      var c = (s.confidence || 0) * 100;
+      if (c < 50) bins[0]++;
+      else if (c < 70) bins[1]++;
+      else if (c < 90) bins[2]++;
+      else bins[3]++;
+    });
+
+    _confidenceChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['30–50%', '50–70%', '70–90%', '90%+'],
+        datasets: [{
+          data: bins,
+          backgroundColor: ['#6B7280', '#3B82F6', '#10B981', '#8B5CF6'],
+          borderRadius: 2,
+          barPercentage: 0.7,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#849396', font: { family: 'JetBrains Mono', size: 9 } }, grid: { display: false } },
+          y: { ticks: { color: '#849396', font: { family: 'JetBrains Mono', size: 10 }, stepSize: 1 }, grid: { color: 'rgba(59,73,76,0.4)' } }
+        }
+      }
+    });
+  }
+
+  // ── Terminal chat ────────────────────────────────────────────────────────
+  function appendTerminal(role, text) {
+    var el = document.getElementById('terminal-output');
+    if (!el) return;
+    var cls = role === 'user' ? 'text-primary' : role === 'error' ? 'text-error' : 'text-on-surface-variant';
+    var prefix = role === 'user' ? '&#62;' : role === 'system' ? '*' : 'AI';
+    var p = document.createElement('p');
+    p.className = cls;
+    p.innerHTML = '<span class="text-outline">' + prefix + '</span> ' + esc(text);
+    el.appendChild(p);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  document.getElementById('terminal-send').addEventListener('click', sendChat);
+  document.getElementById('terminal-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') sendChat();
+  });
+
+  function sendChat() {
+    var input = document.getElementById('terminal-input');
+    var q = input.value.trim();
+    if (!q) return;
+    input.value = '';
+    appendTerminal('user', q);
+    appendTerminal('system', 'Querying…');
+    var sysMsg = document.querySelector('#terminal-output p:last-child');
+    apiFetch('/api/v2/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({query: q})
+    })
+    .then(function(r) {
+      if (sysMsg) sysMsg.remove();
+      appendTerminal('ai', r.response || 'No response.');
+      if (r.sql) {
+        var sqlP = document.createElement('p');
+        sqlP.className = 'text-outline font-mono text-[11px] mt-1 ml-2';
+        sqlP.textContent = 'sql: ' + r.sql;
+        document.getElementById('terminal-output').appendChild(sqlP);
+      }
+    })
+    .catch(function(e) {
+      if (sysMsg) sysMsg.remove();
+      appendTerminal('error', e.message || 'Chat failed.');
+    });
+  }
+
+  // ── Cooldown buttons ──────────────────────────────────────────────────────
+  document.querySelectorAll('.cooldown-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.cooldown-btn').forEach(function(b) {
+        b.className = 'cooldown-btn flex-1 font-label-sm text-label-sm bg-surface-container-high py-1 rounded hover:bg-surface-variant border border-outline-variant';
+      });
+      btn.className = 'cooldown-btn flex-1 font-label-sm text-label-sm bg-primary text-on-primary py-1 rounded font-bold';
+      var mins = parseInt(btn.dataset.cooldown);
+      apiFetch('/api/v2/ai/config', {
+        method: 'PUT',
+        body: JSON.stringify({cooldown_minutes: mins})
+      }).catch(function(e) { console.warn('cooldown save:', e); });
+    });
+  });
+
+  // ── Confidence slider ────────────────────────────────────────────────────
+  var confSlider = document.getElementById('conf-slider');
+  var confDisplay = document.getElementById('conf-display');
+  if (confSlider && confDisplay) {
+    confSlider.addEventListener('input', function() {
+      confDisplay.textContent = confSlider.value + '%';
+    });
+    confSlider.addEventListener('change', function() {
+      apiFetch('/api/v2/ai/config', {
+        method: 'PUT',
+        body: JSON.stringify({min_confidence_to_show: parseInt(confSlider.value) / 100})
+      }).catch(function(e) { console.warn('conf save:', e); });
+    });
+  }
+
+  // ── Search filter ────────────────────────────────────────────────────────
+  document.getElementById('ai-search').addEventListener('input', function(e) {
+    var q = e.target.value.toLowerCase().trim();
+    var rows = document.querySelectorAll('#ai-sugg-tbl tr');
+    rows.forEach(function(r) {
+      var txt = r.textContent.toLowerCase();
+      r.style.display = (!q || txt.indexOf(q) !== -1) ? '' : 'none';
+    });
+  });
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  async function init() {
+    try {
+      var cfg = await apiFetch('/api/v2/ai/config');
+      _aiEnabled = cfg.strategy_active;
+      _selectedSymbol = null;
+      updateToggleUI();
+      if (cfg.min_confidence_to_show && confSlider) {
+        confSlider.value = Math.round(cfg.min_confidence_to_show * 100);
+        confDisplay.textContent = confSlider.value + '%';
+      }
+      var modelEl = document.getElementById('term-model');
+      if (modelEl && cfg.model) modelEl.textContent = cfg.model;
+    } catch(e) { console.warn('config load:', e); }
+    await loadHeatmap();
+    await loadSuggestions();
+    _pollInterval = setInterval(function() {
+      loadHeatmap();
+      loadSuggestions();
+    }, 10000);
+  }
+
+  init();
 })();
 </script>
 {% endblock scripts %}

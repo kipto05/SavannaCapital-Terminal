@@ -6,6 +6,7 @@ so the original endpoints are never touched.
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -43,6 +44,35 @@ def get_mt5_account():
     except Exception as exc:
         log.warning("MT5 account fetch failed: %s", exc)
         return {"error": str(exc), "connected": False}
+
+
+@router.get("/mt5/accounts")
+def get_mt5_accounts():
+    """List configured MT5 accounts for the account selector dropdown.
+
+    V1 returns a single account (the one configured in .env).
+    Future: multiple accounts → returns list of all registered accounts.
+    """
+    adapter = _get_adapter()
+    if not adapter:
+        return []
+    try:
+        info = adapter.account_info()
+        if info is None:
+            return []
+        login = info.get("login") or config.mt5.login
+        server = info.get("server") or config.mt5.server
+        return [{
+            "login": login,
+            "server": server,
+            "name": info.get("name", f"Account {login}"),
+            "balance": info.get("balance", 0),
+            "equity": info.get("equity", 0),
+            "currency": info.get("currency", "USD"),
+        }]
+    except Exception as exc:
+        log.warning("MT5 accounts fetch failed: %s", exc)
+        return []
 
 
 @router.get("/mt5/positions")
