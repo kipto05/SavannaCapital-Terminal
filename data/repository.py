@@ -15,7 +15,7 @@ from data.validator import validate, ValidationReport
 
 log = logging.getLogger(__name__)
 
-# Mapping human-readable timeframes → MT5 timeframe constants
+# Mapping human-readable timeframes -> MT5 timeframe constants
 _MT5_TF_MAP: dict[str, int] = {
     "M1": 1,
     "M5": 5,
@@ -38,17 +38,29 @@ def timeframe_to_mt5(timeframe: str) -> int:
     return tf
 
 
+def _mt5_bar_seconds(timeframe: str) -> int:
+    """Return seconds per bar for a given timeframe string."""
+    return {
+        "M1": 60,
+        "M5": 300,
+        "M15": 900,
+        "M30": 1800,
+        "H1": 3600,
+        "H4": 14400,
+        "D1": 86400,
+    }.get(timeframe.upper(), 60)
+
+
 def _mt5_init() -> bool:
     """Initialise MT5 connection.
 
     Priority
     --------
-    1. Attach to a running terminal (``mt5.initialize()`` no-args).  This is
-       the preferred path when the user has the JustMarkets terminal open —
-       it's reliable, requires no credentials, and picks up live state.
-    2. Credential-based init (``login=, password=, server=``) as a headless
-       fallback when the terminal is NOT running but credentials are available.
-
+    1. Attach to a running terminal (``mt5.initialize()`` no-args). This is
+    the preferred path when the user has the JustMarkets terminal open — \
+    it's reliable, requires no credentials, and picks up live state.
+    2. Credential-based init (``login=, password=, server=``) as a headless \
+    \
     Both paths are logged so failures are actionable.
     """
     try:
@@ -57,7 +69,7 @@ def _mt5_init() -> bool:
         log.error("metatrader5 package not installed — cannot fetch live data")
         return False
 
-    # ── Attempt 1: attach to a running terminal (most common case) ─────
+    # -- Attempt 1: attach to a running terminal (most common case) -----
     log.info("MT5: attempting attach mode (mt5.initialize() no-args)")
     ok = mt5.initialize()
     if ok:
@@ -71,7 +83,7 @@ def _mt5_init() -> bool:
     err = mt5.last_error()
     log.warning("MT5 attach failed: %s", err)
 
-    # ── Attempt 2: credential-based init (headless / automated) ─────────
+    # -- Attempt 2: credential-based init (headless / automated) ---------
     if config.mt5.login and config.mt5.server:
         log.info(
             "MT5: trying credential init login=%s server=%s",
@@ -106,20 +118,20 @@ def fetch_ohlcv(
     Parameters
     ----------
     symbol : str
-        Canonical ticker (e.g. "XAUUSD", "EURUSD").  Resolved to the
+        Canonical ticker (e.g. "XAUUSD", "EURUSD"). Resolved to the
         broker-specific terminal name via ``resolve_broker_symbol()``.
     timeframe : str
         One of M1, M5, M15, M30, H1, H4, D1.
     start / end : datetime | None
-        Boundaries for the fetch.  If ``None``, defaults are set by MT5.
+        Boundaries for the fetch. If ``None``, defaults are set by MT5.
     n_bars : int
         Fallback bar count when no start/end supplied.
 
     Returns
     -------
     pd.DataFrame or None
-        Columns: open, high, low, close, (volume, tick_volume, spread).
-        Index: pd.DatetimeIndex, tz-aware UTC.
+    Columns: open, high, low, close, (volume, tick_volume, spread).
+    Index: pd.DatetimeIndex, tz-aware UTC.
     """
     try:
         import MetaTrader5 as mt5  # noqa: F811
@@ -129,36 +141,28 @@ def fetch_ohlcv(
 
     tf = timeframe_to_mt5(timeframe)
 
-    # ── Initialise connection ─────────────────────────────────────────
+    # -- Initialise connection --
     if not _mt5_init():
         return None
 
-    # ── Resolve canonical symbol → broker-specific terminal name ──────
-    # Strategy Layer                → ASSET_POOL uses canonical names (no suffix)
-    # repository._mt5_init()       → broker-agnostic, just connects
-    # THIS LINE (below)             → converts canonical→MT5 terminal name
-    # MT5 copy_rates_range()       → receives broker-specific name
-    #
-    # Put the broker-suffix logic HERE (one place), not scattered.
-    # e.g. "US500" + JustMarkets = "US500.std"
-    #       "EURUSD" + JustMarkets = "EURUSD.m"
-    #       "BRENT"  + JustMarkets = "BRENT.m"  (explicit override in BROKER_MAP)
+    # -- Resolve canonical symbol -> broker-specific terminal name --
     broker_sym = resolve_broker_symbol(symbol, config.mt5.server)
     log.info(
         "MT5 resolved symbol: %s (canonical=%s, server=%s)",
-        broker_sym, symbol, config.mt5.server,
+        broker_sym,
+        symbol,
+        config.mt5.server,
     )
 
-    # ── Build time window ─────────────────────────────────────────────
+    # -- Build time window --
     now = datetime.now(timezone.utc)
     if start is None:
-        tf_minutes = {
-            "M1": 1, "M5": 5, "M15": 15, "M30": 30,
-            "H1": 60, "H4": 240, "D1": 1440,
-        }.get(timeframe.upper(), 1)
-        start = datetime.fromtimestamp(
-            now.timestamp() - n_bars * tf_minutes * 60, tz=timezone.utc
-        )
+        # Compute a time window wide enough to contain n_bars bars of
+        # this timeframe. We use copy_rates_range with explicit bounds
+        # so that a recent start/end supplied by the caller doesn't
+        # silently collapse to an empty window.
+        from_ts = now.timestamp() - n_bars * _mt5_bar_seconds(timeframe)
+        start = datetime.fromtimestamp(from_ts, tz=timezone.utc)
     else:
         if start.tzinfo is None:
             start = start.replace(tzinfo=timezone.utc)
@@ -170,7 +174,10 @@ def fetch_ohlcv(
 
     log.info(
         "MT5 copy_rates_range: symbol=%s timeframe=%s %s -> %s",
-        broker_sym, timeframe, start.isoformat(), end.isoformat(),
+        broker_sym,
+        timeframe,
+        start.isoformat(),
+        end.isoformat(),
     )
 
     rates = mt5.copy_rates_range(broker_sym, tf, start, end)
@@ -179,7 +186,9 @@ def fetch_ohlcv(
     if rates is None or len(rates) == 0:
         log.warning(
             "No MT5 data: symbol=%s timeframe=%s error=%s",
-            broker_sym, timeframe, mt5.last_error(),
+            broker_sym,
+            timeframe,
+            mt5.last_error(),
         )
         return None
 
@@ -216,9 +225,11 @@ def fetch_ohlcv(
     if not report.is_valid:
         log.warning(
             "Repository returning invalidated data: symbol=%s timeframe=%s issues=%s",
-            symbol, timeframe, report.issues,
+            symbol,
+            timeframe,
+            report.issues,
         )
-        # Return the frame so the caller can decide; issues are in the logs.
+    # Return the frame so the caller can decide; issues are in the logs.
 
     return df
 

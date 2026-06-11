@@ -31,6 +31,7 @@ class MomentumReversion(BaseStrategy):
         description="Pullback to fast EMA in direction of H1 EMA trend",
         asset_class="crypto",
         typical_timeframes=["H1", "M15"],
+            required_timeframes=["H1"],
         default_symbol="BTCUSD",
     )
 
@@ -123,7 +124,7 @@ class MomentumReversion(BaseStrategy):
                 if result is None:
                     return None
                 return Signal(
-                    side=side_v, entry=entry, sl=result.sl, tp=result.tp,
+                    side=side_v, entry=entry, sl=result.sl, tp=result.tp2,
                     tp1=result.tp1, tp2=result.tp2, lot_size=p["lot_size"],
                     tag=f"{self.meta.name}.long", regime=result.regime,
                 )
@@ -141,7 +142,7 @@ class MomentumReversion(BaseStrategy):
                 if result is None:
                     return None
                 return Signal(
-                    side=side_v, entry=entry, sl=result.sl, tp=result.tp,
+                    side=side_v, entry=entry, sl=result.sl, tp=result.tp2,
                     tp1=result.tp1, tp2=result.tp2, lot_size=p["lot_size"],
                     tag=f"{self.meta.name}.short", regime=result.regime,
                 )

@@ -128,14 +128,20 @@ class BacktestEngine:
 
         n = len(df)
         if n < self.warmup + 1:
-            log.error("BacktestEngine: insufficient bars: %d < warmup+1=%d", n, self.warmup + 1)
+            log.error(
+                "BacktestEngine: insufficient bars: %d < warmup+1=%d",
+                n,
+                self.warmup + 1,
+            )
             return BacktestResult()
 
         # ── Instantiate strategy ────────────────────────────────────────────
         try:
             strategy = strategy_class(params)
         except Exception as exc:
-            log.exception("BacktestEngine: strategy instantiation failed: %s", exc)
+            log.exception(
+                "BacktestEngine: strategy instantiation failed: %s", exc
+            )
             return BacktestResult()
 
         trades: list[TradeResult] = []
@@ -149,6 +155,7 @@ class BacktestEngine:
 
         # ── Bar-by-bar loop — NO LOOK-AHEAD ────────────────────────────────
         # At bar i, only df.iloc[:i+1] is visible to the strategy.
+        contract = self._contract_size(symbol)
         for i in range(self.warmup, n - 1):
             bar = df.iloc[i]
             bar_ts = df.index[i]
@@ -163,6 +170,7 @@ class BacktestEngine:
                     open_trade.pnl_r = exit_result["pnl_r"]
                     open_trade.pnl_dollars = exit_result["pnl_dollars"]
                     open_trade.exit_reason = exit_result["reason"]
+                    open_trade.bars_held = i - list(df.index).index(open_trade.entry_time)
 
                     # Update equity
                     equity.append(equity[-1] + open_trade.pnl_dollars)
@@ -170,7 +178,9 @@ class BacktestEngine:
 
                     # Monthly tracking
                     month_key = bar_ts.strftime("%Y-%m")
-                    monthly[month_key] = monthly.get(month_key, 0.0) + open_trade.pnl_r
+                    monthly[month_key] = (
+                        monthly.get(month_key, 0.0) + open_trade.pnl_r
+                    )
 
                     # Drawdown tracking
                     if equity[-1] > peak:
@@ -182,14 +192,30 @@ class BacktestEngine:
                     continue  # don't open another trade on the same bar
 
             # ── Generate signal — ONLY past data visible ───────────────────
-            # CLAUDE.md rule: slice_data = {tf: df.iloc[:i+1]}
-            slice_data = {timeframe: df.iloc[: i + 1].copy()}
+            # Build multi-TF data dict (primary + any required trend TFs)
+            # MomentumReversion needs H1 alongside M15, etc.
+            slice_data: dict[str, pd.DataFrame] = {timeframe: df.iloc[: i + 1].copy()}
+            req_tfs = getattr(getattr(strategy, 'meta', None), 'required_timeframes', []) or []
+            for req_tf in req_tfs:
+                if req_tf == timeframe:
+                    continue  # already have primary TF
+                if req_tf in slice_data:
+                    continue  # already added by prior iteration
+                resampled = _resample(df.iloc[: i + 1], req_tf)
+                if resampled is not None:
+                    slice_data[req_tf] = resampled
+                log.debug(
+                    "BacktestEngine: could not build %s for %s at bar %d",
+                    req_tf, strategy_class.__name__, i,
+                )
 
             signal = None
             try:
                 signal = strategy.generate_signal(slice_data)
             except Exception as exc:
-                log.exception("BacktestEngine: signal error at bar %d: %s", i, exc)
+                log.exception(
+                    "BacktestEngine: signal error at bar %d: %s", i, exc
+                )
 
             if signal is None:
                 # Carry equity forward (no trade)
@@ -202,6 +228,7 @@ class BacktestEngine:
 
             # ── Compute SL/TP from DynamicSLTPModel ───────────────────────
             sltp_result: SLTPResult | None = None
+            unit_mult = 1.0
             try:
                 sltp_result = self.sltp.compute(
                     df=df.iloc[: i + 1],
@@ -209,7 +236,11 @@ class BacktestEngine:
                     entry=signal.entry,
                 )
             except Exception as exc:
-                log.warning("BacktestEngine: SL/TP compute failed at bar %d: %s", i, exc)
+                log.warning(
+                    "BacktestEngine: SL/TP compute failed at bar %d: %s",
+                    i,
+                    exc,
+                )
 
             if sltp_result is None or sltp_result.sl is None:
                 log.debug("BacktestEngine: trade blocked by SL/TP at bar %d", i)
@@ -238,7 +269,9 @@ class BacktestEngine:
                 symbol=symbol,
             )
             if lot_size is None or lot_size <= 0:
-                log.debug("BacktestEngine: position sizer returned None at bar %d", i)
+                log.debug(
+                    "BacktestEngine: position sizer returned None at bar %d", i
+                )
                 equity.append(equity[-1])
                 if equity[-1] > peak:
                     peak = equity[-1]
@@ -248,7 +281,7 @@ class BacktestEngine:
 
             # ── Open trade ────────────────────────────────────────────────
             risk_per_lot = sl_dist
-            risk_amount = lot_size * risk_per_lot * self._contract_size(symbol)
+            risk_amount = lot_size * risk_per_lot * contract
 
             open_trade = TradeResult(
                 entry_time=bar_ts,
@@ -264,7 +297,8 @@ class BacktestEngine:
                 pnl_dollars=0.0,
                 exit_reason="open",
                 bars_held=0,
-                tag=signal.tag or f"{strategy_class.__name__}.{signal.side.value.lower()}",
+                tag=signal.tag
+                or f"{strategy_class.__name__}.{signal.side.value.lower()}",
             )
 
             # ── Close the equity bar (no PnL yet) ────────────────────────
@@ -273,24 +307,33 @@ class BacktestEngine:
                 peak = equity[-1]
             dd = (peak - equity[-1]) / peak if peak > 0 else 0.0
             drawdown.append(dd)
+            continue  # next bar — trade carries over
 
-        # ── Close any remaining open trade at last bar ──────────────────────
+        # ── Close any remaining open trade at last bar ──────────────────
         if open_trade is not None and n > 0:
             last_bar = df.iloc[-1]
             last_ts = df.index[-1]
             open_trade.close_price = last_bar["close"]
             open_trade.exit_time = last_ts
             open_trade.pnl_r = self._compute_pnl_r(
-                open_trade.side, open_trade.entry,
-                open_trade.close_price, open_trade.sl, open_trade.tp1, open_trade.tp2,
+                open_trade.side,
+                open_trade.entry,
+                open_trade.close_price,
+                open_trade.sl,
+                open_trade.tp1,
+                open_trade.tp2,
             )
-            open_trade.pnl_dollars = open_trade.pnl_r * (equity[-1] * self.risk_per_trade)
+            open_trade.pnl_dollars = open_trade.pnl_r * (
+                equity[-1] * self.risk_per_trade
+            )
             open_trade.exit_reason = "bar_exit"
             open_trade.bars_held = n - 1
             trades.append(open_trade)
             equity.append(equity[-1] + open_trade.pnl_dollars)
             month_key = last_ts.strftime("%Y-%m")
-            monthly[month_key] = monthly.get(month_key, 0.0) + open_trade.pnl_r
+            monthly[month_key] = (
+                monthly.get(month_key, 0.0) + open_trade.pnl_r
+            )
             if equity[-1] > peak:
                 peak = equity[-1]
             dd = (peak - equity[-1]) / peak if peak > 0 else 0.0
@@ -311,37 +354,35 @@ class BacktestEngine:
 
     # ── Private helpers ─────────────────────────────────────────────────────
 
-
     def _check_exit(
         self, trade: TradeResult, bar: pd.Series, execution: str
     ) -> dict | None:
         """Check if SL/TP1/TP2 is hit on this bar.
 
-        OHLC mode: use bar OHLC to check.
-        Every Tick mode: also use bar OHLC (simulated — intrabar resolution unavailable).
+        Determines entries to exclude until either a final fix is applied.
         """
         if trade.side == "BUY":
             high = bar["high"]
             low = bar["low"]
         else:
-            high = bar["low"]
-            low = bar["high"]
+            high = bar["high"]
+            low = bar["low"]
+
+        contract = self._contract_size(trade.tag.split(".")[0] if "." in trade.tag else "")
 
         # Check SL first (most dangerous)
         if trade.side == "BUY" and low <= trade.sl:
             return {
                 "price": trade.sl,
                 "pnl_r": -1.0,
-                "pnl_dollars": -equity_at_exit(trade, self.initial_equity, self.risk_per_trade)
-                if (equity_at_exit := _eq_helper(trade, self.initial_equity, self.risk_per_trade)) is not None
-                else -(trade.lot_size * abs(trade.entry - trade.sl) * self._contract_size(_sym := "")),
+                "pnl_dollars": -(trade.lot_size * abs(trade.entry - trade.sl) * contract),
                 "reason": "sl",
             }
         if trade.side == "SELL" and high >= trade.sl:
             return {
                 "price": trade.sl,
                 "pnl_r": -1.0,
-                "pnl_dollars": -(trade.lot_size * abs(trade.entry - trade.sl) * self._contract_size(_sym)),
+                "pnl_dollars": -(trade.lot_size * abs(trade.entry - trade.sl) * contract),
                 "reason": "sl",
             }
 
@@ -351,7 +392,9 @@ class BacktestEngine:
             return {
                 "price": trade.tp2,
                 "pnl_r": rr2,
-                "pnl_dollars": trade.lot_size * (trade.tp2 - trade.entry) * self._contract_size(_sym := symbol_for_sl_tp(trade)),
+                "pnl_dollars": trade.lot_size
+                * (trade.tp2 - trade.entry)
+                * contract,
                 "reason": "tp2",
             }
         if trade.side == "SELL" and low <= trade.tp2:
@@ -359,18 +402,23 @@ class BacktestEngine:
             return {
                 "price": trade.tp2,
                 "pnl_r": rr2,
-                "pnl_dollars": trade.lot_size * (trade.entry - trade.tp2) * self._contract_size(_sym),
+                "pnl_dollars": trade.lot_size
+                * (trade.entry - trade.tp2)
+                * contract,
                 "reason": "tp2",
             }
 
-        # Check TP1 (partial close → move SL to entry, close 50%)
+        # Check TP1 (partial close -> move SL to entry, close 50%)
         if trade.side == "BUY" and high >= trade.tp1:
             rr1 = abs(trade.tp1 - trade.entry) / abs(trade.sl - trade.entry)
             net_r = 0.5 * rr1  # 50% closed at TP1, 50% at break-even
             return {
                 "price": trade.tp1,
                 "pnl_r": net_r,
-                "pnl_dollars": trade.lot_size * (trade.tp1 - trade.entry) * 0.5 * self._contract_size(_sym := symbol_for_sl_tp(trade)),
+                "pnl_dollars": trade.lot_size
+                * (trade.tp1 - trade.entry)
+                * 0.5
+                * contract,
                 "reason": "tp1",
             }
         if trade.side == "SELL" and low <= trade.tp1:
@@ -379,12 +427,14 @@ class BacktestEngine:
             return {
                 "price": trade.tp1,
                 "pnl_r": net_r,
-                "pnl_dollars": trade.lot_size * (trade.entry - trade.tp1) * 0.5 * self._contract_size(_sym),
+                "pnl_dollars": trade.lot_size
+                * (trade.entry - trade.tp1)
+                * 0.5
+                * contract,
                 "reason": "tp1",
             }
 
         return None
-
 
     def _compute_pnl_r(
         self,
@@ -405,7 +455,6 @@ class BacktestEngine:
         else:
             gross_r = (entry - close) / sl_dist
         return round(gross_r, 6)
-
 
     def _compute_metrics(self, result: BacktestResult) -> None:
         """Fill in summary stats on the BacktestResult."""
@@ -441,7 +490,9 @@ class BacktestEngine:
             var_r = sum((r - mean_r) ** 2 for r in pnl_r_list) / (len(pnl_r_list) - 1)
             std_r = var_r ** 0.5
             if std_r > 0:
-                result.sharpe_approx = round(mean_r / std_r * (252 ** 0.5), 4)
+                result.sharpe_approx = round(
+                    mean_r / std_r * (252 ** 0.5), 4
+                )
 
         # Max drawdown
         if result.drawdown_curve:
@@ -451,25 +502,55 @@ class BacktestEngine:
         try:
             p_val = binomtest(result.n_wins, n, 0.5, alternative="greater").pvalue
             result.p_value = round(float(p_val), 6)
-            result.is_significant = result.p_value < config.backtest.significance_threshold
+            result.is_significant = (
+                result.p_value < config.backtest.significance_threshold
+            )
         except Exception:
             pass
-
 
     def _contract_size(self, symbol: str) -> float:
         """Return contract size multiplier for PnL calculation."""
         # Forex: 100,000 standard lot; Metals: 100 oz; Crypto: 1 unit
         if symbol in ("XAUUSD", "XAGUSD"):
-            return 100.0
+            return 1.0
         if symbol.endswith("USD") and symbol not in ("BTCUSD", "ETHUSD"):
             return 100_000.0  # forex
         return 1.0  # crypto, equity (simplified)
 
 
-def _eq_helper(trade, initial, risk_pct):
-    """Quick equity after a loss."""
-    return initial * risk_pct
+_TF_TO_PANDAS_RULE: dict[str, str] = {
+    "M1": "1min", "M5": "5min", "M15": "15min", "M30": "30min",
+    "H1": "1h", "H4": "4h", "D1": "1d",
+}
 
-def symbol_for_sl_tp(trade: TradeResult) -> str:
-    """Extract symbol hint from trade tag for contract size lookup."""
-    return ""
+
+def _resample(df: pd.DataFrame, target_tf: str) -> pd.DataFrame | None:
+    """Resample a lower-TF DataFrame up to target_tf OHLCV bars."""
+    rule = _TF_TO_PANDAS_RULE.get(target_tf.upper())
+    if rule is None:
+        log.warning("_resample: unknown target TF %r", target_tf)
+        return None
+    needed = {
+        "M1": 10, "M5": 10, "M15": 10, "M30": 15,
+        "H1": 30, "H4": 30, "D1": 60,
+    }.get(target_tf.upper(), 30)
+    if len(df) < needed:
+        log.debug(
+            "_resample: only %d source bars for %s (need %d)",
+            len(df), target_tf, needed,
+        )
+        return None
+    try:
+        out = df.resample(rule).agg(
+            open=("open", "first"),
+            high=("high", "max"),
+            low=("low", "min"),
+            close=("close", "last"),
+            tick_volume=("tick_volume", "sum"),
+            volume=("volume", "sum"),
+            spread=("spread", "mean"),
+        ).dropna(subset=["close"])
+        return out if not out.empty else None
+    except Exception as exc:
+        log.warning("_resample failed %s: %s", target_tf, exc)
+        return None

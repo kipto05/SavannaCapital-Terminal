@@ -1,5 +1,4 @@
-"""
-execution/sl_tp_model.py — DynamicSLTPModel.
+""" execution/sl_tp_model.py — DynamicSLTPModel.
 
 Sole source of SL/TP values for all strategies. Never compute SL/TP inside
 a strategy or order_manager directly. Call sltp.compute(df, side, entry).
@@ -24,6 +23,7 @@ class SLTPResult:
     sl: float
     tp1: float
     tp2: float
+    tp: float  # primary TP (== tp2) — present so strategies can use result.tp
     regime: str
     atr_value: float
     rr1: float
@@ -31,8 +31,7 @@ class SLTPResult:
 
 
 class DynamicSLTPModel:
-    """
-    ATR-scaled, regime-aware SL/TP model.
+    """ATR-scaled, regime-aware SL/TP model.
 
     Steps:
     1. Compute ATR → classify tf regime (trending / ranging / volatile)
@@ -54,42 +53,38 @@ class DynamicSLTPModel:
         entry: float,
         atr_override: float | None = None,
     ) -> SLTPResult | None:
-        """
-        Compute SL, TP1, TP2 for a given entry price.
+        """Compute SL, TP1, TP2 for a given entry price.
 
         Parameters
         ----------
-        df : pd.DataFrame
-            OHLCV data covering the signal timeframe. Must have columns:
-            high, low, close.
-        side : str
-            "BUY" or "SELL".
-        entry : float
-            Intended entry price.
-        atr_override : float | None
-            Pre-computed ATR (from caller if already available). Computed
-            from df when None.
+        df : pd.DataFrame OHLCV data covering the signal timeframe.
+        side : str "BUY" or "SELL".
+        entry : float Intended entry price.
+        atr_override : float | None Pre-computed ATR (from caller if already
+            available). Computed from df when None.
 
         Returns
         -------
         SLTPResult or None
-            None if the trade does not pass the RR gate.
+        None if the trade does not pass the RR gate.
         """
         try:
             if len(df) < self.cfg.atr_period + 1:
                 log.debug("SLTPModel: insufficient bars for ATR %d", self.cfg.atr_period)
                 return None
 
-            atr = atr_override if atr_override is not None else self._atr(df)
-            if atr <= 0:
-                log.debug("SLTPModel: ATR=%.5f — non-positive, blocking trade", atr)
+            atr_val = atr_override if atr_override is not None else self._atr(df)
+            if atr_val <= 0:
+                log.debug(
+                    "SLTPModel: ATR=%.5f — non-positive, blocking trade", atr_val
+                )
                 return None
 
-            regime = self._detect_regime(df, atr)
+            regime = self._detect_regime(df, atr_val)
             sl_mult = self._sl_multiplier(regime)
             tp1_rr, tp2_rr = self._tp_rr(regime)
 
-            sl_dist = atr * sl_mult
+            sl_dist = atr_val * sl_mult
 
             if side.upper() == "BUY":
                 sl = entry - sl_dist
@@ -102,6 +97,7 @@ class DynamicSLTPModel:
 
             rr1 = tp1_rr
             rr2 = tp2_rr
+            tp = tp2  # primary TP == tp2 (strategies reference result.tp)
 
             # RR gate
             if rr2 < self.cfg.min_rr:
@@ -116,8 +112,9 @@ class DynamicSLTPModel:
                 sl=round(sl, 6),
                 tp1=round(tp1, 6),
                 tp2=round(tp2, 6),
+                tp=round(tp, 6),
                 regime=regime,
-                atr_value=round(atr, 6),
+                atr_value=round(atr_val, 6),
                 rr1=round(rr1, 2),
                 rr2=round(rr2, 2),
             )
@@ -139,8 +136,8 @@ class DynamicSLTPModel:
                 abs(lows[1:] - closes[:-1]),
             ),
         )
-        atr = pd.Series(tr).rolling(period).mean().iloc[-1]
-        return float(atr) if not np.isnan(atr) else 0.0
+        atr_val = pd.Series(tr).rolling(period).mean().iloc[-1]
+        return float(atr_val) if not np.isnan(atr_val) else 0.0
 
     def _atr_pct(self, df: pd.DataFrame, atr: float) -> float:
         """ATR as a fraction of current close price."""

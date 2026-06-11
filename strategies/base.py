@@ -34,6 +34,7 @@ class StrategyMeta:
     version: str = "1.0.0"
     typical_timeframes: list[str] = field(default_factory=list)
     default_symbol: str = ""
+    required_timeframes: list[str] = field(default_factory=list)  # additional TFs beyond self.timeframe
 
 
 @dataclass
