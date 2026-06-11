@@ -343,6 +343,7 @@
         opt.value = s.name;
         opt.textContent = (s.label || s.name) + ' (' + (s.symbol || '—') + ' ' + (s.timeframe || '') + ')';
         opt.dataset.params = JSON.stringify(s.params || {});
+        opt.dataset.param_bounds = JSON.stringify(s.param_bounds || {});
         opt.dataset.symbol = s.symbol || '';
         opt.dataset.timeframe = s.timeframe || '';
         stratSel.appendChild(opt);
@@ -361,22 +362,31 @@
     }
     var params = {};
     try { params = JSON.parse(opt.dataset.params || '{}'); } catch(e) {}
-    var keys = Object.keys(params);
+    var paramBounds = {};
+    try { paramBounds = JSON.parse(opt.dataset.param_bounds || '{}'); }
+    catch(e) {}
+    var keys = Object.keys(paramBounds);
+    if (!keys.length) { keys = Object.keys(params); }
     if (!keys.length) {
-      paramBox.innerHTML = '<p class="text-[11px] text-on-surface-variant italic">No configurable parameters for this strategy.</p>';
-    } else {
+      paramBox.innerHTML =
+              '<p class="text-[11px] text-on-surface-variant italic">No configurable parameters for this strategy.</p>'; }
+    else {
       paramBox.innerHTML = keys.map(function(k) {
-        var def = params[k];
-        return '<div class="bg-surface-variant/50 p-2.5 rounded-lg border border-outline-variant/50">' +
-          '<p class="text-[10px] font-semibold mb-1.5">' + esc(k) + '</p>' +
-          '<div class="grid grid-cols-3 gap-1.5">' +
-            '<div><label class="text-[9px] block text-on-surface-variant">MIN</label>' +
-              '<input class="param-min w-full bg-surface border-none text-xs p-1 rounded" data-param="' + esc(k) + '" type="number" step="any" value="' + esc(def * 0.5) + '"></div>' +
-            '<div><label class="text-[9px] block text-on-surface-variant">MAX</label>' +
-              '<input class="param-max w-full bg-surface border-none text-xs p-1 rounded" data-param="' + esc(k) + '" type="number" step="any" value="' + esc(def * 1.5) + '"></div>' +
-            '<div><label class="text-[9px] block text-on-surface-variant">STEP</label>' +
-              '<input class="param-step w-full bg-surface border-none text-xs p-1 rounded" data-param="' + esc(k) + '" type="number" step="any" value="1"></div>' +
-          '</div></div>';
+      var b = paramBounds[k] || {};
+      var def = (b.default !== undefined) ? b.default : params[k];
+      return '<div class="bg-surface-variant/50 p-2.5 rounded-lg border border-outline-variant/50">' +
+              '<p class="text-[10px] font-semibold mb-1.5">' + esc(k) + '</p>' +
+              '<div class="grid grid-cols-3 gap-1.5">' +
+              '<div><label class="text-[9px] block text-on-surface-variant">MIN</label>' +
+              '<input class="param-min w-full bg-surface border-none text-xs p-1 roulnded" data-param="' + esc(k) + '" type="number" step="any" value="' +
+              esc((b.min !== undefined ? b.min : def * 0.5)) + '"></div>' +
+              '<div><label class="text-[9px] block text-on-surface-variant">MAX</label>' +
+              '<input class="param-max w-full bg-surface border-none text-xs p-1 rounded" data-param="' + esc(k) + '" type="number" step="any" value="' +
+              esc((b.max !== undefined ? b.max : def * 1.5)) + '"></div>' +
+              '<div><label class="text-[9px] block text-on-surface-variant">STEP</label>' +
+              '<input class="param-step w-full bg-surface border-none text-xs p-1 rounded" data-param="' + esc(k) + '" type="number" step="any" value="' +
+              esc(b.step || 1) + '"></div>' +
+              '</div></div>';
       }).join('');
     }
     // show meta

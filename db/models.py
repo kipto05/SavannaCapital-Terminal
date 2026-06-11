@@ -312,6 +312,7 @@ class BacktestRun(Base):
 
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
+    error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
 
     trades = relationship("Trade", back_populates="backtest_run", lazy="noload")
@@ -331,6 +332,7 @@ class BacktestRun(Base):
             "status": self.status,
             "is_significant": self.is_significant,
             "p_value": self.p_value,
+    "error": self.error_message,
         }
 
 # ── OptimisationRun ─────────────────────────────────────────────────────────────

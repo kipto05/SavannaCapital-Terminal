@@ -170,6 +170,7 @@ def run_backtest_job(
                 run = db.query(BacktestRun).filter(BacktestRun.id == run_id).first()
                 if run is not None:
                     run.status = "failed"
+                    run.error_message = str(exc)
                     run.completed_at = datetime.now(timezone.utc)
                     db.commit()
             except Exception:
