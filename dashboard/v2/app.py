@@ -4,6 +4,7 @@ Mount point: /api/v2/
 All routes are prefixed with /api/v2/ by the caller in main.py.
 AI routes get an extra /ai sub-prefix so they land at /api/v2/ai/.
 Accounts routes land at /api/v2/accounts/.
+Engine monitoring routes land at /api/v2/engine/.
 Never import from dashboard/app.py here — it creates a circular dependency.
 All shared state (DB, config) comes from config.settings and db.session.
 """
@@ -17,6 +18,7 @@ from fastapi.responses import JSONResponse
 
 from config.settings import config
 from dashboard.v2.routes import accounts, ai, backtest, engine, journal, monitoring, strategies
+from engine.routes import router as engine_monitor_router  # noqa: F401 — state-based engine endpoints
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +36,18 @@ app.include_router(ai.router, prefix="/ai")
 # Mount accounts under /accounts (land at /api/v2/accounts/)
 app.include_router(accounts.router, prefix="/accounts")
 
-# Mount other v2 routers flat (land at /api/v2/<router prefix>/)
+# Mount new state-based engine monitoring (land at /api/v2/engine/)
+app.include_router(engine_monitor_router, prefix="/engine")
+
+# Backwards-compat alias: old /engine/health URL now redirects to /engine/status
+@app.get("/engine/health")
+def engine_health_compat_redirect():
+    return JSONResponse(
+        status_code=308,
+        content={"redirect": "/api/v2/engine/status", "replacement": "Use /engine/status"},
+    )
+
+# Mount existing v2 routers (paths are self-contained — mount flat)
 app.include_router(engine.router)
 app.include_router(monitoring.router)
 app.include_router(backtest.router, prefix="/backtest")

@@ -518,34 +518,6 @@ def api_settings_save(body: dict, current_user: User = Depends(_get_current_user
     return {"saved": True, "keys": list(body.keys())}
 
 
-@app.get("/api/engine/status")
-def api_engine_status(current_user: User = Depends(_get_current_user)):
-    heartbeat_path = Path(__file__).parent.parent / "logs" / "engine_heartbeat"
-    heartbeat_age = None
-    engine_running = False
-    try:
-        if heartbeat_path.exists():
-            ts = float(heartbeat_path.read_text(encoding="utf-8").strip())
-            now = datetime.now(timezone.utc).timestamp()
-            heartbeat_age = int(now - ts)
-            engine_running = heartbeat_age < 60
-    except Exception:
-        pass
-    from strategies.registry import StrategyRegistry
-    from db.session import SessionLocal
-    with SessionLocal() as sdb:
-        reg = StrategyRegistry(sdb)
-        reg._seed_if_needed(sdb)
-        active_count = sdb.query(StrategyConfig).filter(
-            StrategyConfig.is_active.is_(True)
-        ).count()
-    return {
-        "engine_running": engine_running,
-        "heartbeat_age_seconds": heartbeat_age,
-        "active_strategies": active_count,
-    }
-
-
 # --- MT5 endpoints ---
 
 @app.get("/api/mt5/positions")

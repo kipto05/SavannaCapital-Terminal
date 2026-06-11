@@ -503,6 +503,33 @@ class TradeAnnotation(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
+# ── MLPredictionHistory ───────────────────────────────────────────────────────
+class MLPredictionHistory(Base):
+    __tablename__ = "ml_prediction_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(32), nullable=False, index=True)
+    timeframe = Column(String(8), nullable=False)
+    side = Column(String(8), nullable=False)   # long | short | hold
+    confidence = Column(Float, nullable=False)
+    model_version = Column(String(64), nullable=True)
+    features_snapshot = Column(JSON, nullable=True)
+    was_correct = Column(Boolean, nullable=True)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "symbol": self.symbol,
+            "timeframe": self.timeframe,
+            "side": self.side,
+            "confidence": self.confidence,
+            "model_version": self.model_version,
+            "was_correct": self.was_correct,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 # ── PlatformSetting ───────────────────────────────────────────────────────────
 
 class PlatformSetting(Base):

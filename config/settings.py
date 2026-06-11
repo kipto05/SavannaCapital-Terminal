@@ -245,6 +245,13 @@ class BacktestConfig:
 
 
 @dataclass
+class CircuitBreakerConfig:
+    max_daily_loss_pct: float = 0.03
+    max_drawdown_pct: float = 0.10
+    halt_hours_after_trip: float = 1.0
+
+
+@dataclass
 class MLConfig:
     feature_window: int = 20
     train_test_split: float = 0.8
@@ -327,6 +334,11 @@ class EngineConfig:
     poll_interval_seconds: int = 60
     mode: str = "continuous"
     snapshot_interval_seconds: int = 300
+    min_bars_required: int = 50
+    reconnect_delay_seconds: int = 5
+    max_reconnect_attempts: int = 3
+    quant_trigger_interval_seconds: int = 604800  # once per week
+    circuit_breaker: CircuitBreakerConfig = field(default_factory=CircuitBreakerConfig)
 
 
 @dataclass
