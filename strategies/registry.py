@@ -43,6 +43,7 @@ _KNOWN_MODULES: list[str] = [
     "strategies.equities",
 ]
 
+
 def _discover() -> dict[str, type[BaseStrategy]]:
     """Import all strategy modules and return {name: class}."""
     found: dict[str, type[BaseStrategy]] = {}
@@ -115,7 +116,7 @@ class StrategyRegistry:
             self._classes = _discover()
         return self._classes
 
-    # ── Internal DB session management ───────────────────────────────────────
+    # ── Internal DB session management ─────────────────────────────────────
 
     def _session(self):
         """Return the existing db session or open a new one."""
@@ -123,18 +124,26 @@ class StrategyRegistry:
             return self._db
         return SessionLocal()
 
-    # ── Seed & load ──────────────────────────────────────────────────────────
+    # ── Seed & load ─────────────────────────────────────────────────────────
 
     def _seed_if_needed(self, db) -> None:
-        """Insert rows for any strategy not yet in strategy_configs.
-
-        Populates ALL NOT NULL columns: name, label, symbol, timeframe,
-        is_active, params, version.  Without these the INSERT fails and
-        no rows are created at all.
-        """
+        """Insert rows for any strategy not yet in strategy_configs,
+        and delete stale rows whose names are no longer discovered."""
         existing = {
             row.name for row in db.query(StrategyConfig.name).all()
         }
+        discovered = set(self.classes.keys())
+
+        # Remove stale rows (e.g. "base" from old schema)
+        stale = existing - discovered
+        if stale:
+            for name in stale:
+                db.query(StrategyConfig).filter(
+                    StrategyConfig.name == name
+                ).delete(synchronize_session="fetch")
+                log.info("Strategy purged (stale): name=%s", name)
+
+        # Insert missing rows
         for name, cls in self.classes.items():
             if name not in existing:
                 meta = cls.meta
@@ -142,7 +151,9 @@ class StrategyRegistry:
                     name=name,
                     label=meta.label or name.replace("_", " ").title(),
                     symbol=meta.default_symbol or "",
-                    timeframe=meta.typical_timeframes[0] if meta.typical_timeframes else "",
+                    timeframe=meta.typical_timeframes[0]
+                    if meta.typical_timeframes
+                    else "",
                     is_active=False,
                     params=cls.default_params,
                     version=1,
@@ -155,7 +166,7 @@ class StrategyRegistry:
                 )
         db.flush()
 
-    # ── Public API ───────────────────────────────────────────────────────────
+    # ── Public API ─────────────────────────────────────────────────────────
 
     def get_enabled(self) -> list[StrategyRecord]:
         """Return all currently active strategies."""

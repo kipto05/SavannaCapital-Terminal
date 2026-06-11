@@ -1,6 +1,6 @@
 """dashboard/v2/routes/ai.py — AI Trading endpoints.
 
-Mount: app.include_router(ai.router)  ->  /api/v2/ai/...
+Mount: app.include_router(ai.router) -> /api/v2/ai/...
 """
 from __future__ import annotations
 
@@ -21,7 +21,6 @@ from ai_advisor.advisor import agent as ai_agent
 
 log = logging.getLogger(__name__)
 router = APIRouter()
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -70,7 +69,6 @@ def _strategy_stats(db: Session, name: str) -> dict[str, Any]:
         "sharpe": sharpe,
     }
 
-
 def _to_dict(sugg: AIAdvisorSuggestion) -> dict[str, Any]:
     """Serialize an AIAdvisorSuggestion for the frontend."""
     mc = sugg.market_context or {}
@@ -89,7 +87,6 @@ def _to_dict(sugg: AIAdvisorSuggestion) -> dict[str, Any]:
         "created_at": sugg.created_at.isoformat() if sugg.created_at else None,
     }
 
-
 def _fmt_age(dt: datetime | None) -> str:
     if dt is None:
         return "unknown"
@@ -100,20 +97,18 @@ def _fmt_age(dt: datetime | None) -> str:
         return f"{int(delta.total_seconds() // 60)}m"
     return f"{int(delta.total_seconds() // 3600)}h"
 
-
 # ── Mock heatmap data ─────────────────────────────────────────────────────────
 
 _MOCK_HEATMAP = [
-    {"symbol": "XAUUSD", "score": 0.85, "signal_count": 3, "direction": "LONG",  "is_demo": True},
+    {"symbol": "XAUUSD", "score": 0.85, "signal_count": 3, "direction": "LONG", "is_demo": True},
     {"symbol": "BTCUSD", "score": -0.62, "signal_count": 2, "direction": "SHORT", "is_demo": True},
-    {"symbol": "EURUSD", "score": 0.41, "signal_count": 2, "direction": "LONG",  "is_demo": True},
-    {"symbol": "NVDA",   "score": 0.91, "signal_count": 1, "direction": "LONG",  "is_demo": True},
-    {"symbol": "USOIL",  "score": -0.38, "signal_count": 1, "direction": "SHORT", "is_demo": True},
-    {"symbol": "GBPUSD", "score": 0.55, "signal_count": 2, "direction": "LONG",  "is_demo": True},
+    {"symbol": "EURUSD", "score": 0.41, "signal_count": 2, "direction": "LONG", "is_demo": True},
+    {"symbol": "NVDA", "score": 0.91, "signal_count": 1, "direction": "LONG", "is_demo": True},
+    {"symbol": "USOIL", "score": -0.38, "signal_count": 1, "direction": "SHORT", "is_demo": True},
+    {"symbol": "GBPUSD", "score": 0.55, "signal_count": 2, "direction": "LONG", "is_demo": True},
     {"symbol": "ETHUSD", "score": -0.29, "signal_count": 1, "direction": "SHORT", "is_demo": True},
-    {"symbol": "US500",  "score": 0.33, "signal_count": 1, "direction": "LONG",  "is_demo": True},
+    {"symbol": "US500", "score": 0.33, "signal_count": 1, "direction": "LONG", "is_demo": True},
 ]
-
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -140,7 +135,6 @@ def get_suggestions(
         "avg_alpha": avg_alpha,
         "stats": stats,
     }
-
 
 @router.get("/heatmap")
 def get_heatmap(db: Session = Depends(get_db)):
@@ -172,12 +166,7 @@ def get_heatmap(db: Session = Depends(get_db)):
         assets.sort(key=lambda x: abs(x["score"]), reverse=True)
         return {"assets": assets, "is_demo": False}
 
-    return {
-        "assets": _MOCK_HEATMAP,
-        "is_demo": True,
-        "note": "No live suggestions yet — showing demo data.",
-    }
-
+    return {"assets": _MOCK_HEATMAP, "is_demo": True, "note": "No live suggestions yet — showing demo data."}
 
 @router.get("/reasoning/{symbol}")
 def get_reasoning(symbol: str, db: Session = Depends(get_db)):
@@ -222,7 +211,6 @@ def get_reasoning(symbol: str, db: Session = Depends(get_db)):
         "is_demo": False,
     }
 
-
 @router.post("/chat")
 def post_chat(body: dict[str, Any]):
     """POST /api/v2/ai/chat — research terminal query.
@@ -236,7 +224,6 @@ def post_chat(body: dict[str, Any]):
     result = ai_agent.chat(query, context=context)
     return result
 
-
 @router.post("/toggle")
 def toggle_ai(db: Session = Depends(get_db)):
     """POST /api/v2/ai/toggle — toggle AI strategy on/off.
@@ -247,7 +234,6 @@ def toggle_ai(db: Session = Depends(get_db)):
     reg = StrategyRegistry(db)
     rec = reg.get_by_name("ai_trading")
     if rec is None:
-        # Seed the AI strategy into strategy_configs
         row = StrategyConfig(
             name="ai_trading",
             label="AI Trading",
@@ -265,18 +251,16 @@ def toggle_ai(db: Session = Depends(get_db)):
         )
         db.add(row)
         db.flush()
-        new_rec = StrategyRecord(
-            name="ai_trading",
-            is_enabled=False,
-            params=dict(row.params) if row.params else {},
-        )
         log.info("AI strategy seeded: ai_trading (inactive)")
         return {"name": "ai_trading", "is_active": False}
 
+    # Toggle via registry (returns StrategyRecord with is_enabled)
     new_rec = reg.toggle("ai_trading")
-    log.info("AI toggle: name=ai_trading enabled=%s", new_rec.is_enabled)
+    log.info(
+        "AI toggle: name=ai_trading active=%s",
+        new_rec.is_enabled,
+    )
     return {"name": "ai_trading", "is_active": new_rec.is_enabled}
-
 
 @router.get("/config")
 def get_ai_config(db: Session = Depends(get_db)):
@@ -306,7 +290,6 @@ def get_ai_config(db: Session = Depends(get_db)):
         "strategy_params": row_params,
     }
 
-
 @router.put("/config")
 def update_ai_config(body: dict[str, Any], db: Session = Depends(get_db)):
     """PUT /api/v2/ai/config — update AI settings."""
@@ -328,7 +311,6 @@ def update_ai_config(body: dict[str, Any], db: Session = Depends(get_db)):
         config.ai.min_confidence_to_show = float(updates["min_confidence_to_show"])
 
     return {"updated": updates}
-
 
 @router.post("/generate")
 def generate_signals(body: dict[str, Any]):

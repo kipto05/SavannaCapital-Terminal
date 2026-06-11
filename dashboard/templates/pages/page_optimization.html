@@ -336,7 +336,7 @@
   // ─── Load strategies list ─────────────────────────────────────────────────
   async function loadStrategies() {
     try {
-      var strats = await apiFetch('/api/strategies/library');
+      var strats = await apiFetch('/api/v2/strategies/');
       stratSel.innerHTML = '<option value="">— choose strategy —</option>';
       (strats || []).forEach(function(s) {
         var opt = document.createElement('option');
