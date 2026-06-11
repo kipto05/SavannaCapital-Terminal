@@ -353,51 +353,28 @@ return '<span style="color:' + c + '" class="font-bold">' + esc(side) + '</span>
 }
 
 // ─────────────────────────────────────────────────────────────
-// API fetch (uses _base.html apiFetch which attaches JWT + 401 refresh)
+// API fetch — apiFetch already handles HTTP errors by throwing.
+// These wrappers just prepend /api/v2 and return the parsed body.
 // ─────────────────────────────────────────────────────────────
 async function api(path) {
-var r = await window.apiFetch('/api/v2' + path);
-if (!r.ok) {
-if (r.status === 401) {
-window.authToken = null;
-window.location.href = '/login';
-}
-throw new Error('HTTP ' + r.status + ' ' + path);
-}
-return r.json();
+return window.apiFetch('/api/v2' + path);
 }
 async function apiPost(path, body) {
-var r = await window.apiFetch('/api/v2' + path, {
+return window.apiFetch('/api/v2' + path, {
 method: 'POST',
 headers: {'Content-Type':'application/json'},
 body: JSON.stringify(body),
 });
-if (!r.ok) {
-if (r.status === 401) { window.authToken = null; window.location.href = '/login'; }
-var txt = await r.text().catch(function () { return ''; });
-throw new Error('HTTP ' + r.status + ' ' + path + ': ' + txt);
-}
-return r.json();
 }
 async function apiPut(path, body) {
-var r = await window.apiFetch('/api/v2' + path, {
+return window.apiFetch('/api/v2' + path, {
 method: 'PUT',
 headers: {'Content-Type':'application/json'},
 body: JSON.stringify(body),
 });
-if (!r.ok) {
-if (r.status === 401) { window.authToken = null; window.location.href = '/login'; }
-throw new Error('HTTP ' + r.status + ' ' + path);
-}
-return r.json();
 }
 async function apiDel(path) {
-var r = await window.apiFetch('/api/v2' + path, { method: 'DELETE' });
-if (!r.ok) {
-if (r.status === 401) { window.authToken = null; window.location.href = '/login'; }
-throw new Error('HTTP ' + r.status + ' ' + path);
-}
-return r.json();
+return window.apiFetch('/api/v2' + path, { method: 'DELETE' });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -426,7 +403,8 @@ el.textContent = 'EST: ' + h + ':' + m + ':' + s;
 var portEl = document.getElementById('to-port-label');
 if (portEl && window.__CONFIG__ && window.__CONFIG__.dashboard) {
 portEl.textContent = 'DASHBOARD :' + (window.__CONFIG__.dashboard.port || 8000);
-} else if (portEl) {
+}
+else if (portEl) {
 portEl.textContent = 'DASHBOARD :8000';
 }
 })();
@@ -693,7 +671,9 @@ async function loadHistoricalLog() {
 var tbody = document.getElementById('to-hist-tbody');
 tbody.innerHTML = '<tr><td colspan="6" class="px-2 py-3 text-center text-outline text-[12px]">Loading…</td></tr>';
 try {
-var trades = await api('/trades/recent?limit=50');
+// Use v1 endpoint directly (no /api/v2 prefix) since historical trades
+// are served by the v1 router at /api/trades/recent
+var trades = await window.apiFetch('/api/trades/recent?limit=50');
 if (!trades || !trades.length) {
 tbody.innerHTML = '<tr><td colspan="6" class="px-2 py-3 text-center text-outline text-[12px]">No trade history yet.</td></tr>';
 return;

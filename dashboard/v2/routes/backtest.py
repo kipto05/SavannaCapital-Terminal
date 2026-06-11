@@ -4,15 +4,15 @@ Mounts under /api/v2/backtest/ via dashboard/v2/app.py.
 
 Endpoints
 ---------
-GET   /strategies        — list available strategy classes with metadata
-GET   /symbols           — list available MT5 symbols by asset class
-GET   /timeframes        — list available timeframes + MT5 minute mapping
-POST  /run               — queue a backtest (returns run_id immediately)
-GET   /runs              — recent backtest run history
-GET   /run/{run_id}      — single run detail with trades
-GET   /run/{run_id}/equity       — equity / drawdown curves
-GET   /run/{run_id}/distribution— PnL distribution bins
-GET   /run/{run_id}/monthly     — monthly returns heatmap grid
+GET /strategies — list available strategy classes with metadata
+GET /symbols — list available MT5 symbols by asset class
+GET /timeframes — list available timeframes + MT5 minute mapping
+POST /run — queue a backtest (returns run_id immediately)
+GET /runs — recent backtest run history
+GET /run/{run_id} — single run detail with trades
+GET /run/{run_id}/equity — equity / drawdown curves
+GET /run/{run_id}/distribution— PnL distribution bins
+GET /run/{run_id}/monthly — monthly returns heatmap grid
 """
 from __future__ import annotations
 
@@ -40,12 +40,12 @@ def _resolve_strategy_class(name: str):
         import importlib
         modules = {
             "MomentumReversion": "strategies.momentum_reversion",
-            "BandReversion":    "strategies.band_reversion",
-            "StochasticTrend":  "strategies.stochastic_trend",
-            "SessionBreakout":  "strategies.session_breakout",
-            "DivergenceSwing":  "strategies.divergence_swing",
-            "VWAPReversion":    "strategies.vwap_reversion",
-            "MACDImpulse":      "strategies.macd_impulse",
+            "BandReversion": "strategies.band_reversion",
+            "StochasticTrend": "strategies.stochastic_trend",
+            "SessionBreakout": "strategies.session_breakout",
+            "DivergenceSwing": "strategies.divergence_swing",
+            "VWAPReversion": "strategies.vwap_reversion",
+            "MACDImpulse": "strategies.macd_impulse",
         }
         mod_path = modules.get(name)
         if mod_path is None:
@@ -55,7 +55,6 @@ def _resolve_strategy_class(name: str):
     except Exception as exc:
         log.warning("_resolve_strategy_class(%s) failed: %s", name, exc)
         return None
-
 
 def _job(run_id: int, symbol, timeframe, strategy_name, params, start_date, end_date, n_bars,
          initial_equity, risk_per_trade, warmup_bars, execution) -> None:
@@ -89,13 +88,13 @@ def list_strategies(db: Session = Depends(get_db)):
 
     entries: list[dict[str, Any]] = []
     module_paths = [
-        ("MomentumReversion",  "strategies.momentum_reversion"),
-        ("BandReversion",    "strategies.band_reversion"),
-        ("StochasticTrend",  "strategies.stochastic_trend"),
-        ("SessionBreakout",  "strategies.session_breakout"),
-        ("DivergenceSwing",  "strategies.divergence_swing"),
-        ("VWAPReversion",    "strategies.vwap_reversion"),
-        ("MACDImpulse",      "strategies.macd_impulse"),
+        ("MomentumReversion", "strategies.momentum_reversion"),
+        ("BandReversion", "strategies.band_reversion"),
+        ("StochasticTrend", "strategies.stochastic_trend"),
+        ("SessionBreakout", "strategies.session_breakout"),
+        ("DivergenceSwing", "strategies.divergence_swing"),
+        ("VWAPReversion", "strategies.vwap_reversion"),
+        ("MACDImpulse", "strategies.macd_impulse"),
     ]
 
     for class_name, mod_path in module_paths:
@@ -159,7 +158,6 @@ def list_timeframes():
     mt5_minutes = {tf: _mt5_minutes(tf) for tf in ordered}
     return {"timeframes": ordered, "mt5_minutes": mt5_minutes}
 
-
 def _mt5_minutes(tf: str) -> int:
     mapping = {"M1": 1, "M5": 5, "M15": 15, "M30": 30, "H1": 60, "H4": 240, "D1": 1440}
     return mapping.get(tf, 0)
@@ -196,6 +194,7 @@ def create_run(body: dict[str, Any], background_tasks: BackgroundTasks, db: Sess
         params_snapshot=params,
         symbol=symbol,
         timeframe=timeframe,
+        initial_equity=float(body.get("initial_equity", config.backtest.default_initial_equity)),
     )
     db.add(run)
     db.flush()
@@ -270,7 +269,7 @@ def run_equity(run_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, f"Run {run_id} not found")
     return {
         "run_id": run_id,
-        "equity_curve":  _as_list(run.equity_curve),
+        "equity_curve": _as_list(run.equity_curve),
         "drawdown_curve": _as_list(run.drawdown_curve),
         "initial_equity": run.initial_equity,
         "final_equity": run.final_equity,
@@ -357,7 +356,6 @@ def _require(body: dict, key: str, expected_type: type) -> Any:
     if not isinstance(val, expected_type):
         raise HTTPException(400, f"Field '{key}' must be {expected_type.__name__}")
     return val
-
 
 def _as_list(value: Any) -> list[float]:
     """Normalise JSON-stored curve to a plain list of floats."""

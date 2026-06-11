@@ -216,7 +216,7 @@ def toggle_strategy(name: str, db: Session = Depends(get_db)):
         rec = _registry(db).toggle(name)
     except ValueError as exc:
         raise HTTPException(404, str(exc)) from exc
-    return {"name": rec.name, "is_active": rec.is_active}
+    return {"name": rec.name, "is_active": rec.is_enabled}
 
 
 @router.put("/{name}/params")

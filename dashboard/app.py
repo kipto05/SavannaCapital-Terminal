@@ -338,10 +338,12 @@ def api_optimise_create(
         sc = db.query(StrategyConfig).filter(StrategyConfig.name == strategy_name).first()
         if sc and sc.param_bounds:
             param_bounds = sc.param_bounds
+        elif hasattr(cls, "param_bounds") and cls.param_bounds:
+             param_bounds = cls.param_bounds
         else:
             raise HTTPException(
                 400,
-                "No param_bounds provided and none found in StrategyConfig. Supply param_overrides.",
+                {"error": "No param_bounds found. Set param_overrides or add param_bounds to StrategyConfig/strategy class."},
             )
 
     n_iterations = int(body.get("n_iterations", 200))
@@ -464,7 +466,7 @@ def api_suggestions(current_user: User = Depends(_get_current_user), db: Session
 
 
 @app.get("/api/data/datasets")
-def api_datasets(current_user: User = Depends(_get_current_user)):
+def api_datasets(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     tf_map = getattr(config, "TIMEFRAMES_BY_ASSET", {})
     bar_counts = {}
     try:

@@ -266,12 +266,8 @@ let btState = {
 
 // ── API helpers ───────────────────────────────────────────────────────
 async function btFetch(url, opts = {}) {
-  const res = await window.apiFetch(url, opts);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({detail: res.statusText}));
-    throw new Error(err.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
+  // apiFetch already throws on HTTP errors and returns parsed JSON on success.
+  return window.apiFetch(url, opts);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────
