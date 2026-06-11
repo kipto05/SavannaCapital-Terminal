@@ -26,7 +26,7 @@
   </div>
 
   <!-- ── Three-column workspace grid ───────────────────────────────────────── -->
-  <div class="flex-1 grid grid-cols-12 gap-panel-gap p-1 bg-outline-variant overflow-hidden">
+  <div class="flex-1 grid grid-cols-12 gap-panel-gap p-1 bg-outline-variant overflow-hidden min-h-0">
 
     <!-- ═══════════════════════════════════════════════════════════════════
          LEFT PANEL  col-span-3
@@ -93,7 +93,7 @@
     <!-- ═══════════════════════════════════════════════════════════════════
          CENTER PANEL  col-span-5
          ═══════════════════════════════════════════════════════════════════ -->
-    <div class="col-span-5 flex flex-col gap-panel-gap overflow-y-auto">
+    <div class="col-span-5 flex flex-col gap-panel-gap overflow-y-auto min-h-0">
 
       <!-- Active AI Suggestions -->
       <section class="bg-surface-container-low border border-outline-variant p-3">
@@ -124,7 +124,7 @@
       </section>
 
       <!-- Automated Reasoning -->
-      <section class="bg-surface-container-low border border-outline-variant p-3 flex-1">
+      <section class="bg-surface-container-low border border-outline-variant p-3 shrink-0">
         <h3 class="font-label-sm text-label-sm font-bold text-on-surface uppercase tracking-wider mb-3">Automated Reasoning</h3>
         <div class="grid grid-cols-3 gap-2">
           <!-- Market Context -->
@@ -155,7 +155,7 @@
     <!-- ═══════════════════════════════════════════════════════════════════
          RIGHT PANEL  col-span-4
          ═══════════════════════════════════════════════════════════════════ -->
-    <div class="col-span-4 flex flex-col gap-panel-gap overflow-hidden flex-1 min-h-0">
+    <div class="col-span-4 flex flex-col gap-panel-gap min-h-0">
 
       <!-- Quantitative Research Terminal -->
       <section class="bg-surface-container-low border border-outline-variant p-3 flex flex-col flex-1 overflow-hidden min-h-0">
@@ -168,7 +168,7 @@
         </div>
 
         <!-- Terminal output -->
-        <div id="terminal-output" class="flex-1 bg-surface-container border border-outline-variant/50 rounded p-container-padding overflow-y-auto font-data-md text-data-md text-on-surface-variant mb-2 min-h-[200px]">
+        <div id="terminal-output" class="flex-1 bg-surface-container border border-outline-variant/50 rounded p-container-padding font-data-md text-data-md text-on-surface-variant mb-2">
           <p class="text-outline">Ready for queries. Connected to HFT execution log and TickData v5.4.</p>
           <p class="text-primary mt-1">&#62; System initialised. AI model <span id="term-model" class="font-mono">—</span> loaded.</p>
         </div>
