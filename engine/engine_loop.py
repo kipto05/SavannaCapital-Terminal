@@ -286,8 +286,21 @@ class EngineLoop:
                 continue
 
             instance = cls(default_symbol=symbol, params=params)
+            # Build multi-TF data bundle (primary + any required secondary TFs)
+            tf_data: dict[str, pd.DataFrame] = {timeframe: df}
+            req = getattr(getattr(instance, "meta", None), "required_timeframes", []) or []
+            for extra_tf in req:
+                if extra_tf == timeframe or extra_tf in tf_data:
+                    continue
+                extra_df = _fetch_ohlcv_mt5(symbol, extra_tf, strat.name)
+                if extra_df is not None and not extra_df.empty:
+                    tf_data[extra_tf] = extra_df
+                    log.debug(
+                        "Engine: loaded %d bars for %s %s (%s)",
+                        len(extra_df), symbol, extra_tf, strat.name,
+                    )
             try:
-                signal = instance.generate_signal({timeframe: df})
+                signal = instance.generate_signal(tf_data)
             except Exception:
                 log.exception("Engine: %s generate_signal error", strat.name)
                 continue
@@ -370,10 +383,10 @@ class EngineLoop:
                     getattr(trade, "ticket", "?"),
                 )
 
-    # ══════════════════════════════════════════════════════════════════════════
-            self.state.last_scan_symbols = scanned_symbols
+        self.state.last_scan_symbols = scanned_symbols
 
-# Phase 5 - Open position management
+    # ══════════════════════════════════════════════════════════════════════════
+    # Phase 5 - Open position management
     # ══════════════════════════════════════════════════════════════════════════
 
     def _phase_position_mgmt(self, db: Any, equity: float) -> None:
@@ -489,18 +502,21 @@ class EngineLoop:
     def _phase_ml_prediction(self, db: Any, equity: float) -> None:
         try:
             from ml.predictor import Predictor
-            from ml.feature_engineer import FeatureEngineer
+            from ml.feature_engineer import build_features
             predictor = Predictor()
-            engineer = FeatureEngineer()
             symbols = _active_ml_symbols(db)
             for symbol in symbols:
                 df = _fetch_ohlcv_mt5(symbol, "H1", f"ml_{symbol}")
-                if df is None or len(df) < 30:
+                if df is None or len(df) < 40:
                     continue
-                features = engineer.transform(df)
-                if features is None or features.empty:
+                try:
+                    X, _y, _names = build_features(df)
+                except (ValueError, Exception) as exc:
+                    log.debug("ML %s feature build failed: %s", symbol, exc)
                     continue
-                prediction = predictor.predict(features)
+                if X is None or len(X) == 0:
+                    continue
+                prediction = predictor.predict(X)
                 if prediction is None:
                     continue
                 confidence = float(prediction.get("confidence", 0))
@@ -568,6 +584,28 @@ class EngineLoop:
     # ══════════════════════════════════════════════════════════════════════════
     # Internal helpers
     # ══════════════════════════════════════════════════════════════════════════
+
+    def _publish_state(self) -> None:
+        """Push current state to the shared EngineState for API routes."""
+        try:
+            from engine.state import update
+            update(
+                running=True,
+                started_at=self._started_ts,
+                last_iteration_ts=time.time(),
+                last_snapshot_ts=self.state.last_snapshot_ts,
+                last_quant_trigger_ts=self.state.last_quant_run_ts,
+                circuit_breaker_tripped=self.state.circuit_breaker_tripped,
+                breaker_tripped_at=self.state.breaker_tripped_at,
+                today_date=self.state.today_date.isoformat(),
+                daily_pnl=self.state.daily_pnl,
+                last_scan_symbols=self.state.last_scan_symbols,
+                last_scan_signals_generated=self.state.last_scan_signals_generated,
+                last_scan_trades_executed=self.state.last_scan_trades_executed,
+                mt5_connected=self.state.mt5_connected,
+            )
+        except Exception:
+            log.debug("Engine: state publish failed")
 
     def _safe_equity(self, info: Optional[dict]) -> float:
         if info is None:
@@ -655,5 +693,3 @@ def _recent_trades(db: Any, symbol: str, limit: int = 20) -> list[Any]:
 def _active_ml_symbols(db: Any) -> list[str]:
     from db.models import MLModel
     return [row.symbol for row in db.query(MLModel.symbol).distinct().all() if row.symbol]
-
-

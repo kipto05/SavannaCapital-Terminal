@@ -531,3 +531,19 @@ def all_evidence(limit: int = 50, db: Session = Depends(get_db)):
         })
     events.sort(key=lambda e: e.get("timestamp") or "", reverse=True)
     return events[:limit]
+
+
+@router.post("/{name}/deploy")
+def deploy_strategy(name: str, db: Session = Depends(get_db)) -> dict:
+    """POST /strategies/{name}/deploy — mark strategy as deployed.
+    
+    Since StrategyConfig lacks is_used_in_live / last_deployed_at columns,
+    this currently toggles is_active as a proxy. Deploy tracking fields
+    should be added via Alembic migration when needed.
+    """
+    row = db.query(StrategyConfig).filter(StrategyConfig.name == name).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Strategy not found")
+    row.is_active = True
+    db.commit()
+    return {"status": "deployed", "name": name, "is_active": row.is_active}

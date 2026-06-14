@@ -104,7 +104,7 @@ _MOCK_HEATMAP = [
     {"symbol": "BTCUSD", "score": -0.62, "signal_count": 2, "direction": "SHORT", "is_demo": True},
     {"symbol": "EURUSD", "score": 0.41, "signal_count": 2, "direction": "LONG", "is_demo": True},
     {"symbol": "NVDA", "score": 0.91, "signal_count": 1, "direction": "LONG", "is_demo": True},
-    {"symbol": "USOIL", "score": -0.38, "signal_count": 1, "direction": "SHORT", "is_demo": True},
+    {"symbol": "WTI", "score": -0.38, "signal_count": 1, "direction": "SHORT", "is_demo": True},
     {"symbol": "GBPUSD", "score": 0.55, "signal_count": 2, "direction": "LONG", "is_demo": True},
     {"symbol": "ETHUSD", "score": -0.29, "signal_count": 1, "direction": "SHORT", "is_demo": True},
     {"symbol": "US500", "score": 0.33, "signal_count": 1, "direction": "LONG", "is_demo": True},

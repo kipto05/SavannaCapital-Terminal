@@ -344,6 +344,21 @@ def run_monthly(run_id: int, db: Session = Depends(get_db)):
 
     return {"run_id": run_id, "monthly": grid}
 
+# ─────────────────────────────────────────────────────────────────────────────
+# E10 — Delete a backtest run
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.delete("/run/{run_id}")
+def delete_run(run_id: int, db: Session = Depends(get_db)):
+    """DELETE /api/v2/backtest/run/{run_id} — remove a run and its trades."""
+    run = db.query(BacktestRun).filter(BacktestRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(404, f"Run {run_id} not found")
+    db.query(Trade).filter(Trade.backtest_run_id == run_id).delete()
+    db.delete(run)
+    db.commit()
+    return {"status": "deleted", "run_id": run_id}
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Internal helpers

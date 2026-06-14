@@ -324,15 +324,26 @@ class BacktestRun(Base):
             "symbol": self.symbol,
             "timeframe": self.timeframe,
             "strategy_name": self.strategy_name,
+            "status": self.status,
             "initial_equity": self.initial_equity,
+            "final_equity": self.final_equity,
             "net_pnl_r": self.net_pnl_r,
+            "max_drawdown": self.max_drawdown,
+            "n_bars": self.n_bars,
+            "n_trades": self.n_trades,
             "win_rate": self.win_rate,
             "profit_factor": self.profit_factor,
-            "n_trades": self.n_trades,
-            "status": self.status,
-            "is_significant": self.is_significant,
+            "sharpe_approx": self.sharpe_approx,
             "p_value": self.p_value,
-    "error": self.error_message,
+            "is_significant": self.is_significant,
+            "equity_curve": self.equity_curve,
+            "drawdown_curve": self.drawdown_curve,
+            "monthly_returns": self.monthly_returns,
+            "params_snapshot": self.params_snapshot,
+            "error": self.error_message,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
 # ── OptimisationRun ─────────────────────────────────────────────────────────────
@@ -427,6 +438,10 @@ class MLModel(Base):
     feature_columns = Column(JSON, nullable=True)
     hyperparams = Column(JSON, nullable=True)
 
+    # model lifecycle tracking
+    status = Column(String(16), default="pending", nullable=False, index=True)
+    feature_importance = Column(JSON, nullable=True)
+
     accuracy = Column(Float, nullable=True)
     precision = Column(Float, nullable=True)
     recall = Column(Float, nullable=True)
@@ -445,9 +460,16 @@ class MLModel(Base):
             "model_type": self.model_type.value if isinstance(self.model_type, ModelType) else self.model_type,
             "symbol": self.symbol,
             "timeframe": self.timeframe,
-            "is_active": self.is_active,
+            "status": self.status,
+            "feature_importance": self.feature_importance,
             "accuracy": self.accuracy,
+            "precision": self.precision,
+            "recall": self.recall,
+            "f1": self.f1,
+            "n_train_samples": self.n_train_samples,
+            "is_active": self.is_active,
             "last_trained_at": self.last_trained_at.isoformat() if self.last_trained_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
 # ── AIAdvisorSuggestion ────────────────────────────────────────────────────────

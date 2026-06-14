@@ -217,14 +217,10 @@
     };
 
     try {
-      var res = await apiFetch('/api/ml/train', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-      if (!res.ok) {
-        var j = await res.json().catch(function() { return {}; });
-        throw new Error(j.detail && j.detail.error ? j.detail.error : 'HTTP ' + res.status);
-      }
-      var j = await res.json();
-      trainStatusEl.textContent = '✓ Queued (id=' + j.id + '). Waiting on background thread…';
-      pollTrainStatus(j.id);
+      // apiFetch returns parsed JSON directly (not a Response object)
+      var j = await apiFetch('/api/v2/ml/train', {method:'POST', body: JSON.stringify(body)});
+      trainStatusEl.textContent = '✓ Queued (model_id=' + j.model_id + '). Waiting on background thread…';
+      pollTrainStatus(j.model_id);
     } catch (err) {
       trainStatusEl.className = 'mt-unit*2 font-label-sm text-error';
       trainStatusEl.textContent = '✗ ' + err.message;
@@ -236,12 +232,13 @@
   async function pollTrainStatus(id) {
     clearTimeout(trainTimeout);
     var wait = function() {
-      apiFetch('/api/ml/models')
-        .then(function(models) {
+      apiFetch('/api/v2/ml/models')
+        .then(function(data) {
+          var models = (data && data.models) || [];
           ALL_MODELS = models;
           renderAll();
           var m = models.find(function(x) { return x.id === id; });
-          if (m && (m.status === 'ready' || m.status === 'failed' || m.status === 'active')) {
+          if (m && (m.status === 'ready' || m.status === 'failed')) {
             if (m.status === 'ready') {
               trainStatusEl.className = 'mt-unit*2 font-label-sm text-emerald-700';
               trainStatusEl.textContent = '✓ Training complete: ' + (m.accuracy || 0).toFixed(3) + ' accuracy, ' + (m.f1 || 0).toFixed(3) + ' F1';
@@ -299,7 +296,7 @@
       if (m.status === 'ready' || m.status === 'active') {
         actionHtml += '<button class="retrain-btn bg-accent/10 text-accent px-3 py-1.5 rounded text-xs mt-2 w-full" data-id="' + m.id + '">Retrain</button>';
       }
-      if (m.status === 'active') {
+      if (m.is_active) {
         actionHtml += '<button class="predict-btn bg-primary text-on-primary px-3 py-1.5 rounded text-xs mt-2 w-full" data-id="' + m.id + '">Live Predict</button>';
       }
       if (!actionHtml) actionHtml = '<span class="text-xs text-outline">Actions unlock when status is "ready" or "active".</span>';
@@ -345,20 +342,16 @@
   // ── deploy / retrain / predict ────────────────────────────────────────────
   async function deployModel(id) {
     try {
-      var res = await apiFetch('/api/ml/deploy', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({model_id: id})});
-      if (!res.ok) { var j = await res.json().catch(function() {}); throw new Error((j && j.detail && j.detail.error) || 'HTTP ' + res.status); }
-      var j = await res.json();
-      alert('✓ Deployed as strategy: ' + j.strategy_name);
+      var j = await apiFetch('/api/v2/ml/models/' + id + '/deploy', {method:'POST'});
+      alert('✓ Model ' + (j.is_active ? 'deployed' : 'undeployed') + ' (id=' + j.model_id + ')');
       refreshAll();
     } catch (err) { alert('Deploy failed: ' + err.message); }
   }
 
   async function retrainModel(id) {
     try {
-      var res = await apiFetch('/api/ml/retrain/' + id, {method:'POST'});
-      if (!res.ok) { throw new Error('HTTP ' + res.status); }
-      var j = await res.json();
-      alert('↻ Retrain queued (id=' + id + ').');
+      var j = await apiFetch('/api/v2/ml/retrain/' + id, {method:'POST'});
+      alert('↻ Retrain queued (new_id=' + j.model_id + ').');
       setTimeout(refreshAll, 3000);
     } catch (err) { alert('Retrain failed: ' + err.message); }
   }
@@ -366,16 +359,16 @@
   async function predictModel(id) {
     predStreamTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-primary">Fetching prediction…</td></tr>';
     try {
-      var res = await apiFetch('/api/ml/predictions/' + id);
-      if (!res.ok) { throw new Error('HTTP ' + res.status); }
-      var p = await res.json();
+      var p = await apiFetch('/api/v2/ml/predict', {method:'POST', body: JSON.stringify({model_id: id})});
+      var side = (p.prediction && p.prediction.direction) || 'HOLD';
+      var conf = (p.prediction && p.prediction.confidence) || 0;
       var row = '<tr>' +
         '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + fmtDateTime(p.generated_at) + '</td>' +
         '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(p.symbol) + '</td>' +
         '<td class="px-cell-padding-x py-cell-padding-y">' + esc(p.timeframe) + '</td>' +
-        '<td class="px-cell-padding-x py-cell-padding-y font-medium" style="color:' + (p.side === 'BUY' ? '#10B981' : p.side === 'SELL' ? '#EF4444' : '#6B7280') + '">' + esc(p.side || p.status) + '</td>' +
-        '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (p.confidence != null ? (p.confidence * 100).toFixed(1) + '%' : '—') + '</td>' +
-        '<td class="px-cell-padding-x py-cell-padding-y">' + esc(p.model_name) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y font-medium" style="color:' + (side === 'buy' ? '#10B981' : side === 'sell' ? '#EF4444' : '#6B7280') + '">' + esc(side.toUpperCase()) + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (conf != null ? (conf * 100).toFixed(1) + '%' : '—') + '</td>' +
+        '<td class="px-cell-padding-x py-cell-padding-y">' + esc(p.model_name || 'Model #' + p.model_id) + '</td>' +
         '</tr>';
       predStreamTb.innerHTML = row;
       setTimeout(function() { loadPredStream(); }, 15000);
@@ -384,26 +377,33 @@
     }
   }
 
-  // ── live prediction stream (all active ML strategies) ─────────────────────
+  // ── live prediction stream (all active ML models) ─────────────────────
   var predStreamTag = document.getElementById('pred-stream-tbl');
   function loadPredStream() {
-    apiFetch('/api/ml/models')
-      .then(function(models) {
-        var actives = (models || []).filter(function(m) { return m.is_active; });
+    apiFetch('/api/v2/ml/models')
+      .then(function(data) {
+        var models = (data && data.models) || [];
+        var actives = models.filter(function(m) { return m.is_active; });
         if (!actives.length) {
           predStreamTag.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">Deploy a model to see live predictions here.</td></tr>';
           return;
         }
-        Promise.all(actives.map(function(m) { return apiFetch('/api/ml/predictions/' + m.id).then(function(r) { if (!r.ok) return null; return r.json(); }); }))
+        Promise.all(actives.map(function(m) {
+          return apiFetch('/api/v2/ml/predict', {method:'POST', body: JSON.stringify({model_id: m.id})})
+            .then(function(p) { return p; })
+            .catch(function() { return null; });
+        }))
           .then(function(preds) {
             var rows = preds.filter(Boolean).map(function(p) {
+              var side = (p.prediction && p.prediction.direction) || 'HOLD';
+              var conf = (p.prediction && p.prediction.confidence) || 0;
               return '<tr>' +
                 '<td class="px-cell-padding-x py-cell-padding-y text-outline">' + fmtDateTime(p.generated_at) + '</td>' +
                 '<td class="px-cell-padding-x py-cell-padding-y font-mono font-medium">' + esc(p.symbol) + '</td>' +
                 '<td class="px-cell-padding-x py-cell-padding-y">' + esc(p.timeframe) + '</td>' +
-                '<td class="px-cell-padding-x py-cell-padding-y font-medium" style="color:' + (p.side === 'BUY' ? '#10B981' : p.side === 'SELL' ? '#EF4444' : '#6B7280') + '">' + esc(p.side || p.status) + '</td>' +
-                '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (p.confidence != null ? (p.confidence * 100).toFixed(1) + '%' : '—') + '</td>' +
-                '<td class="px-cell-padding-x py-cell-padding-y">' + esc(p.model_name) + '</td>' +
+                '<td class="px-cell-padding-x py-cell-padding-y font-medium" style="color:' + (side === 'buy' ? '#10B981' : side === 'sell' ? '#EF4444' : '#6B7280') + '">' + esc(side.toUpperCase()) + '</td>' +
+                '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + (conf != null ? (conf * 100).toFixed(1) + '%' : '—') + '</td>' +
+                '<td class="px-cell-padding-x py-cell-padding-y">' + esc(p.model_name || 'Model #' + p.model_id) + '</td>' +
                 '</tr>';
             }).join('');
             predStreamTag.innerHTML = rows || '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No predictions produced yet.</td></tr>';
@@ -414,27 +414,28 @@
 
   // ── deployed strategies table ─────────────────────────────────────────────
   function renderDeployedTable() {
-    apiFetch('/api/strategies/library')
-      .then(function(strats) {
-        var mlStrats = (strats || []).filter(function(s) { return s.name.indexOf('ml_') === 0; });
-        if (!mlStrats.length) {
-          deployedTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No ML strategies deployed yet. Deploy a model above to appear here.</td></tr>';
-          return;
-        }
-        deployedTb.innerHTML = mlStrats.map(function(s) {
-          var sideC = '#6B7280';
-          var sideLabel = '—';
-          if (s.params && s.params.side) { sideC = s.params.side === 'BUY' ? '#10B981' : s.params.side === 'SELL' ? '#EF4444' : sideC; sideLabel = s.params.side; }
-          return '<tr>' +
-            '<td class="px-cell-padding-x py-cell-padding-y font-medium">' + esc(s.name) + '</td>' +
-            '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(s.symbol) + '</td>' +
-            '<td class="px-cell-padding-x py-cell-padding-y">' + esc(s.timeframe) + '</td>' +
-            '<td class="px-cell-padding-x py-cell-padding-y">' + (s.params && s.params.model_id != null ? s.params.model_id : '—') + '</td>' +
-            '<td class="px-cell-padding-x py-cell-padding-y">' + (s.is_active ? '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Active</span>' : '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">Off</span>') + '</td>' +
-            '<td class="px-cell-padding-x py-cell-padding-y">' + esc(sideLabel) + '</td>' +
-            '</tr>';
-        }).join('');
-      });
+    apiFetch('/api/v2/strategies/').then(function(data) {
+      var strats = (data || []).filter(function(s) { return s.name && s.name.indexOf('ml_') === 0; });
+      if (!strats.length) {
+        deployedTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-outline">No ML strategies deployed yet. Deploy a model above to appear here.</td></tr>';
+        return;
+      }
+      deployedTb.innerHTML = strats.map(function(s) {
+        var sideC = '#6B7280';
+        var sideLabel = '—';
+        if (s.params && s.params.side) { sideC = s.params.side === 'BUY' ? '#10B981' : s.params.side === 'SELL' ? '#EF4444' : sideC; sideLabel = s.params.side; }
+        return '<tr>' +
+          '<td class="px-cell-padding-x py-cell-padding-y font-medium">' + esc(s.name) + '</td>' +
+          '<td class="px-cell-padding-x py-cell-padding-y font-mono">' + esc(s.symbol) + '</td>' +
+          '<td class="px-cell-padding-x py-cell-padding-y">' + esc(s.timeframe) + '</td>' +
+          '<td class="px-cell-padding-x py-cell-padding-y">' + (s.params && s.params.model_id != null ? s.params.model_id : '—') + '</td>' +
+          '<td class="px-cell-padding-x py-cell-padding-y">' + (s.is_active ? '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Active</span>' : '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">Off</span>') + '</td>' +
+          '<td class="px-cell-padding-x py-cell-padding-y">' + esc(sideLabel) + '</td>' +
+          '</tr>';
+      }).join('');
+    }).catch(function() {
+      deployedTb.innerHTML = '<tr><td colspan="6" class="px-cell-padding-x py-3 text-error">Error loading strategies.</td></tr>';
+    });
   }
 
   // ── feature importance ────────────────────────────────────────────────────
@@ -442,7 +443,7 @@
     var models = ALL_MODELS || [];
     var prev = fiSelect.value;
     fiSelect.innerHTML = '<option value="">— Choose a model —</option>' +
-      models.filter(function(m) { return m.feature_columns && m.feature_columns.length; })
+      models.filter(function(m) { return m.feature_importance; })
         .map(function(m) { return '<option value="' + m.id + '">#' + m.id + ' — ' + esc(m.name) + '</option>'; })
         .join('');
     if (prev) fiSelect.value = prev;
@@ -452,10 +453,12 @@
     var id = fiSelect.value;
     if (!id) return;
     document.getElementById('fi-error').classList.add('hidden');
-    apiFetch('/api/ml/feature-importance/' + id)
-      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    apiFetch('/api/v2/ml/models/' + id + '/features')
       .then(function(data) {
-        drawFeatureChart(data.features);
+        // Convert dict {name: importance} to array of {name, importance} for chart
+        var fi = data && data.features || {};
+        var arr = Object.keys(fi).map(function(k) { return {name: k, importance: fi[k]}; });
+        drawFeatureChart(arr);
       })
       .catch(function(err) {
         var el = document.getElementById('fi-error');
@@ -502,8 +505,8 @@
 
   // ── refresh ──────────────────────────────────────────────────────────────
   function refreshAll() {
-    apiFetch('/api/ml/models').then(function(models) {
-      ALL_MODELS = models;
+    apiFetch('/api/v2/ml/models').then(function(data) {
+      ALL_MODELS = (data && data.models) || [];
       renderAll();
     });
     renderDeployedTable();
@@ -512,16 +515,16 @@
   document.getElementById('refresh-models').addEventListener('click', refreshAll);
 
   // ── init ──────────────────────────────────────────────────────────────────
-  apiFetch('/api/ml/models')
-    .then(function(models) {
-      ALL_MODELS = models;
+  apiFetch('/api/v2/ml/models')
+    .then(function(data) {
+      ALL_MODELS = (data && data.models) || [];
       renderAll();
       renderDeployedTable();
       loadPredStream();
       setInterval(function() { refreshAll(); loadPredStream(); }, 30000);
     })
     .catch(function() {
-      document.getElementById('model-cards').innerHTML = '<div class="col-span-full text-center py-unit*4 text-error">Failed to load models. Is the backend running?</div>';
+      document.getElementById('model-cards').innerHTML = '<div class="col-span-full text-center py-unit*4 text-error salient-error">Failed to load models. Is the backend running?</div>';
     });
 
   // initial load: kick off the statistics from whatever comes back

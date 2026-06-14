@@ -5,6 +5,7 @@ All routes are prefixed with /api/v2/ by the caller in main.py.
 AI routes get an extra /ai sub-prefix so they land at /api/v2/ai/.
 Accounts routes land at /api/v2/accounts/.
 Engine monitoring routes land at /api/v2/engine/.
+ML routes land at /api/v2/ml/.
 Never import from dashboard/app.py here — it creates a circular dependency.
 All shared state (DB, config) comes from config.settings and db.session.
 """
@@ -17,7 +18,7 @@ from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from config.settings import config
-from dashboard.v2.routes import accounts, ai, backtest, engine, journal, monitoring, strategies
+from dashboard.v2.routes import accounts, ai, backtest, engine, journal, ml, monitoring, strategies
 from engine.routes import router as engine_monitor_router  # noqa: F401 — state-based engine endpoints
 
 log = logging.getLogger(__name__)
@@ -52,6 +53,7 @@ app.include_router(engine.router)
 app.include_router(monitoring.router)
 app.include_router(backtest.router, prefix="/backtest")
 app.include_router(strategies.router, prefix="/strategies")
+app.include_router(ml.router, prefix="/ml")
 app.include_router(journal.router)
 
 
@@ -79,8 +81,8 @@ def public_config() -> dict[str, Any]:
             "server": config.mt5.server,
         },
         "risk": {
-            "max_open_positions": config.risk.max_open_positions,
-            "max_daily_loss_pct": config.risk.max_daily_loss_pct,
+            "max_open_trades": config.risk.max_open_trades,
+            "max_daily_drawdown": config.risk.max_daily_drawdown,
             "max_lot_size": config.risk.max_lot_size,
         },
     }
