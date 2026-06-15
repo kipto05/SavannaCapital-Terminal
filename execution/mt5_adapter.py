@@ -1,5 +1,4 @@
-"""
-execution/mt5_adapter.py — MetaTrader 5 adapter for JustMarkets.
+"""execution/mt5_adapter.py — MetaTrader 5 adapter for JustMarkets.
 
 Bridges the broker-agnostic OrderManager to the live MT5 terminal.
 All MT5 package calls are isolated here; nothing in the rest of the codebase
@@ -37,7 +36,10 @@ def _symbol(name: str) -> str:
         XAUUSD.m -> XAUUSD.m
         xauusd.m -> XAUUSD.m
         EURUSD -> EURUSD.m
+        ""     -> ""
     """
+    if not name:
+        return ""
     n = name.strip()
     base = n[:-2] if n.lower().endswith(".m") else n
     return base.upper() + ".m"
@@ -91,6 +93,14 @@ class MT5Adapter:
             self._connected = False
             log.info("MT5 disconnected")
 
+    def is_connected(self) -> bool:
+        """Return True if MT5 is currently connected."""
+        return self._connected
+
+    def reconnect(self) -> None:
+        """Attempt to reconnect using stored configuration."""
+        self.connect()
+
     def broker_symbol(self, name: str) -> str:
         """Alias kept for backward compatibility."""
         return _symbol(name)
@@ -105,6 +115,36 @@ class MT5Adapter:
             log.warning("MT5 account_info failed: %s", mt5.last_error())
             return None
         return info._asdict()
+
+    # ------------------------------------------------------------------
+    # Aliases expected by engine_loop
+    # ------------------------------------------------------------------
+
+    def get_open_positions(self, symbol: str = "") -> list[dict[str, Any]]:
+        """Return list of open position dicts — alias for positions_get."""
+        result = self.positions_get(symbol=symbol)
+        return result if result is not None else []
+
+    def get_symbol_info(self, symbol: str) -> dict[str, Any] | None:
+        """Return current tick info (bid/ask/etc.) for a symbol.
+
+        Engine-loop calls this instead of get_last_tick.
+        """
+        if not self._connected or mt5 is None:
+            return None
+        try:
+            tick = mt5.symbol_info_tick(_symbol(symbol))
+            if tick is None:
+                log.debug("MT5 symbol_info_tick failed for %s", _symbol(symbol))
+                return None
+            return tick._asdict()
+        except Exception as exc:
+            log.exception("MT5 get_symbol_info failed: %s", exc)
+            return None
+
+    # ------------------------------------------------------------------
+    # Core data methods
+    # ------------------------------------------------------------------
 
     def positions_get(
         self, symbol: str = ""
@@ -144,20 +184,7 @@ class MT5Adapter:
         to_dt: datetime,
         symbol: str = "",
     ) -> list[dict[str, Any]] | None:
-        """Return deal history between two datetimes, optionally filtered by symbol.
-
-        Parameters
-        ----------
-        from_dt, to_dt : datetime
-            UTC datetime range.
-        symbol : str
-            Canonical symbol name (e.g. "XAUUSD"). Empty for all symbols.
-
-        Returns
-        -------
-        list[dict] | None
-            Deal dicts from MT5, or None if not connected / error.
-        """
+        """Return deal history between two datetimes, optionally filtered by symbol."""
         if not self._connected or mt5 is None:
             return None
         deals = mt5.history_deals_get(from_dt, to_dt)
@@ -178,20 +205,7 @@ class MT5Adapter:
         to_dt: datetime,
         symbol: str = "",
     ) -> list[dict[str, Any]] | None:
-        """Return order history between two datetimes, optionally filtered by symbol.
-
-        Parameters
-        ----------
-        from_dt, to_dt : datetime
-            UTC datetime range.
-        symbol : str
-            Canonical symbol name. Empty for all symbols.
-
-        Returns
-        -------
-        list[dict] | None
-            Order history dicts from MT5, or None on failure.
-        """
+        """Return order history between two datetimes, optionally filtered by symbol."""
         if not self._connected or mt5 is None:
             return None
         try:
@@ -212,6 +226,10 @@ class MT5Adapter:
             ]
         return result
 
+    # ------------------------------------------------------------------
+    # Trading operations
+    # ------------------------------------------------------------------
+
     def place_order(
         self,
         symbol: str,
@@ -223,30 +241,7 @@ class MT5Adapter:
         deviation: int = 10,
         comment: str = "",
     ) -> dict[str, Any] | None:
-        """Send an order to MT5.
-
-        Parameters
-        ----------
-        symbol : str
-            Canonical broker ticker (e.g. "XAUUSD"). .m suffix added automatically.
-        side : str
-            "BUY" or "SELL".
-        lot_size : float
-            Standard lot size (0.01 = micro-lot).
-        entry : float
-            Limit price (0.0 for market order).
-        sl, tp : float
-            Stop-loss and take-profit prices (0.0 to omit).
-        deviation : int
-            Max slippage in points.
-        comment : str
-            MT5 order comment.
-
-        Returns
-        -------
-        dict with keys: order (ticket), price, volume, deal, retcode
-        or None on failure.
-        """
+        """Send an order to MT5."""
         if not self._connected:
             log.error(
                 "MT5 not connected — order not sent for %s %s", symbol, side
@@ -283,7 +278,7 @@ class MT5Adapter:
 
         result = mt5.order_send(request)
         if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
-            err = mt5.last_error()
+            err = mt5.last_error() if mt5 else None
             log.error(
                 "Order failed for %s %s lots=%.2f: retcode=%s error=%s",
                 sym,
@@ -316,10 +311,7 @@ class MT5Adapter:
         symbol: str,
         lot: float = 0.0,
     ) -> dict[str, Any] | None:
-        """Close an open position by ticket.
-
-        lot = 0.0 closes the full position.
-        """
+        """Close an open position by ticket. lot=0.0 closes full position."""
         if not self._connected:
             log.error(
                 "MT5 not connected — cannot close ticket=%s", ticket

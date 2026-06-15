@@ -191,6 +191,17 @@ class AccountSnapshot(Base):
 
     trades = relationship("Trade", back_populates="account_snapshot", lazy="noload")
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "balance": self.balance,
+            "equity": self.equity,
+            "margin": self.margin,
+            "free_margin": self.free_margin,
+            "profit": self.profit,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
 # ── OHLCVBar ──────────────────────────────────────────────────────────────────
 
 class OHLCVBar(Base):

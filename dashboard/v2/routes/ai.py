@@ -22,6 +22,29 @@ from ai_advisor.advisor import agent as ai_agent
 log = logging.getLogger(__name__)
 router = APIRouter()
 
+
+def _trigger_ai_generation(db: Session) -> None:
+    """Trigger AI suggestions for configured symbols when AI is toggled on."""
+    reg = StrategyRegistry(db)
+    rec = reg.get_by_name("ai_trading")
+    if not rec or not rec.is_enabled:
+        return
+
+    symbols: list[str] = []
+    if rec.params and isinstance(rec.params, dict):
+        symbols = rec.params.get("symbols", ["XAUUSD", "BTCUSD", "EURUSD", "NVDA"])
+    else:
+        symbols = ["XAUUSD", "BTCUSD", "EURUSD", "NVDA"]
+
+    timeframe = rec.params.get("timeframe", "M15") if rec.params else "M15"
+
+    try:
+        results = ai_agent.generate_signals(symbols, timeframe=timeframe)
+        log.info("AI auto-generation: %d suggestions created", len(results))
+    except Exception as exc:
+        log.exception("AI auto-generation failed: %s", exc)
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _strategy_stats(db: Session, name: str) -> dict[str, Any]:
@@ -230,19 +253,23 @@ def toggle_ai(db: Session = Depends(get_db)):
 
     Creates StrategyConfig row for 'ai_trading' if it doesn't exist yet,
     then flips is_active via the registry.
+    When turned on, triggers an immediate signal generation pass.
     """
     reg = StrategyRegistry(db)
     rec = reg.get_by_name("ai_trading")
+    is_active: bool
+
     if rec is None:
+        # Seed the AI trading strategy in inactive state with correct params
         row = StrategyConfig(
             name="ai_trading",
             label="AI Trading",
             symbol="XAUUSD",
             timeframe="M15",
-            is_active=False,
+            is_active=True,
             params={
-                "enabled": False,
-                "symbols": ["XAUUSD", "BTCUSD", "EURUSD", "NVDA"],
+                "enabled": True,
+                "symbols": ["XAUUSD", "BTCUSD", "EURUSD", "NVDA", "GBPUSD"],
                 "timeframe": "M15",
                 "cooldown_minutes": config.ai.cooldown_minutes,
                 "min_confidence": config.ai.min_confidence_to_show,
@@ -251,16 +278,35 @@ def toggle_ai(db: Session = Depends(get_db)):
         )
         db.add(row)
         db.flush()
-        log.info("AI strategy seeded: ai_trading (inactive)")
-        return {"name": "ai_trading", "is_active": False}
+        log.info("AI strategy seeded: ai_trading (active)")
+        is_active = True
+    else:
+        # Toggle via registry (returns StrategyRecord with is_enabled)
+        new_rec = reg.toggle("ai_trading")
+        is_active = new_rec.is_enabled
+        log.info(
+            "AI toggle: name=ai_trading active=%s",
+            is_active,
+        )
+        # Keep params.enabled in sync with is_active
+        try:
+            reg.update_params(
+                "ai_trading",
+                {"enabled": is_active},
+            )
+            db.commit()
+        except Exception:
+            db.rollback()
+            log.warning("AI toggle: could not sync params.enabled", exc_info=True)
 
-    # Toggle via registry (returns StrategyRecord with is_enabled)
-    new_rec = reg.toggle("ai_trading")
-    log.info(
-        "AI toggle: name=ai_trading active=%s",
-        new_rec.is_enabled,
-    )
-    return {"name": "ai_trading", "is_active": new_rec.is_enabled}
+    # When turned on, trigger an immediate signal generation pass
+    if is_active and ai_agent.is_enabled():
+        try:
+            _trigger_ai_generation(db)
+        except Exception as exc:
+            log.warning("AI toggle: auto-generation failed: %s", exc)
+
+    return {"name": "ai_trading", "is_active": is_active}
 
 @router.get("/config")
 def get_ai_config(db: Session = Depends(get_db)):

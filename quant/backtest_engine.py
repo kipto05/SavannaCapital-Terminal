@@ -137,7 +137,7 @@ class BacktestEngine:
 
         # ── Instantiate strategy ────────────────────────────────────────────
         try:
-            strategy = strategy_class(params)
+            strategy = strategy_class(symbol=symbol, timeframe=timeframe, params=params)
         except Exception as exc:
             log.exception(
                 "BacktestEngine: strategy instantiation failed: %s", exc
@@ -204,10 +204,11 @@ class BacktestEngine:
                 resampled = _resample(df.iloc[: i + 1], req_tf)
                 if resampled is not None:
                     slice_data[req_tf] = resampled
-                log.debug(
-                    "BacktestEngine: could not build %s for %s at bar %d",
-                    req_tf, strategy_class.__name__, i,
-                )
+                else:
+                    log.debug(
+                        "BacktestEngine: could not build %s for %s at bar %d",
+                        req_tf, strategy_class.__name__, i,
+                    )
 
             signal = None
             try:

@@ -1,4 +1,4 @@
-"""dashboard/app.py — Savanna Capital Quant OS dashboard."""
+"""dashboard/app.py -- Savanna Capital Quant OS dashboard."""
 from __future__ import annotations
 
 import logging
@@ -56,29 +56,31 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
-
-# ── Security headers middleware ────────────────────────────────────────────────
-
+# -- Security headers middleware ------------------------------------------------
 @app.middleware("http")
 async def _security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
+    # Never cache HTML pages during development / frequent deploys
+    ctype = (response.headers.get("content-type") or "").lower()
+    if "text/html" in ctype:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
     return response
 
-
-# ── Auth guard middleware ──────────────────────────────────────────────────────
-# All HTML page routes render regardless of auth state — the page itself
-# fetches data via apiFetch and _base.html handles 401 → /login redirects.
+# -- Auth guard middleware ------------------------------------------------------
+# All HTML page routes render regardless of auth state -- the page itself
+# fetches data via apiFetch and _base.html handles 401 -> /login redirects.
 # API routes enforce auth via the _get_current_user dependency on each handler.
 # Public paths below bypass the middleware entirely.
 
 _PUBLIC_PREFIXES = (
-    "/auth/",              # login / refresh (router prefix = /auth, not /api/auth)
-    "/health",             # health
-    "/static/",            # css/js assets
-    "/login",              # login page itself
+    "/auth/",   # login / refresh (router prefix = /auth, not /api/auth)
+    "/health",  # health
+    "/static/", # css/js assets
+    "/login",   # login page itself
 )
 
 @app.middleware("http")
@@ -94,15 +96,13 @@ async def _auth_guard(request: Request, call_next):
         if path == prefix.rstrip("/") or path.startswith(prefix):
             return await call_next(request)
 
-    # All other routes pass through — API endpoints self-protect via
+    # All other routes pass through -- API endpoints self-protect via
     # _get_current_user, HTML pages will redirect via apiFetch 401 handling.
     return await call_next(request)
 
-
-# Resolve templates directory once at module load time — absolute, CWD-independent
+# Resolve templates directory once at module load time -- absolute, CWD-independent
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 _tpl = None
-
 
 def _get_templates() -> "Jinja2Templates":
     global _tpl
@@ -111,22 +111,25 @@ def _get_templates() -> "Jinja2Templates":
         _tpl = Jinja2Templates(directory=str(_TEMPLATES_DIR))
     return _tpl
 
-
 app.include_router(auth_router)
 
-# ── ML Center routes (train / deploy / predict / feature importance) ───────────
-from dashboard.routes.ml import router as ml_router # noqa: E402
+# -- ML Center routes -----------------------------------------------------------
+from dashboard.routes.ml import router as ml_router  # noqa: E402
 app.include_router(ml_router)
 
-# ── Portfolio Risk Monitor routes ─────────────────────────────────────────────
-from dashboard.routes.risk import router as risk_router # noqa: E402
+# -- Portfolio Risk Monitor routes ----------------------------------------------
+from dashboard.routes.risk import router as risk_router  # noqa: E402
 app.include_router(risk_router, prefix="/api/risk")
 
-# --- v2 API sub-application ---
+# -- Quant Optimisation routes ---------------------------------------------------
+from dashboard.routes.quant import router as quant_router  # noqa: E402
+app.include_router(quant_router, prefix="/api/quant")
+
+# v2 API sub-application
 from dashboard.v2.app import app as v2_app  # noqa: E402
 app.mount("/api/v2", v2_app)
-# --- Internal helper ---
 
+# -- Internal helper -----------------------------------------------------------
 def _mt5_adapter():
     try:
         from execution.mt5_adapter import MT5Adapter
@@ -135,16 +138,13 @@ def _mt5_adapter():
         log.exception("Failed to import MT5Adapter")
         return None
 
-
-# --- API endpoints ---
-
+# -- API endpoints -------------------------------------------------------------
 @app.get("/api/account/stats")
 def api_account_stats(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     snapshot = db.query(AccountSnapshot).order_by(AccountSnapshot.created_at.desc()).first()
     if snapshot:
         return snapshot.to_dict()
     return {"balance": 0, "equity": 0, "margin": 0, "free_margin": 0}
-
 
 @app.get("/api/account/snapshots")
 def api_account_snapshots(limit: int = 200, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
@@ -156,12 +156,10 @@ def api_account_snapshots(limit: int = 200, current_user: User = Depends(_get_cu
     )
     return [s.to_dict() for s in reversed(snaps)]
 
-
 @app.get("/api/trades/recent")
 def api_trades_recent(limit: int = 50, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     trades = db.query(Trade).order_by(Trade.id.desc()).limit(limit).all()
     return [t.to_dict() for t in trades]
-
 
 @app.get("/api/strategies")
 def api_strategies_list(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
@@ -171,10 +169,9 @@ def api_strategies_list(current_user: User = Depends(_get_current_user), db: Ses
     configs = db.query(StrategyConfig).order_by(StrategyConfig.name).all()
     return [sc.to_dict() for sc in configs]
 
-
 @app.get("/api/strategies/library")
 def api_strategies_library(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
-    from strategies.registry import StrategyRegistry, _discover
+    from strategies.registry import StrategyRegistry
     reg = StrategyRegistry(db)
     reg._seed_if_needed(db)
     all_rows = db.query(StrategyConfig).order_by(StrategyConfig.name).all()
@@ -209,7 +206,6 @@ def api_strategies_library(current_user: User = Depends(_get_current_user), db: 
         })
     return results
 
-
 @app.post("/api/strategies/{name}/toggle")
 def api_strategy_toggle(name: str, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     from strategies.registry import StrategyRegistry
@@ -219,7 +215,6 @@ def api_strategy_toggle(name: str, current_user: User = Depends(_get_current_use
     except ValueError as exc:
         raise HTTPException(404, str(exc)) from exc
     return {"name": rec.name, "is_active": rec.is_active}
-
 
 @app.post("/api/strategies/{name}/deploy")
 def api_strategy_deploy(name: str, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
@@ -232,14 +227,12 @@ def api_strategy_deploy(name: str, current_user: User = Depends(_get_current_use
     log.info("Strategy deploy requested: name=%s", name)
     return {"status": "deploy_queued", "name": name}
 
-
 @app.get("/api/quant/hypotheses")
 def api_hypotheses(status: str | None = None, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     q = db.query(Hypothesis)
     if status:
         q = q.filter(Hypothesis.status == status)
     return [h.to_dict() for h in q.order_by(Hypothesis.created_at.desc()).all()]
-
 
 @app.post("/api/quant/hypotheses")
 def api_hypothesis_create(body: dict, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
@@ -254,7 +247,6 @@ def api_hypothesis_create(body: dict, current_user: User = Depends(_get_current_
     db.flush()
     return {"id": str(h.id), "status": h.status}
 
-
 @app.patch("/api/quant/hypotheses/{hypothesis_id}")
 def api_hypothesis_update(hypothesis_id: str, body: dict, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     h = db.query(Hypothesis).filter(Hypothesis.id == hypothesis_id).first()
@@ -266,7 +258,6 @@ def api_hypothesis_update(hypothesis_id: str, body: dict, current_user: User = D
     db.flush()
     return {"id": str(h.id), "status": h.status}
 
-
 @app.delete("/api/quant/hypotheses/{hypothesis_id}")
 def api_hypothesis_delete(hypothesis_id: str, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     h = db.query(Hypothesis).filter(Hypothesis.id == hypothesis_id).first()
@@ -275,12 +266,10 @@ def api_hypothesis_delete(hypothesis_id: str, current_user: User = Depends(_get_
     db.delete(h)
     return {"deleted": str(h.id)}
 
-
 @app.get("/api/quant/backtests")
 def api_backtests_list(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     runs = db.query(BacktestRun).order_by(BacktestRun.created_at.desc()).all()
     return [r.to_dict() for r in runs]
-
 
 @app.post("/api/quant/backtests")
 def api_backtest_create(body: dict, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
@@ -295,11 +284,9 @@ def api_backtest_create(body: dict, current_user: User = Depends(_get_current_us
     db.flush()
     return {"id": str(run.id), "status": "pending"}
 
+# NOTE: /api/ml/models is now provided by the ML router -- no duplicate inline handler.
 
-# NOTE: /api/ml/models is now provided by the ML router — no duplicate inline handler.
-
-# ── Optimization Hub endpoints ───────────────────────────────────────────────
-
+# -- Optimization Hub endpoints -------------------------------------------------
 @app.get("/api/quant/optimise")
 def api_optimise_list(
     current_user: User = Depends(_get_current_user),
@@ -307,7 +294,6 @@ def api_optimise_list(
 ):
     runs = db.query(OptimisationRun).order_by(OptimisationRun.created_at.desc()).all()
     return [r.to_dict() for r in runs]
-
 
 @app.post("/api/quant/optimise")
 def api_optimise_create(
@@ -339,7 +325,7 @@ def api_optimise_create(
         if sc and sc.param_bounds:
             param_bounds = sc.param_bounds
         elif hasattr(cls, "param_bounds") and cls.param_bounds:
-             param_bounds = cls.param_bounds
+            param_bounds = cls.param_bounds
         else:
             raise HTTPException(
                 400,
@@ -404,7 +390,6 @@ def api_optimise_create(
 
     return {"id": str(run.id), "status": "pending"}
 
-
 @app.get("/api/quant/optimise/{run_id}")
 def api_optimise_get(
     run_id: str,
@@ -415,7 +400,6 @@ def api_optimise_get(
     if run is None:
         raise HTTPException(404, "Optimisation run not found")
     return run.to_dict()
-
 
 @app.patch("/api/quant/optimise/{run_id}/deploy")
 def api_optimise_deploy(
@@ -453,7 +437,6 @@ def api_optimise_deploy(
     )
     return {"status": "deployed", "strategy": run.strategy_name, "params": new_params}
 
-
 @app.get("/api/ai_advisor/suggestions")
 def api_suggestions(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     rows = (
@@ -463,7 +446,6 @@ def api_suggestions(current_user: User = Depends(_get_current_user), db: Session
         .all()
     )
     return [r.to_dict() for r in rows]
-
 
 @app.get("/api/data/datasets")
 def api_datasets(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
@@ -481,7 +463,6 @@ def api_datasets(current_user: User = Depends(_get_current_user), db: Session = 
         pass
     return {"assets": tf_map, "timeframes_by_asset": tf_map, "bar_counts": bar_counts}
 
-
 @app.get("/api/data/datasets/{symbol}/ohlcv")
 def api_ohlcv(symbol: str, timeframe: str = "M15", limit: int = 300, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     bars = (
@@ -498,18 +479,15 @@ def api_ohlcv(symbol: str, timeframe: str = "M15", limit: int = 300, current_use
         "bars": [b.to_dict() for b in reversed(bars)],
     }
 
-
 @app.get("/api/transcription/history")
 def api_transcription(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     anns = db.query(TradeAnnotation).order_by(TradeAnnotation.created_at.desc()).limit(200).all()
     return [a.to_dict() for a in anns]
 
-
 @app.get("/api/settings")
 def api_settings(current_user: User = Depends(_get_current_user)):
     from db.settings_service import settings_service
     return settings_service.get_all()
-
 
 @app.post("/api/settings")
 def api_settings_save(body: dict, current_user: User = Depends(_get_current_user)):
@@ -517,9 +495,7 @@ def api_settings_save(body: dict, current_user: User = Depends(_get_current_user
     settings_service.set_many(body)
     return {"saved": True, "keys": list(body.keys())}
 
-
-# --- MT5 endpoints ---
-
+# -- MT5 endpoints -------------------------------------------------------------
 @app.get("/api/mt5/positions")
 def api_mt5_positions(current_user: User = Depends(_get_current_user)):
     adapter = _mt5_adapter()
@@ -534,7 +510,6 @@ def api_mt5_positions(current_user: User = Depends(_get_current_user)):
         log.warning("MT5 positions fetch failed: %s", exc)
         return []
 
-
 @app.get("/api/mt5/account")
 def api_mt5_account(current_user: User = Depends(_get_current_user)):
     adapter = _mt5_adapter()
@@ -547,7 +522,6 @@ def api_mt5_account(current_user: User = Depends(_get_current_user)):
     except Exception as exc:
         log.warning("MT5 account fetch failed: %s", exc)
         return {"error": str(exc)}
-
 
 @app.get("/api/mt5/orders")
 def api_mt5_orders(current_user: User = Depends(_get_current_user)):
@@ -563,21 +537,16 @@ def api_mt5_orders(current_user: User = Depends(_get_current_user)):
         log.warning("MT5 orders fetch failed: %s", exc)
         return []
 
-
-# --- Health + startup ---
-
+# -- Health + startup ----------------------------------------------------------
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-
 @app.on_event("startup")
 async def startup():
-    log.info("Backend ready — v2 routes loaded")
+    log.info("Backend ready -- v2 routes loaded")
 
-
-# ── Page renderers ─────────────────────────────────────────────────────────────
-
+# -- Page renderers ------------------------------------------------------------
 def _render_page(
     slug: str,
     title: str,
@@ -588,7 +557,7 @@ def _render_page(
     tpl = _get_templates()
     token = ""
     auth_header = request.headers.get("authorization", "")
-    if auth_header.startswith("Bearer "):
+    if auth_header.startswith("B"):
         token = auth_header[7:]
     return tpl.TemplateResponse(
         request,
@@ -601,79 +570,64 @@ def _render_page(
         },
     )
 
-
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request) -> HTMLResponse:
     path = Path(__file__).parent / "templates" / "login.html"
     html = path.read_text(encoding="utf-8")
     return HTMLResponse(html)
 
-
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return _render_page("mission_control", "Mission Control", "mission_control", request)
-
 
 @app.get("/executive", response_class=HTMLResponse)
 def executive(request: Request):
     return _render_page("executive", "Executive Analytics", "executive", request)
 
-
 @app.get("/portfolio-risk", response_class=HTMLResponse)
 def portfolio_risk(request: Request):
     return _render_page("portfolio_risk", "Portfolio Risk Monitor", "portfolio_risk", request)
-
 
 @app.get("/multi-account", response_class=HTMLResponse)
 def multi_account(request: Request):
     return _render_page("multi_account", "Multi-Account MT5", "multi_account", request)
 
-
 @app.get("/trade-ops", response_class=HTMLResponse)
 def trade_ops(request: Request):
     return _render_page("trade_ops", "Trade Operations", "trade_ops", request)
-
 
 @app.get("/risk-compliance", response_class=HTMLResponse)
 def risk_compliance(request: Request):
     return _render_page("risk_compliance", "Risk & Compliance", "risk_compliance", request)
 
-
 @app.get("/ml", response_class=HTMLResponse)
 def ml(request: Request):
     return _render_page("ml", "ML Center", "ml", request)
-
 
 @app.get("/ai-research", response_class=HTMLResponse)
 def ai_research(request: Request):
     return _render_page("ai_research", "AI Research", "ai_research", request)
 
-
 @app.get("/optimization", response_class=HTMLResponse)
 def optimization(request: Request):
     return _render_page("optimization", "Optimization Hub", "optimization", request)
-
 
 @app.get("/hypotheses", response_class=HTMLResponse)
 def hypotheses(request: Request):
     return _render_page("hypotheses", "Hypotheses", "hypotheses", request)
 
-
 @app.get("/research", response_class=HTMLResponse)
 def research(request: Request):
     return _render_page("research", "Research Lab", "research", request)
 
-
 @app.get("/strategies", response_class=HTMLResponse)
-def strategies(request: Request):
+def strategies_page(request: Request):
     return _render_page("strategies", "Strategy Library", "strategies", request)
-
 
 @app.get("/backtest", response_class=HTMLResponse)
 def backtest(request: Request):
     return _render_page("backtesting_center", "Backtesting Center", "backtesting_center", request)
 
-
 @app.get("/settings", response_class=HTMLResponse)
-def settings(request: Request):
+def settings_page(request: Request):
     return _render_page("settings", "Settings", "settings", request)

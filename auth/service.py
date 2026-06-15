@@ -99,7 +99,7 @@ def decode_token(token: str) -> dict:
             token,
             config.auth.secret_key,
             algorithms=[config.auth.algorithm],
-            leeway=60,
+            # leeway removed - python-jose 3.5+
         )
         return payload
     except JWTError as exc:

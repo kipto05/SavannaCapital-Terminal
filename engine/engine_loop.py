@@ -214,7 +214,7 @@ class EngineLoop:
         from sqlalchemy import func
         from db.models import Trade
         todays_pnl = (
-            db.query(func.coalesce(func.sum(Trade.pnl_dollars), 0.0))
+            db.query(func.coalesce(func.sum(Trade.pnl), 0.0))
             .filter(Trade.source == "live")
             .filter(func.date(Trade.created_at) == today_str)
             .scalar()
@@ -645,13 +645,14 @@ def _get_enabled_strategies(db: Any) -> list[Any]:
 
 def _resolve_symbol(strat: Any, server: str) -> str:
     from config.settings import resolve_broker_symbol
-    symbol = strat.meta.default_symbol if strat.meta else strat.name.replace("_", " ").title()
+    symbol = strat.params.get("symbol") or strat.name.replace("_", " ").title()
     return resolve_broker_symbol(symbol, server)
 
 
 def _resolve_timeframe(strat: Any) -> str:
-    if strat.meta and strat.meta.typical_timeframes:
-        return strat.meta.typical_timeframes[0]
+    tf = strat.params.get("timeframe")
+    if tf:
+        return tf
     return "M15"
 
 

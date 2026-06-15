@@ -1,7 +1,7 @@
-"""main.py — Entry point for the Savanna Capital Quant OS platform.
+"""main.py -- Entry point for the Savanna Capital Quant OS platform.
 
 Usage:
-python main.py --dashboard-only        # dashboard only (no MT5)
+python main.py --dashboard-only  # dashboard only (no MT5)
 python main.py --login 12345678 --password yourpass --server JustMarkets-Live
 """
 from __future__ import annotations
@@ -9,8 +9,6 @@ from __future__ import annotations
 import argparse
 import logging
 import threading
-import time
-from datetime import datetime, timezone
 
 from config.settings import PlatformConfig
 from strategies.registry import StrategyRegistry
@@ -59,7 +57,7 @@ def main() -> None:
 
         if mt5_login == 0 or not mt5_password or not mt5_server:
             log.error(
-                "MT5 credentials not set — pass --login --password --server or set env vars"
+                "MT5 credentials not set - pass --login --password --server or set env vars"
             )
             log.info("Falling back to dashboard-only mode")
         else:
@@ -73,16 +71,15 @@ def main() -> None:
                     mt5_server,
                 )
 
-                # ── Seed strategy registry from DB ─────────────────────────
+                # Seed strategy registry from DB
                 from db.session import SessionLocal
                 with SessionLocal() as db:
                     reg = StrategyRegistry(db)
                     reg._seed_if_needed(db)
 
-                # ── Start engine loop in background thread ────────────────
+                # Start engine loop in background thread
                 from engine.engine_loop import EngineLoop
                 loop = EngineLoop(cfg, adapter)
-                shutdown_event = threading.Event()
                 engine_thread = threading.Thread(
                     target=loop.run,
                     args=(),
@@ -91,23 +88,20 @@ def main() -> None:
                 )
                 engine_thread.start()
                 use_engine = True
-
-                # EngineLoop handles heartbeat on its first iteration.
-                # Nothing to do here — loop is self-sufficient.
             else:
                 log.error(
-                    "MT5 connection failed — falling back to dashboard-only mode"
+                    "MT5 connection failed - falling back to dashboard-only mode"
                 )
 
     if not use_engine:
-        log.info("Dashboard-only mode — skipping MT5 engine")
+        log.info("Dashboard-only mode - skipping MT5 engine")
 
     import uvicorn
 
-    # ── Existing v1 dashboard (never touch) ───────────────────────────
+    # Existing v1 dashboard (never touch)
     v1_app = __import__("dashboard.app", fromlist=["app"]).app
 
-    # ── New v2 API (all new features go here) ─────────────────────────
+    # New v2 API (all new features go here)
     v2_app = __import__("dashboard.v2.app", fromlist=["app"]).app
     v1_app.mount("/api/v2", v2_app)
 

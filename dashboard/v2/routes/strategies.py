@@ -123,6 +123,7 @@ def _strategy_detail(db: Session, name: str) -> dict[str, Any]:
     symbol = cls.meta.default_symbol if cls else ""
     tf = cls.meta.typical_timeframes[0] if cls and cls.meta.typical_timeframes else ""
     stats = _strategy_stats(db, name)
+    param_bounds = dict(cls.param_bounds) if cls and hasattr(cls, "param_bounds") else {}
     return {
         "name": row.name,
         "label": label,
@@ -131,6 +132,7 @@ def _strategy_detail(db: Session, name: str) -> dict[str, Any]:
         "is_active": row.is_active,
         "version": row.version or 1,
         "params": dict(row.params) if row.params else {},
+        "param_bounds": param_bounds,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "updated_at": row.updated_at.isoformat() if row.updated_at else None,
         **stats,
@@ -155,6 +157,7 @@ def list_strategies(db: Session = Depends(get_db)):
         symbol = cls.meta.default_symbol if cls else ""
         tf = cls.meta.typical_timeframes[0] if cls and cls.meta.typical_timeframes else ""
         stats = _strategy_stats(db, row.name)
+        param_bounds = dict(cls.param_bounds) if cls and hasattr(cls, "param_bounds") else {}
         results.append({
             "name": row.name,
             "label": label,
@@ -162,6 +165,7 @@ def list_strategies(db: Session = Depends(get_db)):
             "timeframe": tf,
             "is_active": row.is_active,
             "version": row.version or 1,
+            "param_bounds": param_bounds,
             **stats,
         })
     return results
@@ -206,6 +210,10 @@ def get_strategy_detail(name: str, db: Session = Depends(get_db)):
     if row:
         result["label"] = row.label
         result["version"] = row.version or 1
+    if cls and hasattr(cls, "param_bounds"):
+        result["param_bounds"] = dict(cls.param_bounds)
+    else:
+        result["param_bounds"] = {}
     return result
 
 
@@ -536,7 +544,7 @@ def all_evidence(limit: int = 50, db: Session = Depends(get_db)):
 @router.post("/{name}/deploy")
 def deploy_strategy(name: str, db: Session = Depends(get_db)) -> dict:
     """POST /strategies/{name}/deploy — mark strategy as deployed.
-    
+
     Since StrategyConfig lacks is_used_in_live / last_deployed_at columns,
     this currently toggles is_active as a proxy. Deploy tracking fields
     should be added via Alembic migration when needed.

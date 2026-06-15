@@ -12,6 +12,7 @@ import traceback
 from datetime import datetime, timezone
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from sqlalchemy.orm import Session
 
@@ -24,10 +25,41 @@ from quant.backtest_engine import BacktestEngine, BacktestResult
 log = logging.getLogger(__name__)
 
 
+def _to_python(value: Any) -> Any:
+    """Convert numpy scalars / arrays to native Python types for SQLAlchemy."""
+    if value is None:
+        return value
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    return value
+
+
+def _to_python_dict(d: dict[str, Any]) -> dict[str, Any]:
+    """Recursively convert numpy scalars inside a dict (e.g. params snapshot)."""
+    if not isinstance(d, dict):
+        return d
+    result: dict[str, Any] = {}
+    for k, v in d.items():
+        if isinstance(v, dict):
+            result[k] = _to_python_dict(v)
+        elif isinstance(v, (np.integer, np.floating, np.bool_, np.ndarray)):
+            result[k] = _to_python(v)
+        elif isinstance(v, (list, tuple)):
+            result[k] = [_to_python(x) for x in v]
+        else:
+            result[k] = v
+    return result
+
+
 def run_backtest_job(
     run_id: int,
     *,
-    # Provided by caller — all resolved before this function is invoked
     symbol: str,
     timeframe: str,
     strategy_class: type,
@@ -40,29 +72,12 @@ def run_backtest_job(
     warmup_bars: int | None = None,
     execution: str = "OHLC",
 ) -> None:
-    """Execute a backtest job and persist results.
-
-    This function is designed to be called in a background thread / task
-    (e.g. FastAPI BackgroundTasks or a Celery worker). It updates the
-    BacktestRun status in the DB as it progresses.
-
-    Parameters
-    ----------
-    run_id : int
-        Primary key of the BacktestRun record to update.
-    symbol, timeframe, strategy_class, params : see BacktestEngine.run()
-    start_date, end_date : str | None
-        ISO dates for MT5 fetch (e.g. "2025-01-01", "2026-01-01").
-        If both are None, n_bars is passed instead.
-    n_bars : int
-        Fallback bar count when dates are not specified.
-    initial_equity, risk_per_trade, warmup_bars, execution : see BacktestEngine
-    """
+    """Execute a backtest job and persist results."""
     db: Session | None = None
     try:
         db = SessionLocal()
 
-        # ── Mark as running ──────────────────────────────────────────────
+        # Mark as running
         run = db.query(BacktestRun).filter(BacktestRun.id == run_id).first()
         if run is None:
             log.error("run_backtest_job: BacktestRun %d not found", run_id)
@@ -71,9 +86,12 @@ def run_backtest_job(
         run.status = "running"
         run.started_at = datetime.now(timezone.utc)
         db.flush()
-        log.info("Backtest %d started: %s %s %s", run_id, symbol, timeframe, run.strategy_name)
+        log.info(
+            "Backtest %d started: %s %s %s",
+            run_id, symbol, timeframe, run.strategy_name,
+        )
 
-        # ── Resolve dates ────────────────────────────────────────────────
+        # Resolve dates
         start_dt: datetime | None = None
         end_dt: datetime | None = None
         if start_date:
@@ -81,8 +99,11 @@ def run_backtest_job(
         if end_date:
             end_dt = pd.Timestamp(end_date, tz="UTC").to_pydatetime()
 
-        # ── Fetch MT5 data ───────────────────────────────────────────────
-        log.info("Backtest %d: fetching %s %s (%s → %s)", run_id, symbol, timeframe, start_date, end_date)
+        # Fetch MT5 data
+        log.info(
+            "Backtest %d: fetching %s %s (%s -> %s)",
+            run_id, symbol, timeframe, start_date, end_date,
+        )
         df = fetch_ohlcv(
             symbol=symbol,
             timeframe=timeframe,
@@ -97,7 +118,7 @@ def run_backtest_job(
         n_bars_fetched = len(df)
         log.info("Backtest %d: fetched %d bars", run_id, n_bars_fetched)
 
-        # ── Run engine ──────────────────────────────────────────────────
+        # Run engine
         engine = BacktestEngine(
             initial_equity=initial_equity,
             risk_per_trade=risk_per_trade,
@@ -113,25 +134,25 @@ def run_backtest_job(
             symbol=symbol,
         )
 
-        # ── Persist summary to BacktestRun ──────────────────────────────
+        # Persist summary to BacktestRun
         run.symbol = symbol
         run.timeframe = timeframe
         run.strategy_name = strategy_class.__name__
-        run.initial_equity = result.initial_equity
-        run.final_equity = result.final_equity
-        run.net_pnl_r = result.net_pnl_r
-        run.max_drawdown = result.max_drawdown
+        run.initial_equity = _to_python(result.initial_equity)
+        run.final_equity = _to_python(result.final_equity)
+        run.net_pnl_r = _to_python(result.net_pnl_r)
+        run.max_drawdown = _to_python(result.max_drawdown)
         run.n_bars = n_bars_fetched
         run.n_trades = len(result.trades)
-        run.win_rate = result.win_rate
-        run.profit_factor = result.profit_factor
-        run.sharpe_approx = result.sharpe_approx
-        run.p_value = result.p_value
-        run.is_significant = result.is_significant
+        run.win_rate = _to_python(result.win_rate)
+        run.profit_factor = _to_python(result.profit_factor)
+        run.sharpe_approx = _to_python(result.sharpe_approx)
+        run.p_value = _to_python(result.p_value)
+        run.is_significant = _to_python(result.is_significant)
         run.equity_curve = _safe_json(result.equity_curve)
         run.drawdown_curve = _safe_json(result.drawdown_curve)
         run.monthly_returns = _safe_json(result.monthly_returns)
-        run.params_snapshot = params
+        run.params_snapshot = _to_python_dict(params)
         run.completed_at = datetime.now(timezone.utc)
         run.status = "complete"
         db.flush()
@@ -140,21 +161,27 @@ def run_backtest_job(
             run_id, run.n_trades, run.profit_factor, run.net_pnl_r,
         )
 
-        # ── Persist trades ───────────────────────────────────────────────
+        # Persist trades
         for t in result.trades:
             trade = Trade(
                 strategy_name=strategy_class.__name__,
                 symbol=symbol,
+                timeframe=timeframe,
                 side=t.side,
-                entry_time=t.entry_time,
-                exit_time=t.exit_time,
-                entry_price=t.entry,
-                exit_price=t.close_price,
-                sl=t.sl,
-                tp=t.tp2,
-                lot_size=t.lot_size,
-                pnl_r=t.pnl_r,
-                pnl_dollars=t.pnl_dollars,
+                opened_at=t.entry_time,
+                closed_at=t.exit_time,
+                entry=_to_python(t.entry),
+                open_price=_to_python(t.entry),
+                close_price=_to_python(t.close_price),
+                sl=_to_python(t.sl),
+                tp=_to_python(t.tp2),
+                tp1=_to_python(t.tp1),
+                tp2=_to_python(t.tp2),
+                lot_size=_to_python(t.lot_size),
+                pnl=_to_python(t.pnl_dollars),
+                pnl_r=_to_python(t.pnl_r),
+                tag=t.tag,
+                closed_reason=t.exit_reason,
                 source="backtest",
                 backtest_run_id=run_id,
             )
@@ -167,6 +194,7 @@ def run_backtest_job(
         log.exception("Backtest %d FAILED: %s", run_id, exc)
         if db is not None:
             try:
+                # Rollback failed transaction so we can query + update the run
                 run = db.query(BacktestRun).filter(BacktestRun.id == run_id).first()
                 if run is not None:
                     run.status = "failed"
@@ -180,15 +208,12 @@ def run_backtest_job(
             db.close()
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-
 def _safe_json(value: Any) -> Any:
     """Convert values that might not be JSON-serialisable."""
     if isinstance(value, dict):
         return {str(k): _safe_json(v) for k, v in value.items()}
     if isinstance(value, list):
-        return [_safe_json(v) for v in value]
+        return [_safe_json(x) for x in value]
     if isinstance(value, (int, float, str, bool, type(None))):
         return value
     return str(value)

@@ -76,6 +76,8 @@ class NvidiaClient:
     response dict so everything upstream is unchanged.
     """
 
+    API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+
     def __init__(self, api_key: str, model: str, max_tokens: int, stream: bool = False, reasoning_budget: int = 0) -> None:
         self._api_key = api_key
         self._model = model
@@ -290,18 +292,19 @@ def _extract_text(response: dict[str, Any]) -> str:
         for block in response.get("content", []):
             if isinstance(block, dict) and block.get("type") == "text":
                 return block.get("text", "")
-    # OpenAI-compatible (NVIDIA, OpenRouter)
+    # OpenAI-compatible (NVIDIA, OpenRouter) — guard against empty choices
     choices = response.get("choices", [])
     if choices:
-        msg = choices[0].get("message", {})
-        if "content" in msg:
-            return str(msg["content"])
+        msg = (choices[0] or {}).get("message") or {}
+        content = msg.get("content")
+        if content:
+            return str(content)
     # Gemini
     candidates = response.get("candidates", [])
     if candidates:
-        parts = candidates[0].get("content", {}).get("parts", [])
+        parts = (candidates[0] or {}).get("content", {}).get("parts", [])
         for p in parts:
-            if "text" in p:
+            if isinstance(p, dict) and "text" in p:
                 return str(p["text"])
     return ""
 
