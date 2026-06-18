@@ -9,12 +9,18 @@ from __future__ import annotations
 import argparse
 import logging
 import threading
+import time
 
 from config.settings import PlatformConfig
 from strategies.registry import StrategyRegistry
 from execution.mt5_adapter import MT5Adapter
+from db.session import SessionLocal
+from execution.notification_service import NotificationService
 
 log = logging.getLogger(__name__)
+
+# Notification cleanup background job configuration
+NOTIFICATION_CLEANUP_MAX_RETRIES = 10
 
 
 def parse_args() -> argparse.Namespace:
@@ -39,7 +45,7 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def main() -> None:
+if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)-5s %(name)s - %(message)s",
@@ -72,7 +78,6 @@ def main() -> None:
                 )
 
                 # Seed strategy registry from DB
-                from db.session import SessionLocal
                 with SessionLocal() as db:
                     reg = StrategyRegistry(db)
                     reg._seed_if_needed(db)
@@ -96,6 +101,42 @@ def main() -> None:
     if not use_engine:
         log.info("Dashboard-only mode - skipping MT5 engine")
 
+    # Start notification cleanup background job if retention is configured
+    if cfg.notification.retention_days > 0:
+        def _notification_cleanup_loop():
+            retry_count = 0
+            while True:
+                try:
+                    db = SessionLocal()
+                    ns = NotificationService(db)
+                    deleted = ns.cleanup_old_notifications(cfg.notification.retention_days)
+                    log.info("Notification cleanup: deleted %d old notifications", deleted)
+                    db.close()
+                    retry_count = 0  # reset on success
+                except Exception as exc:
+                    log.warning(
+                        "Notification cleanup attempt failed (attempt %d/%d): %s",
+                        retry_count + 1,
+                        NOTIFICATION_CLEANUP_MAX_RETRIES,
+                        exc,
+                        exc_info=True,
+                    )
+                    retry_count += 1
+                    if retry_count >= NOTIFICATION_CLEANUP_MAX_RETRIES:
+                        log.error(
+                            "Notification cleanup: max retries (%d) exceeded. Exiting thread.",
+                            NOTIFICATION_CLEANUP_MAX_RETRIES,
+                        )
+                        break
+                time.sleep(cfg.notification.cleanup_interval_seconds)
+
+        cleanup_thread = threading.Thread(target=_notification_cleanup_loop, daemon=True)
+        cleanup_thread.start()
+        log.info(
+            "Notification cleanup job started (retention=%d days)",
+            cfg.notification.retention_days,
+        )
+
     import uvicorn
 
     # Existing v1 dashboard (never touch)
@@ -111,7 +152,3 @@ def main() -> None:
         port=cfg.dashboard.port,
         log_level="info",
     )
-
-
-if __name__ == "__main__":
-    main()

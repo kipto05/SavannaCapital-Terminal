@@ -12,6 +12,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from db.session import SessionLocal
+from execution.notification_service import NotificationService
 from execution.sl_tp_model import DynamicSLTPModel, SLTPResult
 from strategies.base import (
     BaseStrategy,
@@ -133,7 +135,7 @@ class BandReversion(BaseStrategy):
                 result = self.sltp.compute(df=m15, side=side_v.value, entry=close)
                 if result is None:
                     return None
-                return Signal(
+                signal = Signal(
                     side=side_v,
                     entry=close,
                     sl=result.sl,
@@ -144,6 +146,26 @@ class BandReversion(BaseStrategy):
                     tag=f"{self.meta.name}.long",
                     regime=result.regime,
                 )
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {signal.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": signal.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+                return signal
 
             # SHORT: prev close >= upper[-2] AND curr close < upper[-1] AND rsi was overbought
             if (
@@ -155,7 +177,7 @@ class BandReversion(BaseStrategy):
                 result = self.sltp.compute(df=m15, side=side_v.value, entry=close)
                 if result is None:
                     return None
-                return Signal(
+                signal = Signal(
                     side=side_v,
                     entry=close,
                     sl=result.sl,
@@ -166,6 +188,26 @@ class BandReversion(BaseStrategy):
                     tag=f"{self.meta.name}.short",
                     regime=result.regime,
                 )
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {signal.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": signal.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+                return signal
 
             return None
         except Exception as exc:
@@ -271,7 +313,7 @@ class StochasticTrend(BaseStrategy):
                 result = self.sltp.compute(df=m15, side=side_v.value, entry=curr_close)
                 if result is None:
                     return None
-                return Signal(
+                signal = Signal(
                     side=side_v,
                     entry=curr_close,
                     sl=result.sl,
@@ -282,6 +324,26 @@ class StochasticTrend(BaseStrategy):
                     tag=f"{self.meta.name}.long",
                     regime=result.regime,
                 )
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {signal.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": signal.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+                return signal
 
             # ── SHORT ───────────────────────────────────────────────────────
             if bearish and prev_k > d_vals.iloc[-2] and curr_k <= curr_d:
@@ -294,7 +356,7 @@ class StochasticTrend(BaseStrategy):
                 result = self.sltp.compute(df=m15, side=side_v.value, entry=curr_close)
                 if result is None:
                     return None
-                return Signal(
+                signal = Signal(
                     side=side_v,
                     entry=curr_close,
                     sl=result.sl,
@@ -305,6 +367,26 @@ class StochasticTrend(BaseStrategy):
                     tag=f"{self.meta.name}.short",
                     regime=result.regime,
                 )
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {signal.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": signal.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+                return signal
 
             return None
         except Exception as exc:

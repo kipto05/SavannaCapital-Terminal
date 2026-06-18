@@ -10,6 +10,8 @@ from typing import Any
 
 import pandas as pd
 
+from db.session import SessionLocal
+from execution.notification_service import NotificationService
 from execution.sl_tp_model import DynamicSLTPModel, SLTPResult
 from strategies.base import BaseStrategy, Signal, Side, StrategyMeta, atr
 
@@ -126,7 +128,7 @@ class SessionBreakout(BaseStrategy):
                         rr1=result.rr1,
                         rr2=abs(tp2 - entry) / abs(entry - result.sl),
                     )
-                return Signal(
+                signal = Signal(
                     side=Side.BUY,
                     entry=entry,
                     sl=result.sl,
@@ -137,6 +139,28 @@ class SessionBreakout(BaseStrategy):
                     tag=f"{self.meta.name}.long",
                     regime=result.regime,
                 )
+
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {self.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": self.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+
+                return signal
 
             # ── SHORT breakout ──────────────────────────────────────────
             if curr["close"] < range_low:
@@ -155,7 +179,7 @@ class SessionBreakout(BaseStrategy):
                         rr1=result.rr1,
                         rr2=abs(entry - tp2) / abs(entry - result.sl),
                     )
-                return Signal(
+                signal = Signal(
                     side=Side.SELL,
                     entry=entry,
                     sl=result.sl,
@@ -166,6 +190,28 @@ class SessionBreakout(BaseStrategy):
                     tag=f"{self.meta.name}.short",
                     regime=result.regime,
                 )
+
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {self.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": self.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+
+                return signal
 
             return None
         except Exception as exc:

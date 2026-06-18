@@ -1,0 +1,326 @@
+/* Custom styles for v3 design system */
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #101419;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3b494c;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #4a585d;
+}
+
+/* Firefox scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #3b494c #101419;
+}
+
+/* Navigation Item States */
+.nav-item {
+  @apply relative flex items-center px-4 py-2.5 text-sm font-medium text-on-surface transition-all duration-200 cursor-pointer;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-item.active {
+  background: rgba(0, 229, 255, 0.1);
+  border-left: 3px solid #00e5ff;
+}
+
+/* Focus states for accessibility */
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 2px;
+}
+
+/* Table row transition */
+tbody tr {
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* Modal animation */
+.modal-enter {
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Status badge pulse for active states */
+.status-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Typography utility classes */
+.font-data {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.font-display {
+  font-family: 'Geist', sans-serif;
+}
+
+.font-label {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* KPI tile value colors */
+.kpi-positive {
+  color: #10b981;
+}
+
+.kpi-negative {
+  color: #ef4444;
+}
+
+.kpi-neutral {
+  color: #e0e2ea;
+}
+
+/* Form validation states */
+input:invalid:not(:placeholder-shown) {
+  border-color: #ef4444;
+}
+
+input:valid {
+  border-color: #10b981;
+}
+
+/* Loading state */
+.loading-skeleton {
+  background: linear-gradient(90deg, #1c2025 25%, #262a30 50%, #1c2025 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: #0a0e13;
+  color: #e0e2ea;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid #3b494c;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 100;
+  margin-bottom: 4px;
+}
+
+.tooltip:hover::before {
+  opacity: 1;
+}
+
+/* Notifications Dropdown Panel */
+.notifications-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 380px;
+  min-height: 200px;
+  max-height: 500px;
+  background: #1c2025;
+  border: 1px solid #3b494c;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.notifications-dropdown.hidden {
+  display: none;
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.notifications-dropdown.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.notifications-dropdown:focus {
+  outline: none;
+}
+
+/* Notifications Header (draggable) */
+#notifications-header {
+  cursor: move;
+  user-select: none;
+}
+
+#notifications-header:active {
+  background: #262a30;
+}
+
+/* Notifications Controls */
+#notifications-dropdown > div:nth-child(2) {
+  flex-shrink: 0;
+}
+
+/* Mark all read button */
+#mark-all-read-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+/* Notifications List (scrollable) */
+.notifications-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 300px;
+  min-height: 150px;
+}
+
+.notifications-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notifications-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notifications-list::-webkit-scrollbar-thumb {
+  background: #3b494c;
+  border-radius: 3px;
+}
+
+.notifications-list::-webkit-scrollbar-thumb:hover {
+  background: #4a585d;
+}
+
+/* Notification Items */
+.notification-item {
+  cursor: default;
+  transition: background-color 0.15s ease;
+}
+
+.notification-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.notification-item.unread {
+  background: rgba(59, 130, 246, 0.05);
+  border-left: 2px solid #3b82f6;
+}
+
+.notification-item.read {
+  border-left: 2px solid transparent;
+}
+
+.notification-item.read:hover {
+  border-left-color: #3b494c;
+}
+
+.mark-read-btn {
+  font-size: 10px;
+  padding: 2px 8px;
+}
+
+/* Resize Handle */
+#notifications-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: se-resize;
+  opacity: 0.3;
+  transition: opacity 0.15s ease;
+  z-index: 10;
+  background: linear-gradient(135deg, transparent 50%, #3b494c 50%);
+}
+
+#notifications-resize-handle:hover {
+  opacity: 0.6;
+}
+
+#notifications-resize-handle svg {
+  opacity: 0;
+}
+
+/* Checkbox toggle styling */
+#unread-only-toggle {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+label[for="unread-only-toggle"] {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

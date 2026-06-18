@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Savanna Capital{% endblock %}</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            surface: '#101419',
+            surface_container: '#1c2025',
+            on_surface: '#e0e2ea',
+            primary: '#3B82F6',
+            primary_container: '#00e5ff',
+            outline_variant: '#3b494c',
+            body: '#e0e2ea',
+            on_surface_variant: '#9CA3AF',
+            surface_container_high: '#20222b',
+            surface_container_highest: '#2A2D35',
+            success: '#10B981',
+            error: '#EF4444',
+            warning: '#F59E0B',
+            accent: '#8B5CF6',
+          },
+          fontFamily: {
+            display: ['Geist', 'sans-serif'],
+            body: ['Geist', 'sans-serif'],
+            label: ['JetBrains Mono', 'monospace'],
+          },
+          spacing: {
+            'sidebar': '240px',
+            'sidebar-collapsed': '48px',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Design tokens as CSS variables for JS access -->
+  <style>
+    :root {
+      --color-surface: #101419;
+      --color-surface-container: #1c2025;
+      --color-on-surface: #e0e2ea;
+      --color-primary: #3B82F6;
+      --color-primary-container: #00e5ff;
+      --color-outline-variant: #3b494c;
+      --color-body: #e0e2ea;
+      --color-on-surface-variant: #9CA3AF;
+      --color-surface-container-high: #20222b;
+      --color-surface-container-highest: #2A2D35;
+      --color-success: #10B981;
+      --color-error: #EF4444;
+      --color-warning: #F59E0B;
+      --color-accent: #8B5CF6;
+    }
+  </style>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+</head>
+
+<body class="bg-surface text-on-surface font-body overflow-hidden h-screen">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed left-0 top-0 h-full w-sidebar bg-surface border-r border-outline-variant transition-all duration-300 flex flex-col">
+    {% include "v3/_sidebar.html" %}
+  </aside>
+
+  <!-- Main Wrapper -->
+  <div id="main-wrapper" class="ml-sidebar flex flex-col h-screen transition-all duration-300">
+    {% include "v3/_topbar.html" %}
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-4">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Theme Initialization -->
+  {% include "v3/_theme.html" %}
+
+  <!-- Auth Token Injection -->
+  <script>
+    window.authToken = {{ jwt_token|tojson }};
+  </script>
+
+  <!-- App Scripts -->
+  <script src="/static/v3/app.js"></script>
+  <script src="/static/v3/theme.js"></script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

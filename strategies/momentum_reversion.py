@@ -10,6 +10,8 @@ from typing import Any
 
 import pandas as pd
 
+from db.session import SessionLocal
+from execution.notification_service import NotificationService
 from execution.sl_tp_model import DynamicSLTPModel
 from strategies.base import (
     BaseStrategy,
@@ -123,11 +125,33 @@ class MomentumReversion(BaseStrategy):
                 result = self.sltp.compute(df=df_sig, side=side_v.value, entry=entry)
                 if result is None:
                     return None
-                return Signal(
+                signal = Signal(
                     side=side_v, entry=entry, sl=result.sl, tp=result.tp2,
                     tp1=result.tp1, tp2=result.tp2, lot_size=p["lot_size"],
                     tag=f"{self.meta.name}.long", regime=result.regime,
                 )
+
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {signal.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": signal.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+
+                return signal
 
             # SHORT
             if bearish and prev_close > prev_entry_ema and curr_close <= curr_entry_ema:
@@ -141,11 +165,33 @@ class MomentumReversion(BaseStrategy):
                 result = self.sltp.compute(df=df_sig, side=side_v.value, entry=entry)
                 if result is None:
                     return None
-                return Signal(
+                signal = Signal(
                     side=side_v, entry=entry, sl=result.sl, tp=result.tp2,
                     tp1=result.tp1, tp2=result.tp2, lot_size=p["lot_size"],
                     tag=f"{self.meta.name}.short", regime=result.regime,
                 )
+
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {signal.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": signal.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+
+                return signal
 
             return None
         except Exception as exc:

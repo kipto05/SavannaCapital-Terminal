@@ -1,0 +1,49 @@
+{% extends "v3/_base.html" %}
+
+{% block title %}Settings | Savanna Capital{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+  <h1 class="text-headline-1 text-on-surface mb-6">Settings</h1>
+
+  <!-- Notification Preferences Section -->
+  <section id="notification-preferences" class="bg-surface-container rounded-lg border border-outline-variant p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-headline-2 text-on-surface">Notifications</h2>
+      <button id="save-settings-btn" class="btn-primary" disabled>
+        <svg class="animate-spin hidden" id="save-spinner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" stroke-dasharray="31.4" stroke-dashoffset="10"></circle>
+        </svg>
+        <span id="save-btn-text">Save changes</span>
+      </button>
+    </div>
+    <p class="text-body-medium text-on-surface-variant mb-4">Manage how you receive notifications (in-app and email).</p>
+
+    <div id="settings-status" class="mb-4 hidden"></div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="border-b border-outline-variant text-left">
+            <th class="py-3 px-4 text-label-sm text-on-surface-variant">Event Type</th>
+            <th class="py-3 px-4 text-label-sm text-on-surface-variant text-center">In-App</th>
+            <th class="py-3 px-4 text-label-sm text-on-surface-variant text-center">Email</th>
+          </tr>
+        </thead>
+        <tbody id="settings-table-body">
+          <!-- Rows rendered by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Card Layout (shown on small screens) -->
+    <div id="settings-cards" class="md:hidden grid gap-4 mt-4">
+      <!-- Cards rendered by JS -->
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/v3/pages/settings.js"></script>
+{% endblock %}

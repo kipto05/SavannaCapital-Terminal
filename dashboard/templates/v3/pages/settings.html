@@ -1,0 +1,115 @@
+{% extends "v3/_base.html" %}
+{% block title %}Settings | Savanna Capital{% endblock %}
+
+{% block content %}
+<style>
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-outline-variant);
+  transition: .2s;
+  border-radius: 24px;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .2s;
+  border-radius: 50%;
+}
+.toggle-checkbox:checked + .toggle-slider {
+  background-color: var(--color-primary);
+}
+.toggle-checkbox:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+</style>
+
+<div class="max-w-4xl mx-auto space-y-6">
+  <header>
+    <h1 class="text-headline-md font-headline-md text-on-surface mb-1">Settings</h1>
+    <p class="text-body text-on-surface-variant">Configure your notification preferences and account settings.</p>
+  </header>
+
+  <!-- Notifications Settings Section -->
+  <section id="notifications-settings-section" class="bg-surface-container border border-outline-variant rounded-lg p-6">
+    <div class="mb-4">
+      <h2 class="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
+        <span class="material-symbols-rounded text-primary">notifications</span>
+        Notifications
+      </h2>
+      <p class="text-body-sm text-on-surface-variant mt-1">
+        Choose which events trigger in-app notifications and/or email alerts.
+      </p>
+    </div>
+
+    <!-- Desktop Table -->
+    <div class="hidden md:block overflow-x-auto">
+      <table class="min-w-full divide-y divide-outline-variant">
+        <thead class="bg-surface-container-high">
+          <tr>
+            <th class="px-4 py-3 text-left text-label-sm font-label-sm uppercase text-on-surface-variant">Event Type</th>
+            <th class="px-4 py-3 text-center text-label-sm font-label-sm uppercase text-on-surface-variant w-32">In-App</th>
+            <th class="px-4 py-3 text-center text-label-sm font-label-sm uppercase text-on-surface-variant w-32">Email</th>
+          </tr>
+        </thead>
+        <tbody id="settings-table-body" class="divide-y divide-outline-variant">
+          <!-- rows will be inserted by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div id="settings-cards-container" class="space-y-3 md:hidden">
+      <!-- cards inserted by JS -->
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="settings-loading" class="py-8 text-center text-on-surface-variant">
+      <span class="material-symbols-rounded text-2xl animate-spin mr-2">refresh</span>
+      Loading settings...
+    </div>
+
+    <!-- Empty state -->
+    <div id="settings-empty" class="hidden py-8 text-center text-on-surface-variant">
+      <span class="material-symbols-rounded text-4xl mb-2">info</span>
+      <p>No notification settings available.</p>
+    </div>
+
+    <!-- Save Button Area -->
+    <div class="mt-6 flex items-center gap-3">
+      <button id="settings-save-btn" class="bg-primary text-on-primary px-4 py-2 rounded font-label-sm font-bold uppercase hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center gap-2" disabled>
+        <span id="settings-save-text">Save changes</span>
+        <span id="settings-save-spinner" class="material-symbols-rounded text-sm hidden animate-spin">refresh</span>
+      </button>
+      <span id="settings-save-status" class="text-label-sm text-on-surface-variant"></span>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="module" src="/static/v3/pages/settings.js"></script>
+{% endblock %}

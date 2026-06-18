@@ -25,6 +25,7 @@ import httpx
 from config.settings import config
 from db.models import AIAdvisorSuggestion, AISide
 from db.session import SessionLocal
+from execution.notification_service import NotificationService
 from execution.sl_tp_model import DynamicSLTPModel
 from strategies.base import atr
 
@@ -588,6 +589,26 @@ class AIAgent:
             self._last_suggestion_time[symbol] = now
             suggestion = self._persist(parsed, symbol, timeframe)
             self._persist_pseudo_trade(suggestion, entry_price, regime)
+
+            # Publish ai_suggestion notification
+            try:
+                with SessionLocal() as db:
+                    ns = NotificationService(db)
+                    ns.publish(
+                        event_type="ai_suggestion",
+                        title=f"AI Suggestion: {symbol} {parsed['side_raw']}",
+                        message=f"AI suggests {parsed['side_raw']} on {symbol} with {parsed['confidence']:.0%} confidence: {parsed.get('reasoning', '')}",
+                        data={
+                            "symbol": symbol,
+                            "side": parsed['side_raw'],
+                            "confidence": float(parsed['confidence']),
+                            "reasoning": parsed.get('reasoning', ''),
+                            "timeframe": timeframe,
+                        }
+                    )
+            except Exception as exc:
+                log.exception("Failed to publish ai_suggestion notification: %s", exc)
+
             log.info(
                 "AIAgent: suggestion %s %s conf=%.0f%%",
                 symbol,

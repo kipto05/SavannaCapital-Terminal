@@ -1,0 +1,37 @@
+﻿{# Copy Strategy Modal #}
+<div id="strategy-library-copy-strategy-modal" class="strategy-library-modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="strategy-library-copy-strategy-modal-title">
+  <div class="bg-surface border border-outline-variant rounded-lg max-w-lg w-full flex flex-col shadow-xl">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+      <h3 id="strategy-library-copy-strategy-modal-title" class="font-headline-md text-headline-md text-on-surface">Copy Strategy</h3>
+      <button class="modal-close p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Close modal">
+        <span class="material_symbols_outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto px-6 py-4">
+      <div class="space-y-4">
+        <div>
+          <label for="strategy-library-copy-strategy-modal-name" class="block font-label-sm text-label-sm text-on-surface mb-2">New Strategy Name *</label>
+          <input type="text" id="strategy-library-copy-strategy-modal-name" class="w-full px-3 py-2 font-label text-sm bg-surface border border-outline-variant rounded text-on-surface placeholder-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" placeholder="Enter new strategy name" required>
+        </div>
+        <div>
+          <label for="strategy-library-copy-strategy-modal-symbol" class="block font-label-sm text-label-sm text-on-surface mb-2">Symbol (optional)</label>
+          <input type="text" id="strategy-library-copy-strategy-modal-symbol" class="w-full px-3 py-2 font-label text-sm bg-surface border border-outline-variant rounded text-on-surface placeholder-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" placeholder="e.g., BTCUSD">
+        </div>
+        <div>
+          <label for="strategy-library-copy-strategy-modal-description" class="block font-label-sm text-label-sm text-on-surface mb-2">Description (optional)</label>
+          <input type="text" id="strategy-library-copy-strategy-modal-description" class="w-full px-3 py-2 font-label text-sm bg-surface border border-outline-variant rounded text-on-surface placeholder-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" placeholder="Brief description of the copied strategy">
+        </div>
+        <p id="strategy-library-copy-strategy-modal-error" class="font-label-xs text-error hidden" role="alert" aria-live="assertive"></p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex justify-end gap-3 px-6 py-4 border-t border-outline-variant bg-surface-container">
+      <button id="strategy-library-copy-strategy-modal-cancel" class="btn-secondary px-4 py-2 font-label text-sm border border-outline-variant text-on-surface rounded hover:bg-surface-variant focus:outline-none focus:ring-2 focus:ring-primary">Cancel</button>
+      <button id="strategy-library-copy-strategy-modal-confirm" class="btn-primary px-4 py-2 font-label text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary">Create</button>
+    </div>
+  </div>
+</div>

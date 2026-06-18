@@ -1,0 +1,27 @@
+﻿{# Edit Strategy Parameters Modal #}
+<div id="strategy-library-edit-params-modal" class="strategy-library-modal-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm items-center justify-center p-4 hidden" role="dialog" aria-modal="true" aria-labelledby="strategy-library-edit-params-modal-title">
+  <div class="bg-surface border border-outline-variant rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col shadow-xl">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+      <h3 id="strategy-library-edit-params-modal-title" class="font-headline-md text-headline-md text-on-surface">Edit Strategy Parameters</h3>
+      <button class="modal-close p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Close modal">
+        <span class="material_symbols_outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto px-6 py-4">
+      <div class="mb-4">
+        <label for="strategy-library-edit-params-modal-textarea" class="block font-label-sm text-label-sm text-on-surface mb-2">Parameters (JSON)</label>
+        <textarea id="strategy-library-edit-params-modal-textarea" class="w-full h-80 font-label text-xs bg-surface border border-outline-variant rounded p-3 font-mono text-on-surface placeholder-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none resize-y" placeholder="Enter JSON parameters..."></textarea>
+        <p id="strategy-library-edit-params-modal-error" class="font-label-xs text-error mt-2 hidden" role="alert" aria-live="assertive"></p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex justify-end gap-3 px-6 py-4 border-t border-outline-variant bg-surface-container">
+      <button id="strategy-library-edit-params-modal-cancel" class="btn-secondary px-4 py-2 font-label text-sm border border-outline-variant text-on-surface rounded hover:bg-surface-variant focus:outline-none focus:ring-2 focus:ring-primary">Cancel</button>
+      <button id="strategy-library-edit-params-modal-save" class="btn-primary px-4 py-2 font-label text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary">Save</button>
+    </div>
+  </div>
+</div>

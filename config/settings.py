@@ -1,6 +1,3 @@
-"""config/settings.py — single source of truth for all platform configuration.
-Every number, threshold, and path reads from here. Nothing is hardcoded elsewhere.
-"""
 from __future__ import annotations
 
 import os
@@ -199,6 +196,23 @@ class MT5Config:
 
 
 @dataclass
+class SMTPConfig:
+    """Email notification configuration."""
+    host: str = "localhost"
+    port: int = 25
+    username: str = ""
+    password: str = ""
+    use_tls: bool = False
+    from_email: str = "noreply@example.com"
+
+
+@dataclass
+class NotificationConfig:
+    """Notification cleanup and retention configuration."""
+    retention_days: int = 30
+
+
+@dataclass
 class RiskConfig:
     risk_per_trade: float = 0.01
     max_daily_drawdown: float = 0.03
@@ -353,6 +367,8 @@ class PlatformConfig:
     ai: AIAdvisorConfig = field(default_factory=AIAdvisorConfig)
     dashboard: DashboardConfig = field(default_factory=DashboardConfig)
     engine: EngineConfig = field(default_factory=EngineConfig)
+    smtp: SMTPConfig = field(default_factory=SMTPConfig)
+    notification: NotificationConfig = field(default_factory=NotificationConfig)
     base_dir: Path = BASE_DIR
 
     def __post_init__(self) -> None:
@@ -399,6 +415,19 @@ class PlatformConfig:
             cfg.ai.openrouter_api_key,
         ])
         cfg.ai.enabled = has_key
+
+        # ── SMTP config ─────────────────────────────────────────────────────
+        cfg.smtp.host = os.environ.get("SMTP_HOST", cfg.smtp.host)
+        cfg.smtp.port = int(os.environ.get("SMTP_PORT", str(cfg.smtp.port)))
+        cfg.smtp.username = os.environ.get("SMTP_USERNAME", cfg.smtp.username)
+        cfg.smtp.password = os.environ.get("SMTP_PASSWORD", cfg.smtp.password)
+        cfg.smtp.use_tls = os.environ.get("SMTP_USE_TLS", str(cfg.smtp.use_tls)).lower() in ("1", "true", "yes")
+        cfg.smtp.from_email = os.environ.get("SMTP_FROM_EMAIL", cfg.smtp.from_email)
+
+        # ── Notification cleanup config ─────────────────────────────────────
+        notification_retention = os.environ.get("NOTIFICATION_RETENTION_DAYS", str(cfg.notification.retention_days))
+        cfg.notification.retention_days = int(notification_retention)
+
         return cfg
 
 

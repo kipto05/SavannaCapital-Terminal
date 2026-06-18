@@ -1,0 +1,18 @@
+{# Status Badge Component
+   Small badge with status text and background based on status type.
+   Usage: {% include "v3/partials/_status_badge.html" with status="success" text="Active" %}
+   Status types: success, warning, error, neutral, info
+#}
+{% set status_classes = {
+  'success': 'bg-green-900/30 text-green-400 border-green-700/50',
+  'warning': 'bg-amber-900/30 text-amber-400 border-amber-700/50',
+  'error': 'bg-red-900/30 text-red-400 border-red-700/50',
+  'neutral': 'bg-surface-container text-on-surface-variant border-outline-variant',
+  'info': 'bg-blue-900/30 text-blue-400 border-blue-700/50'
+} %}
+
+{% set classes = status_classes.get(status, status_classes.neutral) %}
+
+<span class="inline-flex items-center px-2.5 py-1 font-label text-xs font-medium border rounded-full {{ classes }}">
+  {{ text or status }}
+</span>

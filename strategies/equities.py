@@ -12,6 +12,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from db.session import SessionLocal
+from execution.notification_service import NotificationService
 from execution.sl_tp_model import DynamicSLTPModel as SLTP
 from strategies.base import (
     BaseStrategy,
@@ -134,7 +136,7 @@ class VWAPReversion(BaseStrategy):
                 vwap_mid = float(vwap_ser.iloc[-1])
                 if abs(vwap_mid - close) < abs(result.tp2 - close):
                     tp2 = vwap_mid
-                return Signal(
+                signal = Signal(
                     side=side_v,
                     entry=close,
                     sl=result.sl,
@@ -145,6 +147,28 @@ class VWAPReversion(BaseStrategy):
                     tag=f"{self.meta.name}.long",
                     regime=result.regime,
                 )
+
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {self.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": self.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+
+                return signal
 
             # ── SHORT: close > upper ───────────────────────────────────────
             if (
@@ -162,7 +186,7 @@ class VWAPReversion(BaseStrategy):
                 vwap_mid = float(vwap_ser.iloc[-1])
                 if abs(vwap_mid - close) < abs(result.tp2 - close):
                     tp2 = vwap_mid
-                return Signal(
+                signal = Signal(
                     side=side_v,
                     entry=close,
                     sl=result.sl,
@@ -173,6 +197,28 @@ class VWAPReversion(BaseStrategy):
                     tag=f"{self.meta.name}.short",
                     regime=result.regime,
                 )
+
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {self.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": self.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+
+                return signal
 
             return None
         except Exception as exc:
@@ -294,7 +340,7 @@ class MACDImpulse(BaseStrategy):
                 result = self.sltp.compute(df=m15, side=side_v.value, entry=close)
                 if result is None:
                     return None
-                return Signal(
+                signal = Signal(
                     side=side_v,
                     entry=close,
                     sl=result.sl,
@@ -306,6 +352,28 @@ class MACDImpulse(BaseStrategy):
                     regime=result.regime,
                 )
 
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {self.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": self.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+
+                return signal
+
             # ── SHORT ───────────────────────────────────────────────────────
             if bearish and hist.iloc[-2] > 0 and hist.iloc[-1] <= 0 and macd_line.iloc[-1] < 0:
                 if not (p["rsi_short_floor"] < curr_rsi < p["rsi_short_ceiling"]):
@@ -315,7 +383,7 @@ class MACDImpulse(BaseStrategy):
                 result = self.sltp.compute(df=m15, side=side_v.value, entry=close)
                 if result is None:
                     return None
-                return Signal(
+                signal = Signal(
                     side=side_v,
                     entry=close,
                     sl=result.sl,
@@ -326,6 +394,28 @@ class MACDImpulse(BaseStrategy):
                     tag=f"{self.meta.name}.short",
                     regime=result.regime,
                 )
+
+                # Publish notification
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {self.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": self.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+
+                return signal
 
             return None
         except Exception as exc:

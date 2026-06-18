@@ -1,0 +1,79 @@
+<header class="h-12 border-b border-outline-variant flex items-center justify-between px-4">
+  <!-- Left: App name and domain links -->
+  <div class="flex items-center gap-6">
+    <h1 class="font-display-lg text-primary">Savanna Capital</h1>
+    <div class="flex items-center gap-2">
+      <a href="/v3/research" class="px-2 py-1 text-xs rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">Research</a>
+      <a href="/v3/execution" class="px-2 py-1 text-xs rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">Execution</a>
+      <a href="/v3/operations" class="px-2 py-1 text-xs rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">Operations</a>
+      <a href="/v3/analytics" class="px-2 py-1 text-xs rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">Analytics</a>
+    </div>
+  </div>
+
+  <!-- Right: Actions -->
+  <div class="flex items-center gap-3">
+    <!-- Deploy button -->
+    <button class="px-3 py-1 text-sm font-label bg-primary text-on-surface rounded hover:bg-primary-container transition-colors">
+      Deploy
+    </button>
+
+    <!-- Notifications -->
+    <div class="relative">
+      <button id="notifications-btn" class="relative p-2 rounded hover:bg-surface-container-high">
+        <span class="material-symbols-rounded">notifications</span>
+        <span id="notifications-badge" class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full hidden"></span>
+      </button>
+
+      <!-- Notifications Dropdown Panel -->
+      <div id="notifications-dropdown" class="notifications-dropdown hidden">
+        <!-- Header (draggable) -->
+        <div id="notifications-header" class="flex items-center justify-between px-3 py-2 border-b border-outline-variant bg-surface-container cursor-move">
+          <h3 class="font-display text-sm">Notifications</h3>
+          <button id="notifications-close" class="p-1 rounded hover:bg-surface-container-high">
+            <span class="material-symbols-rounded text-sm">close</span>
+          </button>
+        </div>
+
+        <!-- Controls -->
+        <div class="px-3 py-2 border-b border-outline-variant flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-1 text-xs text-on-surface-variant cursor-pointer">
+              <input type="checkbox" id="unread-only-toggle" class="rounded" checked>
+              <span>Unread only</span>
+            </label>
+          </div>
+          <button id="mark-all-read-btn" class="text-xs px-2 py-1 rounded bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">
+            Mark all read
+          </button>
+        </div>
+
+        <!-- Notification List -->
+        <div id="notifications-list" class="notifications-list custom-scrollbar">
+          <!-- Dynamic content will be inserted here -->
+        </div>
+
+        <!-- Resize Handle -->
+        <div id="notifications-resize-handle" class="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize flex items-end justify-center pb-0.5 pr-0.5 opacity-50 hover:opacity-100">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+            <path d="M0 0 L12 0 L12 12 Z" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Terminal -->
+    <button class="p-2 rounded hover:bg-surface-container-high">
+      <span class="material-symbols-rounded">terminal</span>
+    </button>
+
+    <!-- Profile avatar -->
+    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-surface font-label text-sm">
+      A
+    </div>
+
+    <!-- Theme toggle -->
+    <button id="theme-toggle" class="p-2 rounded hover:bg-surface-container-high">
+      <span class="material-symbols-rounded">light_mode</span>
+    </button>
+  </div>
+</header>

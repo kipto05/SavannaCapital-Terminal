@@ -24,9 +24,11 @@ from sqlalchemy import (
     JSON,
     String,
     Text,
+    Time,
     UniqueConstraint,
     Index,
 )
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 
@@ -79,9 +81,15 @@ class User(Base):
     last_login = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+    notification_recipients = relationship('NotificationRecipient', back_populates='user', cascade='all, delete-orphan')
+    notification_settings = relationship('NotificationSettings', back_populates='user', cascade='all, delete-orphan')
 
     def __repr__(self) -> str:  # pragma: no cover — never log hashes
         return f"<User id={self.id} username={self.username!r} role={self.role!r}>"
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"
 
     def to_dict(self) -> dict:
         return {
@@ -387,9 +395,9 @@ class OptimisationRun(Base):
         return {
             "id": self.id,
             "label": self.label,
-            "strategy_name": self.strategy_name,
             "symbol": self.symbol,
             "timeframe": self.timeframe,
+            "strategy_name": self.strategy_name,
             "search_method": self.search_method,
             "fitness_metric": self.fitness_metric,
             "status": self.status,
@@ -717,3 +725,63 @@ class Account(Base):
                 1,
             )
         return None
+
+
+# ── Notification ───────────────────────────────────────────────────────────────
+
+class Notification(Base):
+    __tablename__ = 'notifications'
+    __table_args__ = (
+        Index('ix_notifications_created_at', 'created_at'),
+    )
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
+    type = Column(String(50), nullable=False)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    data = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    expires_at = Column(DateTime, nullable=True)
+    recipients = relationship('NotificationRecipient', back_populates='notification', cascade='all, delete-orphan')
+
+    def to_dict(self) -> dict:
+        return {
+            'id': str(self.id),
+            'type': self.type,
+            'title': self.title,
+            'message': self.message,
+            'data': self.data,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+        }
+
+
+# ── NotificationRecipient ───────────────────────────────────────────────────────
+
+class NotificationRecipient(Base):
+    __tablename__ = 'notification_recipients'
+    __table_args__ = (
+        Index('idx_notification_recipients_user_id_is_read', 'user_id', 'is_read'),
+        Index('idx_notification_recipients_notification_id', 'notification_id'),
+    )
+    notification_id = Column(PG_UUID(as_uuid=True), ForeignKey('notifications.id', ondelete='CASCADE'), primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    is_read = Column(Boolean, default=False, nullable=False)
+    read_at = Column(DateTime, nullable=True)
+    delivered_at = Column(DateTime, nullable=True)
+    email_sent_at = Column(DateTime, nullable=True)
+    notification = relationship('Notification', back_populates='recipients')
+    user = relationship('User', back_populates='notification_recipients')
+
+
+# ── NotificationSettings ───────────────────────────────────────────────────────
+
+class NotificationSettings(Base):
+    __tablename__ = 'notification_settings'
+    __table_args__ = (
+        Index('idx_notification_settings_user_id', 'user_id'),
+    )
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    event_type = Column(String(50), primary_key=True, nullable=False)
+    in_app_enabled = Column(Boolean, default=True, nullable=False)
+    email_enabled = Column(Boolean, default=False, nullable=False)
+    user = relationship('User', back_populates='notification_settings')

@@ -1,0 +1,136 @@
+{% extends "v3/_base.html" %}
+
+{% block title %}Notifications | Savanna Capital{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full">
+  <!-- Header -->
+  <div class="mb-4">
+    <h1 class="font-headline-lg text-headline-lg text-on-surface font-bold mb-1">Notifications</h1>
+    <p class="font-body-md text-body-md text-on-surface-variant">View and manage your notifications</p>
+  </div>
+
+  <!-- Filters & Actions Bar -->
+  <div class="bg-surface border border-outline-variant rounded-lg p-4 mb-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <!-- Filters -->
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Type Filter -->
+        <select id="notifications-filter-type" class="bg-surface border border-outline-variant rounded px-3 py-2 font-label text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary">
+          <option value="">All Types</option>
+          <option value="trade">Trade</option>
+          <option value="strategy">Strategy</option>
+          <option value="backtest">Backtest</option>
+          <option value="ml">Machine Learning</option>
+          <option value="ai">AI Advisor</option>
+          <option value="system">System</option>
+          <option value="error">Error</option>
+          <option value="warning">Warning</option>
+        </select>
+
+        <!-- Read Status Filter -->
+        <label class="flex items-center gap-2 text-sm text-on-surface-variant cursor-pointer">
+          <input type="checkbox" id="notifications-filter-unread-only" class="rounded border-outline-variant text-primary focus:ring-primary" checked>
+          <span>Unread only</span>
+        </label>
+
+        <!-- Clear Filters Button -->
+        <button id="notifications-clear-filters" class="px-3 py-2 text-sm font-label rounded bg-surface-container-high border border-outline-variant text-on-surface-variant hover:border-primary transition-colors hidden">
+          Clear Filters
+        </button>
+      </div>
+
+      <!-- Refresh Button -->
+      <button id="notifications-refresh" class="flex items-center gap-2 px-3 py-2 text-sm font-label rounded bg-surface-container-high border border-outline-variant text-on-surface hover:border-primary transition-colors">
+        <span class="material-symbols-rounded text-base">refresh</span>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Batch Actions Toolbar (hidden by default) -->
+  <div id="notifications-batch-toolbar" class="bg-primary/10 border border-primary rounded-lg p-3 mb-4 hidden flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span id="notifications-selected-count" class="font-label text-sm text-primary font-semibold">0 selected</span>
+      <button id="notifications-clear-selection" class="text-sm text-primary underline hover:no-underline">Clear selection</button>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="notifications-batch-mark-read" class="flex items-center gap-2 px-3 py-2 text-sm font-label rounded bg-primary text-on-surface hover:bg-primary-container transition-colors">
+        <span class="material-symbols-rounded text-base">mark_email_read</span>
+        Mark as Read
+      </button>
+      <button id="notifications-batch-delete" class="flex items-center gap-2 px-3 py-2 text-sm font-label rounded bg-error text-white hover:bg-error/90 transition-colors">
+        <span class="material-symbols-rounded text-base">delete</span>
+        Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- Notifications List -->
+  <div class="flex-1 bg-surface border border-outline-variant rounded-lg overflow-hidden">
+    <!-- Loading State -->
+    <div id="notifications-loading" class="flex items-center justify-center py-12 hidden">
+      <span class="material-symbols-rounded text-3xl text-primary animate-spin">refresh</span>
+      <span class="ml-3 font-body-md text-on-surface-variant">Loading notifications...</span>
+    </div>
+
+    <!-- Empty State -->
+    <div id="notifications-empty" class="flex flex-col items-center justify-center py-12 text-center hidden">
+      <span class="material-symbols-outlined text-[64px] text-on-surface-variant mb-4">notifications</span>
+      <h3 class="font-headline-md text-headline-md text-on-surface mb-2">No notifications</h3>
+      <p class="font-body-md text-body-md text-on-surface-variant max-w-md" id="notifications-empty-message">
+        You don't have any notifications yet. When actions occur in your account, they'll appear here.
+      </p>
+    </div>
+
+    <!-- Desktop Table -->
+    <div id="notifications-table-container" class="overflow-x-auto hidden">
+      <table class="w-full" role="table" aria-label="Notifications list">
+        <thead class="sticky top-0 bg-surface-container border-b border-outline-variant">
+          <tr>
+            <th class="px-4 py-3 w-12 text-left">
+              <input type="checkbox" id="notifications-select-all" class="rounded border-outline-variant" aria-label="Select all notifications">
+            </th>
+            <th class="px-4 py-3 text-left font-label text-xs font-medium text-on-surface-variant uppercase">Type</th>
+            <th class="px-4 py-3 text-left font-label text-xs font-medium text-on-surface-variant uppercase">Notification</th>
+            <th class="px-4 py-3 text-left font-label text-xs font-medium text-on-surface-variant uppercase">Time</th>
+            <th class="px-4 py-3 text-right font-label text-xs font-medium text-on-surface-variant uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="notifications-table-body" class="divide-y divide-outline-variant">
+          <!-- Dynamic rows -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Cards (shown on small screens) -->
+    <div id="notifications-cards-container" class="p-4 space-y-3 hidden">
+      <!-- Dynamic cards -->
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div id="notifications-pagination" class="flex items-center justify-between mt-4 bg-surface border border-outline-variant rounded-lg p-4 hidden">
+    <div class="text-sm font-label text-on-surface-variant">
+      Showing <span id="notifications-range" class="text-on-surface font-semibold">0-0</span> of <span id="notifications-total" class="text-on-surface font-semibold">0</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="notifications-prev-page" class="flex items-center gap-2 px-3 py-2 text-sm font-label rounded bg-surface-container-high border border-outline-variant text-on-surface hover:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+        <span class="material-symbols-rounded text-base">chevron_left</span>
+        Previous
+      </button>
+      <div class="flex items-center gap-1">
+        <span class="px-3 py-2 text-sm font-label text-on-surface-variant">Page <span id="notifications-current-page" class="text-on-surface font-semibold">1</span></span>
+      </div>
+      <button id="notifications-next-page" class="flex items-center gap-2 px-3 py-2 text-sm font-label rounded bg-surface-container-high border border-outline-variant text-on-surface hover:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+        Next
+        <span class="material-symbols-rounded text-base">chevron_right</span>
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/v3/pages/notifications.js" defer></script>
+{% endblock %}

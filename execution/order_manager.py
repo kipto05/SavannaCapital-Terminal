@@ -17,6 +17,7 @@ from typing import Optional
 from config.settings import config
 from db.models import Side as DBSide, Trade
 from db.session import SessionLocal
+from execution.notification_service import NotificationService
 from execution.position_sizer import PositionSizer
 from execution.sl_tp_model import SLTPResult
 
@@ -113,8 +114,27 @@ class OrderManager:
             )
             return None
 
+        # ── Publish order_placed notification ───────────────────────────────
         ticket: str = str(result.get("order", result.get("ticket", "")))
         open_price: float = result.get("price", entry_price)
+        try:
+            with SessionLocal() as db:
+                ns = NotificationService(db)
+                ns.publish(
+                    event_type="order_placed",
+                    title=f"Order placed: {symbol} {side_str}",
+                    message=f"Order placed: {symbol} {side_str} {lot_size} lots, ticket={ticket}",
+                    data={
+                        "symbol": symbol,
+                        "side": side_str,
+                        "lot_size": float(lot_size),
+                        "order_id": ticket,
+                        "price": float(open_price),
+                        "strategy": strategy_name,
+                    }
+                )
+        except Exception as exc:
+            log.exception("Failed to publish order_placed notification: %s", exc)
 
         # ── Persist to Trade table ──────────────────────────────────────────
         with SessionLocal() as db:
@@ -139,6 +159,29 @@ class OrderManager:
             db.add(trade)
             db.flush()
             trade_id = trade.id
+
+        # ── Publish trade_opened notification ───────────────────────────────
+        try:
+            with SessionLocal() as db:
+                ns = NotificationService(db)
+                ns.publish(
+                    event_type="trade_opened",
+                    title=f"Trade opened: {symbol} {side_str}",
+                    message=f"Trade opened: #{trade_id} {symbol} {side_str} {lot_size} lots @ {open_price:.5f}, SL={sl:.5f}, TP={tp:.5f}, strategy={strategy_name}",
+                    data={
+                        "trade_id": trade_id,
+                        "symbol": symbol,
+                        "side": side_str,
+                        "lot_size": float(lot_size),
+                        "entry_price": float(open_price),
+                        "sl": float(sl),
+                        "tp": float(tp),
+                        "strategy": strategy_name,
+                        "tag": signal.get("tag", f"{strategy_name}.{side_str.lower()}"),
+                    }
+                )
+        except Exception as exc:
+            log.exception("Failed to publish trade_opened notification: %s", exc)
 
         log.info(
             "Trade executed: id=%s ticket=%s symbol=%s side=%s entry=%.5f sl=%.5f tp=%.5f lots=%.2f strategy=%s",

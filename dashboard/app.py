@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +15,8 @@ from fastapi import (
     Request,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
@@ -31,7 +32,6 @@ from db.models import (
     Hypothesis,
     MLModel,
     OHLCVBar,
-    OptimisationRun,
     PlatformSetting,
     StrategyConfig,
     Trade,
@@ -77,10 +77,10 @@ async def _security_headers(request: Request, call_next):
 # Public paths below bypass the middleware entirely.
 
 _PUBLIC_PREFIXES = (
-    "/auth/",   # login / refresh (router prefix = /auth, not /api/auth)
+    "/auth/",  # login / refresh (router prefix = /auth, not /api/auth)
     "/health",  # health
-    "/static/", # css/js assets
-    "/login",   # login page itself
+    "/static/",  # css/js assets
+    "/login",  # login page itself
 )
 
 @app.middleware("http")
@@ -111,6 +111,9 @@ def _get_templates() -> "Jinja2Templates":
         _tpl = Jinja2Templates(directory=str(_TEMPLATES_DIR))
     return _tpl
 
+# Disabled StaticFiles mount due to 404 issues on Windows; using custom route instead.
+# app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
+
 app.include_router(auth_router)
 
 # -- ML Center routes -----------------------------------------------------------
@@ -125,17 +128,30 @@ app.include_router(risk_router, prefix="/api/risk")
 from dashboard.routes.quant import router as quant_router  # noqa: E402
 app.include_router(quant_router, prefix="/api/quant")
 
+# -- Notifications routes --------------------------------------------------------
+from dashboard.routes.notifications import router as notifications_router
+app.include_router(notifications_router)
+
 # v2 API sub-application
 from dashboard.v2.app import app as v2_app  # noqa: E402
 app.mount("/api/v2", v2_app)
+
+# -- Static file serving (custom) -----------------------------------------------
+@app.get("/static/{file_path:path}")
+async def serve_static(file_path: str):
+    """Serve static files from the static directory."""
+    full_path = Path(__file__).parent / "static" / file_path
+    if full_path.is_file():
+        return FileResponse(full_path)
+    raise HTTPException(status_code=404, detail="File not found")
 
 # -- Internal helper -----------------------------------------------------------
 def _mt5_adapter():
     try:
         from execution.mt5_adapter import MT5Adapter
         return MT5Adapter()
-    except Exception:
-        log.exception("Failed to import MT5Adapter")
+    except Exception as exc:
+        log.exception("Failed to import MT5Adapter: %s", exc)
         return None
 
 # -- API endpoints -------------------------------------------------------------
@@ -192,6 +208,87 @@ def api_strategies_library(current_user: User = Depends(_get_current_user), db: 
         wins = sum(1 for t in trades if t.pnl_r is not None and t.pnl_r > 0)
         win_rate = wins / total if total else 0
         net_pnl = sum(t.pnl_r for t in trades if t.pnl_r is not None)
+
+        # Compute additional metrics
+        sharpe_ratio = 0.0
+        max_drawdown_pct = 0.0
+        return_7d = 0.0
+        try:
+            # Get risk_per_trade from strategy params or fallback to config
+            risk_frac = row.params.get("risk_per_trade", config.risk.risk_per_trade) if row.params else config.risk.risk_per_trade
+
+            # 1. Sharpe ratio from daily returns
+            # Filter trades with pnl_r and closed_at
+            valid_trades = [t for t in trades if t.pnl_r is not None and t.closed_at is not None]
+            if len(valid_trades) >= 2:
+                # Group by date (UTC) and sum returns per day
+                daily_returns_dict = {}
+                for t in valid_trades:
+                    # Ensure closed_at is timezone-aware UTC
+                    closed = t.closed_at
+                    if closed.tzinfo is None:
+                        closed = closed.replace(tzinfo=timezone.utc)
+                    date_key = closed.date()
+                    daily_ret = t.pnl_r * risk_frac
+                    daily_returns_dict[date_key] = daily_returns_dict.get(date_key, 0.0) + daily_ret
+                # Build chronological list of daily returns
+                daily_returns = [daily_returns_dict[date] for date in sorted(daily_returns_dict.keys())]
+                if len(daily_returns) >= 2:
+                    mean = sum(daily_returns) / len(daily_returns)
+                    # Sample standard deviation
+                    if len(daily_returns) > 1:
+                        variance = sum((x - mean) ** 2 for x in daily_returns) / (len(daily_returns) - 1)
+                        std = variance ** 0.5 if variance > 0 else 0
+                    else:
+                        std = 0
+                    sharpe_ratio = mean / std * (252 ** 0.5) if std > 0 else 0.0
+                else:
+                    sharpe_ratio = 0.0
+            else:
+                sharpe_ratio = 0.0
+
+            # 2. Max drawdown percentage using equity curve
+            # Use valid trades sorted by opened_at chronological
+            trades_with_dates = [t for t in trades if t.opened_at is not None and t.pnl_r is not None]
+            if trades_with_dates:
+                # Sort by opened_at ascending
+                sorted_trades = sorted(trades_with_dates, key=lambda t: t.opened_at)
+                equity = 1.0
+                peak = 1.0
+                max_dd = 0.0
+                for t in sorted_trades:
+                    # Multiplicative equity update: equity *= (1 + pnl_r * risk_frac)
+                    equity *= (1 + t.pnl_r * risk_frac)
+                    if equity > peak:
+                        peak = equity
+                    if peak > 0:
+                        dd = (peak - equity) / peak
+                        if dd > max_dd:
+                            max_dd = dd
+                max_drawdown_pct = max_dd * 100
+            else:
+                max_drawdown_pct = 0.0
+
+            # 3. Return 7D (sum of pnl_r for trades opened in last 7 days)
+            now = datetime.now(timezone.utc)
+            seven_days_ago = now - timedelta(days=7)
+            recent_pnl = []
+            for t in trades:
+                if t.pnl_r is not None and t.opened_at is not None:
+                    opened = t.opened_at
+                    # Handle naive datetime: assume UTC
+                    if opened.tzinfo is None:
+                        opened = opened.replace(tzinfo=timezone.utc)
+                    if opened >= seven_days_ago:
+                        recent_pnl.append(t.pnl_r)
+            return_7d = sum(recent_pnl) if recent_pnl else 0.0
+
+        except Exception as exc:
+            log.exception("Error computing metrics for strategy %s: %s", row.name, exc)
+            sharpe_ratio = 0.0
+            max_drawdown_pct = 0.0
+            return_7d = 0.0
+
         results.append({
             "name": row.name,
             "label": label,
@@ -203,6 +300,9 @@ def api_strategies_library(current_user: User = Depends(_get_current_user), db: 
             "win_rate": win_rate,
             "avg_pnl_r": net_pnl / total if total else 0,
             "params": dict(row.params) if row.params else {},
+            "sharpe_ratio": sharpe_ratio,
+            "max_drawdown_pct": max_drawdown_pct,
+            "return_7d": return_7d,
         })
     return results
 
@@ -223,7 +323,7 @@ def api_strategy_deploy(name: str, current_user: User = Depends(_get_current_use
     reg._seed_if_needed(db)
     rec = reg.get_by_name(name)
     if rec is None:
-        raise HTTPException(404, f"Strategy {name} not found")
+        raise HTTPException(404, f"Strategy not found: {name}")
     log.info("Strategy deploy requested: name=%s", name)
     return {"status": "deploy_queued", "name": name}
 
@@ -286,157 +386,6 @@ def api_backtest_create(body: dict, current_user: User = Depends(_get_current_us
 
 # NOTE: /api/ml/models is now provided by the ML router -- no duplicate inline handler.
 
-# -- Optimization Hub endpoints -------------------------------------------------
-@app.get("/api/quant/optimise")
-def api_optimise_list(
-    current_user: User = Depends(_get_current_user),
-    db: Session = Depends(get_db),
-):
-    runs = db.query(OptimisationRun).order_by(OptimisationRun.created_at.desc()).all()
-    return [r.to_dict() for r in runs]
-
-@app.post("/api/quant/optimise")
-def api_optimise_create(
-    body: dict,
-    current_user: User = Depends(_get_current_user),
-    db: Session = Depends(get_db),
-):
-    strategy_name = body.get("strategy_name", "")
-    symbol = body.get("symbol", "")
-    timeframe = body.get("timeframe", "")
-    search_method = body.get("search_method", "grid")
-    fitness_metric = body.get("fitness_metric", "sharpe")
-    param_overrides = body.get("param_overrides")
-
-    if not all([strategy_name, symbol, timeframe]):
-        raise HTTPException(400, "strategy_name, symbol, and timeframe are required")
-
-    from strategies.registry import StrategyRegistry
-    reg = StrategyRegistry(db)
-    reg._seed_if_needed(db)
-    cls = reg.classes.get(strategy_name)
-    if cls is None:
-        raise HTTPException(404, f"Strategy not found: {strategy_name}")
-
-    if param_overrides:
-        param_bounds = param_overrides
-    else:
-        sc = db.query(StrategyConfig).filter(StrategyConfig.name == strategy_name).first()
-        if sc and sc.param_bounds:
-            param_bounds = sc.param_bounds
-        elif hasattr(cls, "param_bounds") and cls.param_bounds:
-            param_bounds = cls.param_bounds
-        else:
-            raise HTTPException(
-                400,
-                {"error": "No param_bounds found. Set param_overrides or add param_bounds to StrategyConfig/strategy class."},
-            )
-
-    n_iterations = int(body.get("n_iterations", 200))
-
-    run = OptimisationRun(
-        strategy_name=strategy_name,
-        symbol=symbol,
-        timeframe=timeframe,
-        search_method=search_method,
-        fitness_metric=fitness_metric,
-        status="pending",
-        n_iterations=n_iterations,
-    )
-    db.add(run)
-    db.flush()
-
-    def _bg():
-        from db.session import SessionLocal
-        sdb = SessionLocal()
-        try:
-            opt = sdb.query(OptimisationRun).filter(OptimisationRun.id == run.id).first()
-            if opt is None:
-                return
-            opt.status = "running"
-            opt.started_at = datetime.now(timezone.utc)
-            sdb.flush()
-
-            try:
-                from quant.optimiser import run as optimiser_run
-                result = optimiser_run(
-                    strategy_name=strategy_name,
-                    symbol=symbol,
-                    timeframe=timeframe,
-                    param_bounds=param_bounds,
-                    search_method=search_method,
-                    fitness_metric=fitness_metric,
-                    n_iterations=n_iterations,
-                    db_session=sdb,
-                )
-                opt.best_params = result["best_params"]
-                opt.best_score = result["best_score"]
-                opt.heatmap_data = result["heatmap_data"]
-                opt.top_n_results = result["top_n_results"]
-                opt.n_iterations = result["n_iterations"]
-                opt.status = "complete"
-                opt.completed_at = datetime.now(timezone.utc)
-            except Exception as exc:
-                log.exception("Optimisation run %d failed: %s", run.id, exc)
-                opt.status = "failed"
-                opt.error_message = str(exc)
-                opt.completed_at = datetime.now(timezone.utc)
-            sdb.commit()
-        finally:
-            sdb.close()
-
-    t = threading.Thread(target=_bg, daemon=True)
-    t.start()
-
-    return {"id": str(run.id), "status": "pending"}
-
-@app.get("/api/quant/optimise/{run_id}")
-def api_optimise_get(
-    run_id: str,
-    current_user: User = Depends(_get_current_user),
-    db: Session = Depends(get_db),
-):
-    run = db.query(OptimisationRun).filter(OptimisationRun.id == run_id).first()
-    if run is None:
-        raise HTTPException(404, "Optimisation run not found")
-    return run.to_dict()
-
-@app.patch("/api/quant/optimise/{run_id}/deploy")
-def api_optimise_deploy(
-    run_id: str,
-    body: dict,
-    current_user: User = Depends(_get_current_user),
-    db: Session = Depends(get_db),
-):
-    run = db.query(OptimisationRun).filter(OptimisationRun.id == run_id).first()
-    if run is None:
-        raise HTTPException(404, "Optimisation run not found")
-    if run.status != "complete":
-        raise HTTPException(400, "Cannot deploy an incomplete optimisation run")
-    if not run.best_params:
-        raise HTTPException(400, "No best_params recorded for this run")
-
-    new_params = body.get("params", run.best_params)
-    sc = (
-        db.query(StrategyConfig)
-        .filter(StrategyConfig.name == run.strategy_name)
-        .first()
-    )
-    if sc is None:
-        raise HTTPException(404, f"StrategyConfig not found: {run.strategy_name}")
-
-    sc.params = new_params
-    sc.version = (sc.version or 1) + 1
-    db.flush()
-
-    log.info(
-        "Optimisation %d deployed: strategy=%s new_params=%s",
-        run.id,
-        run.strategy_name,
-        new_params,
-    )
-    return {"status": "deployed", "strategy": run.strategy_name, "params": new_params}
-
 @app.get("/api/ai_advisor/suggestions")
 def api_suggestions(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     rows = (
@@ -459,8 +408,8 @@ def api_datasets(current_user: User = Depends(_get_current_user), db: Session = 
         )
         for sym, tf, cnt in rows:
             bar_counts[f"{sym}|{tf}"] = cnt
-    except Exception:
-        pass
+    except Exception as exc:
+        log.exception("Failed to fetch OHLCV bar counts: %s", exc)
     return {"assets": tf_map, "timeframes_by_asset": tf_map, "bar_counts": bar_counts}
 
 @app.get("/api/data/datasets/{symbol}/ohlcv")
@@ -557,7 +506,7 @@ def _render_page(
     tpl = _get_templates()
     token = ""
     auth_header = request.headers.get("authorization", "")
-    if auth_header.startswith("B"):
+    if auth_header.startswith("Bearer "):
         token = auth_header[7:]
     return tpl.TemplateResponse(
         request,
@@ -569,6 +518,29 @@ def _render_page(
             "jwt_token": token,
         },
     )
+
+@app.get("/v3/{page}", response_class=HTMLResponse)
+def v3_page(page: str, request: Request):
+    """Render a v3 template. Public route, no JWT required."""
+    tpl = _get_templates()
+    token = ""
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    try:
+        return tpl.TemplateResponse(
+            request,
+            f"v3/{page}.html",
+            {
+                "title": page.replace("_", " ").title(),
+                "active": page,
+                "page_title": page.replace("_", " ").title(),
+                "jwt_token": token,
+            },
+        )
+    except Exception as exc:
+        log.error("Failed to render v3 template %s: %s", page, exc)
+        raise HTTPException(status_code=404, detail="Page not found")
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request) -> HTMLResponse:
@@ -613,7 +585,7 @@ def optimization(request: Request):
     return _render_page("optimization", "Optimization Hub", "optimization", request)
 
 @app.get("/hypotheses", response_class=HTMLResponse)
-def hypotheses(request: Request):
+def hypotheses_page(request: Request):
     return _render_page("hypotheses", "Hypotheses", "hypotheses", request)
 
 @app.get("/research", response_class=HTMLResponse)

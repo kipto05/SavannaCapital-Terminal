@@ -1,0 +1,563 @@
+{% extends "v3/_base.html" %}
+{% block title %}Strategy Library | Savanna Capital{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full overflow-hidden" id="strategy-library-container">
+
+<!-- TOP NAVIGATION BAR -->
+<header class="h-14 border-b border-outline-variant bg-surface-container flex items-center justify-between px-container-padding shrink-0">
+<div class="flex items-center gap-4">
+<!-- Search bar with accessible label -->
+<div class="relative hidden md:block">
+<label for="strategy-library-search" class="sr-only">Search strategies by name, asset, or tag</label>
+<span class="material_symbols_outlined text-on-surface-variant text-base absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true">search</span>
+<input
+id="strategy-library-search"
+type="text"
+placeholder="Search strategies..."
+aria-label="Search strategies by name, asset, or tag"
+class="bg-surface border border-outline-variant rounded pl-8 pr-3 py-2 font-label-sm text-on-surface placeholder:on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors min-w-[200px]"
+/>
+</div>
+
+<!-- Domain navigation -->
+<nav class="hidden lg:flex items-center gap-4 ml-2" aria-label="Strategy domain navigation">
+<a href="/research" class="text-on-surface-variant hover:text-on-surface font-label-sm transition-colors">Research</a>
+<a href="/strategies" class="text-primary font-bold border-b-2 border-primary pb-0.5 font-label-sm" aria-current="page">Execution</a>
+<a href="/trade-ops" class="text-on-surface-variant hover:text-on-surface font-label-sm transition-colors">Operations</a>
+<a href="/executive" class="text-on-surface-variant hover:text-on-surface font-label-sm transition-colors">Analytics</a>
+</nav>
+</div>
+
+<div class="flex items-center gap-3">
+<!-- Create Strategy button -->
+<button
+id="strategy-library-create-btn"
+class="flex items-center bg-primary text-on-surface px-3 py-2 rounded hover:opacity-90 transition-opacity font-label-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-container"
+aria-label="Create new strategy"
+>
+<span class="material_symbols_outlined text-base mr-1.5" aria-hidden="true">add</span>
+<span>Create Strategy</span>
+</button>
+
+<div class="flex items-center gap-1">
+<button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Notifications">
+<span class="material_symbols_outlined text-lg">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Account">
+<span class="material_symbols_outlined text-lg">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+
+<!-- SCROLLABLE CONTENT -->
+<div class="flex-grow overflow-y-auto p-container-padding">
+
+<!-- Global initial loader -->
+<div id="strategy-library-global-loader" class="hidden flex items-center justify-center py-12" role="status" aria-live="polite">
+<span class="material_symbols_outlined text-primary text-3xl animate-spin" aria-hidden="true">refresh</span>
+<span class="ml-2 text-on-surface-variant">Loading strategies...</span>
+</div>
+
+<!-- FILTER BAR -->
+<section class="mb-4" id="strategy-library-filters">
+<div class="bg-surface-container border border-outline-variant rounded-lg p-4 space-y-4">
+<!-- First row: Asset class, status toggles, clear -->
+<div class="flex flex-wrap items-center gap-4">
+<!-- Asset Class filter -->
+<div class="flex items-center gap-2">
+<label for="strategy-library-asset-class" class="font-label-xs text-on-surface-variant uppercase">Asset Class</label>
+<select
+id="strategy-library-asset-class"
+class="bg-surface border border-outline-variant rounded px-3 py-1.5 font-label-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+aria-label="Filter by asset class"
+>
+<option value="">All Classes</option>
+<option value="crypto">Crypto</option>
+<option value="forex">Forex</option>
+<option value="metals">Metals</option>
+<option value="equities">Equities</option>
+</select>
+</div>
+
+<!-- Status toggles -->
+<div class="flex items-center gap-3">
+<span class="font-label-xs text-on-surface-variant uppercase">Status</span>
+<div class="flex gap-2" role="group" aria-label="Filter by status">
+<button
+class="strategy-library-status-btn bg-surface-container-high border border-primary text-on-surface px-3 py-2 rounded font-label-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+data-status-filter="active"
+aria-pressed="true"
+>
+Active
+</button>
+<button
+class="strategy-library-status-btn bg-surface border border-outline-variant text-on-surface-variant px-3 py-2 rounded font-label-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-container"
+data-status-filter="inactive"
+aria-pressed="false"
+>
+Inactive
+</button>
+<button
+class="strategy-library-status-btn bg-surface border border-outline-variant text-on-surface-variant px-3 py-2 rounded font-label-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-container"
+data-status-filter="archived"
+aria-pressed="false"
+>
+Archived
+</button>
+</div>
+</div>
+
+<!-- Clear filters -->
+<button
+id="strategy-library-clear-filters"
+class="text-on-surface-variant hover:text-on-surface font-label-sm px-3 py-2 transition-colors focus:outline-none focus:underline"
+>
+Clear All
+</button>
+</div>
+
+<!-- Second row: Tag chips -->
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-label-xs text-on-surface-variant uppercase">Tags</span>
+<div id="strategy-library-tags" class="flex flex-wrap gap-2" role="group" aria-label="Filter by tags">
+<!-- Populated by JS -->
+<button class="strategy-library-tag-btn bg-surface-container-high border border-primary text-on-surface px-3 py-2 rounded font-label-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary" data-tag="momentum" aria-pressed="true">Momentum</button>
+<button class="strategy-library-tag-btn bg-surface border border-outline-variant text-on-surface-variant px-3 py-2 rounded font-label-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-container" data-tag="reversion" aria-pressed="false">Reversion</button>
+<button class="strategy-library-tag-btn bg-surface border border-outline-variant text-on-surface-variant px-3 py-2 rounded font-label-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-container" data-tag="breakout" aria-pressed="false">Breakout</button>
+<button class="strategy-library-tag-btn bg-surface border border-outline-variant text-on-surface-variant px-3 py-2 rounded font-label-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-container" data-tag="trend" aria-pressed="false">Trend</button>
+<button class="strategy-library-tag-btn bg-surface border border-outline-variant text-on-surface-variant px-3 py-2 rounded font-label-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-container" data-tag="swing" aria-pressed="false">Swing</button>
+<button class="strategy-library-tag-btn bg-surface border border-outline-variant text-on-surface-variant px-3 py-2 rounded font-label-sm hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-container" data-tag="scalping" aria-pressed="false">Scalping</button>
+</div>
+</div>
+
+<!-- Third row: Regime filter + ML override -->
+<div class="flex flex-wrap items-center gap-4">
+<div class="flex items-center gap-2">
+<label for="strategy-library-filter-regime" class="font-label-xs text-on-surface-variant uppercase">Regime</label>
+<select
+id="strategy-library-filter-regime"
+class="bg-surface border border-outline-variant rounded px-3 py-1.5 font-label-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+aria-label="Filter by market regime"
+>
+<option value="">All Regimes</option>
+<option value="trending">Trending</option>
+<option value="ranging">Ranging</option>
+<option value="volatile">Volatile</option>
+</select>
+</div>
+
+<div class="flex items-center gap-2">
+<label for="strategy-library-ml-override" class="font-label-xs text-on-surface-variant uppercase">ML Override</label>
+<label class="relative inline-block w-10 h-5 cursor-pointer" aria-label="Toggle ML override">
+<input type="checkbox" id="strategy-library-ml-override" class="sr-only peer" aria-checked="false">
+<div class="w-10 h-5 bg-surface rounded-full peer peer-checked:bg-primary transition-colors" aria-hidden="true"></div>
+<div class="absolute top-0 left-0 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5" aria-hidden="true"></div>
+</label>
+</div>
+</div>
+</div>
+</section>
+
+<!-- MAIN WORK AREA -->
+<div class="flex gap-4" style="min-height: 500px">
+
+<!-- CENTER CONTENT AREA -->
+<div class="flex-1 flex flex-col" style="min-width: 0">
+
+<!-- View controls -->
+<div class="flex items-center justify-between mb-3">
+<h2 class="font-headline-md text-headline-md text-on-surface">Strategy Library</h2>
+<div class="flex items-center gap-2">
+<span class="font-label-xs text-on-surface-variant uppercase mr-1">View:</span>
+<button
+id="strategy-library-view-grid"
+class="bg-surface-container p-2 rounded border border-primary text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+data-view-toggle="grid"
+aria-pressed="true"
+aria-label="Grid view"
+>
+<span class="material_symbols_outlined text-base" aria-hidden="true">grid_view</span>
+</button>
+<button
+id="strategy-library-view-list"
+class="bg-surface p-2 rounded border border-outline-variant text-on-surface-variant hover:text-on-surface hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+data-view-toggle="table"
+aria-pressed="false"
+aria-label="Table view"
+>
+<span class="material_symbols_outlined text-base" aria-hidden="true">list</span>
+</button>
+<button
+id="strategy-library-view-evidence"
+class="bg-surface p-2 rounded border border-outline-variant text-on-surface-variant hover:text-on-surface hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+data-view-toggle="evidence"
+aria-pressed="false"
+aria-label="Evidence view"
+>
+<span class="material_symbols_outlined text-base" aria-hidden="true">psychology</span>
+</button>
+</div>
+</div>
+
+<!-- Strategy Cards Grid (default view) -->
+<div id="strategy-library-grid-view" class="flex-1">
+<div id="strategy-library-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" role="list" aria-label="Strategy cards">
+<!-- Populated by JS -->
+</div>
+</div>
+
+<!-- Table View (hidden by default) -->
+<div id="strategy-library-table-view" class="hidden flex-1">
+<div class="bg-surface border border-outline-variant rounded-lg overflow-hidden custom-scrollbar">
+<div id="strategy-library-table">
+<div class="overflow-x-auto max-h-[600px]">
+<table class="w-full border-collapse" role="table" aria-label="Strategies table">
+<thead class="sticky top-0 bg-surface-container z-10">
+<tr>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-left whitespace-nowrap" scope="col">Name</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-left whitespace-nowrap" scope="col">Label</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-left whitespace-nowrap" scope="col">Symbol</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-center whitespace-nowrap" scope="col">TF</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-left whitespace-nowrap" scope="col">Status</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-left whitespace-nowrap" scope="col">Version</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-right whitespace-nowrap" scope="col">Trades</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-right whitespace-nowrap" scope="col">WR</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-right whitespace-nowrap" scope="col">PF</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-right whitespace-nowrap" scope="col">Sharpe</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-right whitespace-nowrap" scope="col">Max DD</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-center whitespace-nowrap" scope="col">ML</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-left whitespace-nowrap" scope="col">Actions</th>
+</tr>
+</thead>
+<tbody id="strategy-library-table-body" class="divide-y divide-outline-variant">
+<!-- Populated by JS -->
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Evidence View (hidden by default) -->
+<div id="strategy-library-evidence-view" class="hidden flex-1">
+<div class="bg-surface-container border border-outline-variant rounded-lg p-6 relative">
+<div id="strategy-library-evidence" role="feed" aria-live="polite">
+</div>
+<div class="flex flex-col items-center justify-center py-12 text-center">
+<span class="material_symbols_outlined text-5xl mb-4 block opacity-50 text-on-surface-variant" aria-hidden="true">psychology</span>
+<p class="font-headline-md text-headline-md mb-2 text-on-surface">Evidence View</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Trade annotations, screenshots, and reasoning for selected strategies.</p>
+</div>
+<!-- Loader -->
+<div class="strategy-library-loading-spinner hidden absolute inset-0 flex items-center justify-center bg-surface-container/90" role="status" aria-live="polite">
+<span class="material_symbols_outlined text-primary text-2xl animate-spin">refresh</span>
+</div>
+</div>
+</div>
+
+</div>
+
+<!-- RIGHT SLIDE-UP DETAIL PANEL - Responsive drawer -->
+<aside
+id="strategy-library-detail-panel"
+class="w-full md:w-[340px] bg-surface-container border border-outline-variant rounded-lg flex flex-col fixed right-0 top-0 bottom-0 z-30 transform transition-transform duration-300 ease-in-out md:right-4 md:top-20 md:bottom-4 md:rounded-lg"
+style="transform: translateX(100%);"
+role="dialog"
+aria-labelledby="strategy-library-detail-title"
+aria-modal="false"
+>
+<!-- Panel header -->
+<div class="px-4 py-3 border-b border-outline-variant flex items-center bg-surface-container-high shrink-0">
+<div class="flex items-center gap-3 flex-1">
+<h3 id="strategy-library-detail-title" class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Strategy Details</h3>
+<button
+id="strategy-library-header-edit-params"
+class="flex items-center bg-primary text-on-surface px-3 py-2 rounded hover:opacity-90 transition-opacity font-label-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+aria-label="Edit strategy parameters"
+>
+<span class="material_symbols_outlined text-base mr-1" aria-hidden="true">edit</span>
+<span>Edit Params</span>
+</button>
+<button
+id="strategy-library-header-copy-strategy"
+class="flex items-center bg-primary text-on-surface px-3 py-2 rounded hover:opacity-90 transition-opacity font-label-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+aria-label="Copy strategy"
+>
+<span class="material_symbols_outlined text-base mr-1" aria-hidden="true">content_copy</span>
+<span>Copy</span>
+</button>
+</div>
+<button
+id="strategy-library-detail-close"
+class="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+aria-label="Close detail panel"
+data-close-detail
+>
+<span class="material_symbols_outlined text-lg">close</span>
+</button>
+</div>
+
+<!-- Panel content (scrollable) -->
+<div class="flex-1 overflow-y-auto p-4 space-y-4" id="strategy-library-detail-content">
+
+<!-- Loader (overlay) -->
+<div id="strategy-library-detail-loader" class="strategy-library-loading-spinner hidden absolute inset-0 flex items-center justify-center bg-surface-container/90" role="status" aria-live="polite">
+<span class="material_symbols_outlined text-primary text-2xl animate-spin">refresh</span>
+</div>
+
+<!-- Overview section -->
+<section id="strategy-library-detail-overview" class="space-y-3 relative">
+<h4 class="font-label-sm text-label-sm uppercase font-bold text-on-surface border-b border-outline-variant pb-1">Overview</h4>
+
+<!-- KPI Grid -->
+<div id="strategy-library-kpi-grid" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs relative">
+<!-- Loading spinner for KPI -->
+<div class="strategy-library-loading-spinner hidden absolute inset-0 flex items-center justify-center bg-surface-container/90">
+<span class="material_symbols_outlined text-primary animate-spin">refresh</span>
+</div>
+<!-- Populated by JS -->
+</div>
+
+<div class="bg-surface border border-outline-variant rounded-lg p-3">
+<div class="text-on-surface-variant mb-1 font-label-xs uppercase">Description</div>
+<p id="detail-description" class="font-body-sm text-body-md text-on-surface leading-relaxed">No description available.</p>
+</div>
+
+<div class="flex flex-wrap gap-2" id="strategy-badges">
+<span class="bg-surface-container-high border border-outline-variant px-2.5 py-1 font-label-xs text-on-surface-variant rounded">Crypto</span>
+<span class="bg-surface-container-high border border-outline-variant px-2.5 py-1 font-label-xs text-on-surface-variant rounded">Momentum</span>
+</div>
+</section>
+
+<!-- Equity Curve section -->
+<section class="space-y-2 relative">
+<h4 class="font-label-sm text-label-sm uppercase font-bold text-on-surface border-b border-outline-variant pb-1">Equity Curve</h4>
+<div class="bg-surface-container border border-outline-variant rounded-lg p-3 relative" style="height: 160px">
+<div class="strategy-library-loading-spinner hidden absolute inset-0 flex items-center justify-center bg-surface-container/90">
+<span class="material_symbols_outlined text-primary animate-spin">refresh</span>
+</div>
+<canvas id="strategy-library-equity-chart" role="img" aria-label="Equity curve chart"></canvas>
+</div>
+</section>
+
+<!-- Monte Carlo section -->
+<section class="space-y-2 relative">
+<h4 class="font-label-sm text-label-sm uppercase font-bold text-on-surface border-b border-outline-variant pb-1">Monte Carlo Simulation</h4>
+<div class="bg-surface-container border border-outline-variant rounded-lg p-3 relative" style="height: 120px">
+<div class="strategy-library-loading-spinner hidden absolute inset-0 flex items-center justify-center bg-surface-container/90">
+<span class="material_symbols_outlined text-primary animate-spin">refresh</span>
+</div>
+<canvas id="strategy-library-montecarlo-chart" role="img" aria-label="Monte Carlo simulation chart"></canvas>
+</div>
+</section>
+
+<!-- Monthly Returns section -->
+<section class="space-y-2 relative">
+<h4 class="font-label-sm text-label-sm uppercase font-bold text-on-surface border-b border-outline-variant pb-1">Monthly Returns</h4>
+<div class="bg-surface-container border border-outline-variant rounded-lg p-3 relative" style="height: 100px">
+<div class="strategy-library-loading-spinner hidden absolute inset-0 flex items-center justify-center bg-surface-container/90">
+<span class="material_symbols_outlined text-primary animate-spin">refresh</span>
+</div>
+<canvas id="strategy-library-returns-chart" role="img" aria-label="Monthly returns chart"></canvas>
+</div>
+</section>
+
+<!-- Trades section -->
+<section class="space-y-2 relative">
+<div class="flex justify-between items-center border-b border-outline-variant pb-1">
+<h4 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Recent Trades</h4>
+<button id="strategy-library-view-all-trades" class="text-primary font-label-sm hover:underline focus:outline-none focus:underline">View All</button>
+</div>
+<div id="strategy-library-trades-table" class="bg-surface border border-outline-variant rounded-lg overflow-hidden custom-scrollbar relative">
+<!-- Loading spinner -->
+<div class="strategy-library-loading-spinner hidden absolute inset-0 flex items-center justify-center bg-surface-container/90">
+<span class="material_symbols_outlined text-primary animate-spin">refresh</span>
+</div>
+<div class="overflow-x-auto max-h-40">
+<table class="w-full border-collapse" role="table" aria-label="Recent trades">
+<thead class="sticky top-0 bg-surface-container z-10">
+<tr>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-left whitespace-nowrap" scope="col">Date</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-left whitespace-nowrap" scope="col">Side</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-right whitespace-nowrap" scope="col">Entry</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-right whitespace-nowrap" scope="col">Exit</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-right whitespace-nowrap" scope="col">Lot</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-right whitespace-nowrap" scope="col">PnL</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-right whitespace-nowrap" scope="col">Comm.</th>
+<th class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-left whitespace-nowrap" scope="col">Tags</th>
+</tr>
+</thead>
+<tbody id="detail-trades-body" class="divide-y divide-outline-variant">
+<!-- Populated by JS -->
+</tbody>
+</table>
+</div>
+</div>
+</section>
+
+<!-- Backtest Results section (accordion) -->
+<section class="space-y-2 relative">
+<details class="border border-outline-variant rounded-lg overflow-hidden">
+<summary class="px-3 py-2 bg-surface-container-high cursor-pointer hover:bg-surface-container-highest transition-colors flex justify-between items-center focus:outline-none focus:bg-surface-container-highest" aria-label="Backtest results, expand to view details">
+<span class="font-label-sm text-label-sm font-bold text-on-surface">Backtest Results</span>
+<span class="material_symbols_outlined text-base text-on-surface-variant" aria-hidden="true">expand_more</span>
+</summary>
+<div id="strategy-library-backtests" class="p-3 space-y-2 bg-surface relative">
+<!-- Loading spinner -->
+<div class="strategy-library-loading-spinner hidden absolute inset-0 flex items-center justify-center bg-surface-container/90">
+<span class="material_symbols_outlined text-primary animate-spin">refresh</span>
+</div>
+<!-- Populated by JS -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+<div>
+<div class="text-on-surface-variant">Total Return</div>
+<div id="detail-return" class="font-data text-data text-on-surface">+127.5%</div>
+</div>
+<div>
+<div class="text-on-surface-variant">Backtest Period</div>
+<div id="detail-backtest-period" class="font-data text-data text-on-surface">2024-01 to 2024-12</div>
+</div>
+<div>
+<div class="text-on-surface-variant">Win Rate</div>
+<div id="detail-backtest-win-rate" class="font-data text-data text-on-surface">58.3%</div>
+</div>
+<div>
+<div class="text-on-surface-variant">Expectancy</div>
+<div id="detail-expectancy" class="font-data text-data text-on-surface">+0.82 R</div>
+</div>
+</div>
+<button class="w-full mt-2 bg-surface-container-high border border-outline-variant rounded px-3 py-2 font-label-sm text-on-surface hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary">
+Run New Backtest
+</button>
+</div>
+</details>
+</section>
+
+<!-- Version History section -->
+<section class="space-y-2 relative">
+<h4 class="font-label-sm text-label-sm uppercase font-bold text-on-surface border-b border-outline-variant pb-1">Version History</h4>
+<div id="strategy-library-versions" class="bg-surface border border-outline-variant rounded-lg p-3 space-y-2 relative">
+<!-- Loading spinner -->
+<div class="strategy-library-loading-spinner hidden absolute inset-0 flex items-center justify-center bg-surface-container/90">
+<span class="material_symbols_outlined text-primary animate-spin">refresh</span>
+</div>
+<!-- Populated by JS -->
+<div class="flex items-start gap-2 text-xs border-l-2 border-primary pl-2">
+<span class="material_symbols_outlined text-primary text-sm mt-1" aria-hidden="true">history</span>
+<div class="flex-1">
+<div class="text-on-surface font-bold">v2.3.0</div>
+<div class="text-on-surface-variant">Added dynamic SL</div>
+</div>
+<span class="text-on-surface-variant">2 days ago</span>
+</div>
+</div>
+</section>
+
+<!-- Deployment History section -->
+<section class="space-y-2 relative">
+<h4 class="font-label-sm text-label-sm uppercase font-bold text-on-surface border-b border-outline-variant pb-1">Deployment History</h4>
+<div id="strategy-library-deployments" class="bg-surface border border-outline-variant rounded-lg p-3 space-y-2 relative">
+<!-- Loading spinner -->
+<div class="strategy-library-loading-spinner hidden absolute inset-0 flex items-center justify-center bg-surface-container/90">
+<span class="material_symbols_outlined text-primary animate-spin">refresh</span>
+</div>
+<!-- Populated by JS -->
+<div class="flex items-start gap-2 text-xs border-l-2 border-primary pl-2">
+<span class="material_symbols_outlined text-primary text-sm mt-1" aria-hidden="true">play_circle</span>
+<div class="flex-1">
+<div class="text-on-surface font-bold">Deployed to Live</div>
+<div class="text-on-surface-variant">v2.3.0 running on engine-01</div>
+</div>
+<span class="text-on-surface-variant">1 day ago</span>
+</div>
+</div>
+</section>
+
+<!-- Settings section -->
+<section class="pt-2 border-t border-outline-variant">
+<button
+id="strategy-library-edit-params-btn"
+class="w-full flex items-center justify-center gap-2 bg-primary text-on-surface px-4 py-2 rounded hover:opacity-90 transition-opacity font-label-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+>
+<span class="material_symbols_outlined text-base" aria-hidden="true">edit</span>
+<span>Edit Parameters</span>
+</button>
+</section>
+
+</div>
+</aside>
+
+</div>
+</div>
+
+</div>
+
+<!-- MODALS CONTAINER -->
+<div id="strategy-library-modals" class="fixed inset-0 z-50 pointer-events-none">
+
+{% include "v3/modals/edit_strategy_params.html" %}
+{% include "v3/modals/copy_strategy.html" %}
+
+<!-- Trade Modal -->
+<div
+id="trade-modal"
+class="absolute inset-0 bg-black/70 flex items-center justify-center p-4 hidden strategy-library-modal-overlay"
+role="dialog"
+aria-modal="true"
+aria-labelledby="trade-modal-title"
+>
+<div class="bg-surface-container border border-outline-variant rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+<div class="px-4 py-3 border-b border-outline-variant flex justify-between items-center bg-surface-container-high shrink-0">
+<h3 id="trade-modal-title" class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Trade Details</h3>
+<button class="modal-close p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Close modal">
+<span class="material_symbols_outlined text-lg">close</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-4">
+<div id="trade-modal-content" role="document">
+<!-- Trade details will be populated here -->
+</div>
+</div>
+<div class="px-4 py-3 border-t border-outline-variant flex justify-end gap-3 bg-surface-container-high shrink-0">
+<button class="modal-close-cancel bg-surface border border-outline-variant text-on-surface px-4 py-2 rounded font-label-sm hover:bg-surface-container transition-colors focus:outline-none focus:ring-2 focus:ring-primary">Close</button>
+</div>
+</div>
+</div>
+
+<!-- Backtest Modal -->
+<div
+id="backtest-modal"
+class="absolute inset-0 bg-black/70 flex items-center justify-center p-4 hidden strategy-library-modal-overlay"
+role="dialog"
+aria-modal="true"
+aria-labelledby="backtest-modal-title"
+>
+<div class="bg-surface-container border border-outline-variant rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+<div class="px-4 py-3 border-b border-outline-variant flex justify-between items-center bg-surface-container-high shrink-0">
+<h3 id="backtest-modal-title" class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Backtest Details</h3>
+<button class="modal-close p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Close modal">
+<span class="material_symbols_outlined text-lg">close</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-4">
+<div id="backtest-modal-content" role="document">
+<!-- Backtest details will be populated here -->
+</div>
+</div>
+<div class="px-4 py-3 border-t border-outline-variant flex justify-end gap-3 bg-surface-container-high shrink-0">
+<button class="modal-close-cancel bg-surface border border-outline-variant text-on-surface px-4 py-2 rounded font-label-sm hover:bg-surface-container transition-colors focus:outline-none focus:ring-2 focus:ring-primary">Close</button>
+</button>
+</div>
+</div>
+</div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="module" src="/static/v3/pages/strategy_library.js"></script>
+{% endblock %}

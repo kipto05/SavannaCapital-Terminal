@@ -22,6 +22,8 @@ from strategies.base import (
     ema,
     rsi,
 )
+from db.session import SessionLocal
+from execution.notification_service import NotificationService
 
 log = logging.getLogger(__name__)
 
@@ -162,7 +164,7 @@ class DivergenceSwing(BaseStrategy):
                 if result.rr1 < p["min_rr"]:
                     log.debug("%s: RR %.2f < min %.2f — skip", self.meta.name, result.rr1, p["min_rr"])
                     return None
-                return Signal(
+                signal = Signal(
                     side=side_v,
                     entry=close,
                     sl=result.sl,
@@ -173,6 +175,25 @@ class DivergenceSwing(BaseStrategy):
                     tag=f"{self.meta.name}.long",
                     regime="ranging",
                 )
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {self.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": self.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+                return signal
 
             # ── Bearish divergence ───────────────────────────────────────────
             if self._bearish_divergence(df["close"], rsi_vals, p["lookback_bars"]):
@@ -183,7 +204,7 @@ class DivergenceSwing(BaseStrategy):
                 if result.rr1 < p["min_rr"]:
                     log.debug("%s: RR %.2f < min %.2f — skip", self.meta.name, result.rr1, p["min_rr"])
                     return None
-                return Signal(
+                signal = Signal(
                     side=side_v,
                     entry=close,
                     sl=result.sl,
@@ -194,6 +215,25 @@ class DivergenceSwing(BaseStrategy):
                     tag=f"{self.meta.name}.short",
                     regime="ranging",
                 )
+                try:
+                    with SessionLocal() as db:
+                        ns = NotificationService(db)
+                        ns.publish(
+                            event_type="strategy_signal",
+                            title=f"Signal from {self.meta.name}",
+                            message=f"{self.meta.name} {signal.side.value} signal on {self.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
+                            data={
+                                "strategy": self.meta.name,
+                                "symbol": self.symbol,
+                                "side": signal.side.value,
+                                "entry": float(signal.entry),
+                                "sl": float(signal.sl),
+                                "tp": float(signal.tp)
+                            }
+                        )
+                except Exception as exc:
+                    log.exception("Failed to publish strategy signal notification: %s", exc)
+                return signal
 
             return None
         except Exception as exc:

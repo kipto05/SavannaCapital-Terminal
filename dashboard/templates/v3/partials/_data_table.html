@@ -1,0 +1,47 @@
+{# Data Table Component
+   Table with sticky header, sortable columns, and responsive scrolling.
+   Usage: {% include "v3/partials/_data_table.html" with headers=headers rows=rows %}
+#}
+<div class="bg-surface border border-outline-variant rounded-lg overflow-hidden custom-scrollbar">
+  <div class="overflow-x-auto max-h-[600px]">
+    <table class="w-full border-collapse">
+      <thead class="sticky top-0 bg-surface-container z-10">
+        <tr>
+          {% for header in headers %}
+            <th
+              class="px-4 py-3 font-label text-xs font-medium text-on-surface border-b border-outline-variant text-left whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors select-none"
+              {% if header.sortable is defined and header.sortable %}
+                data-sort="{{ header.key or header.label|lower }}"
+                onclick="handleSort(this)"
+              {% endif %}
+            >
+              <div class="flex items-center space-x-1">
+                <span>{{ header.label }}</span>
+                {% if header.sortable is defined and header.sortable %}
+                  <span class="material-symbols-rounded text-xs opacity-50">swap_vert</span>
+                {% endif %}
+              </div>
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-outline-variant">
+        {% for row in rows %}
+          <tr class="hover:bg-surface-container transition-colors">
+            {% for header in headers %}
+              <td class="px-4 py-3 font-data text-sm text-on-surface whitespace-nowrap">
+                {{ row[header.key] if header.key in row else '' }}
+              </td>
+            {% endfor %}
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="{{ headers|length }}" class="px-4 py-8 text-center text-on-surface opacity-50 font-label text-sm">
+              No data available
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,32 @@
+{# Form Field Component
+   Includes label, input, error message area, and supporting hint.
+   Usage: {% include "v3/partials/_form_field.html" with label="Symbol" name="symbol" value="BTCUSD" error=errors.symbol hint="Enter a valid trading symbol" %}
+#}
+<div class="space-y-1.5">
+  <label for="{{ name }}" class="block font-label text-xs font-medium text-on-surface">
+    {{ label }} {% if required %}<span class="text-red-400">*</span>{% endif %}
+  </label>
+
+  <input
+    type="{{ type|default('text') }}"
+    id="{{ name }}"
+    name="{{ name }}"
+    value="{{ value or '' }}"
+    placeholder="{{ placeholder or '' }}"
+    class="w-full px-3 py-2 font-data text-sm text-on-surface bg-surface border border-outline-variant rounded focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all placeholder:opacity-50"
+    {% if required %}required{% endif %}
+    {% if disabled %}disabled{% endif %}
+    {% if readonly %}readonly{% endif %}
+  />
+
+  {% if hint %}
+    <p class="font-label text-xs text-on-surface-variant">{{ hint }}</p>
+  {% endif %}
+
+  {% if error %}
+    <p class="font-label text-xs text-red-400 flex items-center space-x-1">
+      <span class="material-symbols-rounded text-sm">error</span>
+      <span>{{ error }}</span>
+    </p>
+  {% endif %}
+</div>

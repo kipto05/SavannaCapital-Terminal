@@ -1,0 +1,290 @@
+{% extends "v3/_base.html" %}
+{% block title %}Trade Operations | Savanna Capital{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full overflow-hidden">
+  <!-- TOP NAVIGATION BAR -->
+  <header class="h-12 border-b border-outline-variant bg-surface-container-lowest flex flex-wrap items-center justify-between px-4 shrink-0">
+    <div class="flex items-center gap-4">
+      <!-- Search input -->
+      <div class="relative">
+        <span class="material-symbols-outlined text-on-surface-variant text-[16px] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
+        <input
+          id="to-search-input"
+          type="text"
+          placeholder="Search strategies, tickers, logs…"
+          class="bg-surface-container border border-outline-variant rounded pl-8 pr-3 py-1.5 text-label-sm font-label-sm w-64 text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
+        />
+      </div>
+
+      <!-- Filters button -->
+      <button
+        id="to-filters-btn"
+        class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+        title="Filters"
+      >
+        <span class="material-symbols-outlined text-[18px]">tune</span>
+      </button>
+
+      <!-- Account selector -->
+      <div class="relative">
+        <select
+          id="to-account-select"
+          class="bg-surface-container border border-outline-variant rounded px-3 py-1.5 text-label-sm font-label-sm text-on-surface focus:outline-none focus:border-primary appearance-none cursor-pointer"
+        >
+          <option value="primary-live">Primary (Live)</option>
+          <option value="secondary-demo">Secondary (Demo)</option>
+          <option value="tertiary-live">Tertiary (Live)</option>
+        </select>
+        <span class="material-symbols-outlined text-on-surface-variant text-[16px] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+          expand_more
+        </span>
+      </div>
+
+      <!-- Regime button -->
+      <button
+        id="to-regime-btn"
+        class="flex items-center gap-2 bg-surface-container border border-outline-variant px-3 py-1.5 rounded text-label-sm font-label-sm text-on-surface hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+      >
+        <span class="material-symbols-outlined text-[16px]">trending_up</span>
+        <span id="to-regime-text">Regime: Trending</span>
+      </button>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Connection status -->
+      <div class="flex items-center gap-2">
+        <div id="to-conn-dot" class="w-2 h-2 rounded-full bg-error"></div>
+        <span id="to-conn-status" class="text-label-sm text-on-surface-variant">Disconnected</span>
+      </div>
+
+      <!-- Notifications -->
+      <button id="to-notif-btn" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors relative focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1">
+        <span class="material-symbols-outlined text-[18px]">notifications</span>
+        <span id="to-notif-badge" class="absolute -top-0.5 -right-0.5 bg-error text-on-error text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">3</span>
+      </button>
+
+      <!-- Profile -->
+      <button class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1">
+        AD
+      </button>
+    </div>
+  </header>
+
+  <!-- SCROLLABLE CONTENT -->
+  <div class="flex-grow overflow-y-auto p-4 space-y-4">
+
+    <!-- ── ROW 1: EXECUTIONS PANELS ── -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Executions Panel (8 cols) -->
+      <div id="to-executions-table" class="lg:col-span-8 bg-surface-container-lowest/50 border border-outline-variant rounded-lg flex flex-col" style="min-height: 400px">
+        <div class="px-4 py-2 border-b border-outline-variant flex justify-between items-center bg-surface-container-high shrink-0">
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Open Positions & Orders</h3>
+          <div class="flex items-center gap-2">
+            <button id="to-refresh-positions-btn" class="p-1 text-on-surface-variant hover:text-on-surface transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1" title="Refresh">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+            </button>
+          </div>
+        </div>
+        <div class="flex-grow overflow-x-auto">
+          <!-- Sticky header for table -->
+          <div class="sticky top-0 bg-surface-container border-b border-outline-variant/30 z-10">
+            <table class="w-full">
+              <thead>
+                <tr class="text-left">
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Ticket</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Symbol</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Side</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Lot</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Entry</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">SL</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">TP</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">PnL</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Type</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
+          <div id="to-positions-body" class="max-h-96 overflow-y-auto">
+            <table class="w-full">
+              <tbody id="to-positions-tbody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Execution Quality Panel (4 cols) -->
+      <div id="to-exec-quality" class="lg:col-span-4 bg-surface-container-lowest/50 border border-outline-variant rounded-lg flex flex-col">
+        <div class="px-4 py-2 border-b border-outline-variant bg-surface-container-high shrink-0">
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Execution Quality</h3>
+        </div>
+        <div class="p-4 grid grid-cols-2 gap-4 flex-grow">
+          <!-- Slippage -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-label-sm text-on-surface-variant">Slippage</span>
+              <span id="to-slippage-value" class="font-data-md text-data-md text-on-surface tabular-nums">0.0</span>
+            </div>
+            <div class="w-full bg-surface/30 h-1.5 rounded overflow-hidden">
+              <div id="to-slippage-bar" class="bg-primary h-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div class="text-[10px] text-on-surface-variant">bps</div>
+          </div>
+
+          <!-- Latency -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-label-sm text-on-surface-variant">Latency</span>
+              <span id="to-latency-value" class="font-data-md text-data-md text-on-surface tabular-nums">0</span>
+            </div>
+            <div class="w-full bg-surface/30 h-1.5 rounded overflow-hidden">
+              <div id="to-latency-bar" class="bg-primary h-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div class="text-[10px] text-on-surface-variant">ms</div>
+          </div>
+
+          <!-- Fill Rate -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-label-sm text-on-surface-variant">Fill Rate</span>
+              <span id="to-fillrate-value" class="font-data-md text-data-md text-on-surface tabular-nums">100%</span>
+            </div>
+            <div class="w-full bg-surface/30 h-1.5 rounded overflow-hidden">
+              <div id="to-fillrate-bar" class="bg-primary h-full transition-all duration-300" style="width: 100%"></div>
+            </div>
+            <div class="text-[10px] text-on-surface-variant">%</div>
+          </div>
+
+          <!-- Rejections -->
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-label-sm text-on-surface-variant">Rejections</span>
+              <span id="to-rejections-value" class="font-data-md text-data-md text-on-surface tabular-nums">0</span>
+            </div>
+            <div class="w-full bg-surface/30 h-1.5 rounded overflow-hidden">
+              <div id="to-rejections-bar" class="bg-error h-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div class="text-[10px] text-on-surface-variant">count</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ROW 2: HISTORY & JOURNAL ── -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- Historical Trade Log (7 cols) -->
+      <div id="to-history-log" class="lg:col-span-7 bg-surface-container-lowest/50 border border-outline-variant rounded-lg flex flex-col">
+        <div class="px-4 py-2 border-b border-outline-variant flex justify-between items-center bg-surface-container-high shrink-0">
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Historical Trade Log</h3>
+          <div class="flex items-center gap-2">
+            <button id="to-export-history-btn" class="p-1 text-on-surface-variant hover:text-on-surface transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1" title="Export CSV">
+              <span class="material-symbols-outlined text-[16px]">download</span>
+            </button>
+          </div>
+        </div>
+        <div class="flex-grow overflow-x-auto">
+          <div class="sticky top-0 bg-surface-container border-b border-outline-variant/30 z-10">
+            <table class="w-full">
+              <thead>
+                <tr class="text-left">
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Time</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Symbol</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Side</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Lot</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Entry</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Exit</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">PnL</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Comm</th>
+                  <th class="px-4 py-2 text-label-sm font-label-sm uppercase text-on-surface-variant">Fees</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
+          <div id="to-history-body" class="max-h-96 overflow-y-auto">
+            <table class="w-full">
+              <tbody id="to-history-tbody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Journal & Annotations (5 cols) -->
+      <div class="lg:col-span-5 bg-surface-container-lowest/50 border border-outline-variant rounded-lg flex flex-col">
+        <div class="px-4 py-2 border-b border-outline-variant flex justify-between items-center bg-surface-container-high shrink-0">
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Journal & Annotations</h3>
+        </div>
+
+        <!-- Observation list -->
+        <div id="to-journal-panel" class="flex-grow overflow-y-auto p-4 space-y-3 max-h-96">
+          <!-- Populated by JS -->
+          <div class="text-on-surface-variant text-sm text-center py-4">No observations yet</div>
+        </div>
+
+        <!-- Entry form -->
+        <div id="to-add-observation" class="p-4 border-t border-outline-variant bg-surface-container-high">
+          <form id="to-observation-form" class="space-y-3">
+            <div>
+              <label class="block text-label-sm text-on-surface-variant mb-1.5">Observation Type</label>
+              <select
+                id="to-obsv-type"
+                class="w-full bg-surface-container border border-outline-variant rounded px-3 py-1.5 text-label-sm text-on-surface focus:outline-none focus:border-primary"
+              >
+                <option value="note">Note</option>
+                <option value="insight">Insight</option>
+                <option value="issue">Issue</option>
+                <option value="improvement">Improvement</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-label-sm text-on-surface-variant mb-1.5">Notes</label>
+              <textarea
+                id="to-obsv-text"
+                rows="3"
+                placeholder="Add your trading observation..."
+                class="w-full bg-surface-container border border-outline-variant rounded px-3 py-1.5 text-label-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary resize-none"
+              ></textarea>
+            </div>
+            <button
+              type="submit"
+              class="w-full bg-primary text-on-primary px-3 py-1.5 rounded text-label-sm font-bold hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+            >
+              Add Observation
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- FIXED BOTTOM BAR -->
+  <footer class="h-8 border-t border-outline-variant bg-surface-container flex items-center justify-between px-4 shrink-0">
+    <div class="flex items-center gap-4">
+      <!-- Port label -->
+      <span id="to-port-label" class="text-[11px] text-on-surface-variant font-label-sm">Default Port</span>
+
+      <!-- Sync timestamp -->
+      <span id="to-sync-ts" class="text-[11px] text-on-surface-variant font-label-sm">—</span>
+
+      <!-- Engine status -->
+      <div class="flex items-center gap-2">
+        <div id="to-engine-status" class="w-2 h-2 rounded-full bg-error"></div>
+        <span id="to-engine-text" class="text-[11px] text-on-surface-variant font-label-sm">Engine Stopped</span>
+      </div>
+    </div>
+
+    <!-- Ticker clock -->
+    <div class="flex items-center gap-2">
+      <span id="to-ticker" class="text-[11px] text-on-surface-variant font-label-sm font-bold">00:00:00 UTC</span>
+    </div>
+  </footer>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="module" src="/static/v3/pages/trade_operations.js"></script>
+{% endblock %}

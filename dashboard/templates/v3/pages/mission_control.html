@@ -1,0 +1,267 @@
+{% extends "v3/_base.html" %}
+{% block title %}Mission Control | Savanna Capital{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full overflow-hidden">
+  <!-- TOP NAVIGATION BAR -->
+  <header class="h-14 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-container-padding shrink-0">
+    <div class="flex items-center gap-4">
+      <!-- Search bar — stub for v3, no backend mapping yet -->
+      <div class="relative hidden md:block">
+        <span class="material-symbols-outlined text-outline text-[16px] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
+        <input
+          id="mc-search"
+          type="text"
+          placeholder="Search strategies, tickers, or logs..."
+          class="bg-surface-container border border-outline-variant rounded pl-8 pr-3 py-1.5 text-label-sm font-label-sm w-64 text-on-surface placeholder-outline focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
+        />
+      </div>
+
+      <!-- Domain navigation -->
+      <nav class="hidden lg:flex items-center gap-4 ml-2">
+        <a href="/research" class="text-primary font-bold border-b-2 border-primary pb-0.5 font-label-sm text-label-sm">Research</a>
+        <a href="/strategies" class="text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Execution</a>
+        <a href="/trade-ops" class="text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Operations</a>
+        <a href="/executive" class="text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Analytics</a>
+      </nav>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Connect Terminal button -->
+      <button
+        id="mc-connect-btn"
+        class="flex items-center bg-primary text-on-primary px-3 py-1.5 rounded hover:opacity-90 transition-opacity font-label-sm font-bold uppercase"
+      >
+        <span class="material-symbols-outlined text-[16px] mr-1.5">cable</span>
+        <span class="mc-connect-label">Connect Terminal</span>
+      </button>
+
+      <div class="flex items-center gap-1">
+        <button id="mc-notif-btn" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors">
+          <span class="material-symbols-outlined text-[18px]">notifications</span>
+        </button>
+        <button id="mc-terminal-toggle" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors" title="Execution Logs">
+          <span class="material-symbols-outlined text-[18px]">terminal</span>
+        </button>
+        <button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors">
+          <span class="material-symbols-outlined text-[18px]">account_circle</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCROLLABLE CONTENT -->
+  <div class="flex-grow overflow-y-auto p-container-padding space-y-4">
+
+    <!-- ── SUMMARY BAR ── -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <!-- Total Equity -->
+      <div class="bg-surface-container border border-outline-variant rounded-lg p-4">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-outline text-label-sm font-label-sm uppercase">Total Equity (USD)</span>
+          <span class="material-symbols-outlined text-primary text-[16px]">account_balance_wallet</span>
+        </div>
+        <div id="mc-equity" class="font-data-lg text-data-lg text-on-surface tabular-nums">—</div>
+        <div id="mc-equity-change" class="text-label-sm mt-1">Loading…</div>
+      </div>
+
+      <!-- Daily PnL -->
+      <div class="bg-surface-container border border-outline-variant rounded-lg p-4">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-outline text-label-sm font-label-sm uppercase">Daily PnL</span>
+          <span class="material-symbols-outlined text-primary text-[16px]">show_chart</span>
+        </div>
+        <div id="mc-daily-pnl" class="font-data-lg text-data-lg text-on-surface tabular-nums">—</div>
+        <div id="mc-daily-pnl-breakdown" class="text-label-sm mt-1">Loading…</div>
+      </div>
+
+      <!-- Open Positions -->
+      <div class="bg-surface-container border border-outline-variant rounded-lg p-4">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-outline text-label-sm font-label-sm uppercase">Open Positions</span>
+          <span class="material-symbols-outlined text-primary text-[16px]">layers</span>
+        </div>
+        <div id="mc-positions-count" class="font-data-lg text-data-lg text-on-surface tabular-nums">—</div>
+        <div id="mc-margin-util" class="text-label-sm mt-1">Margin: —</div>
+      </div>
+
+      <!-- Active Strategies -->
+      <div class="bg-surface-container border border-outline-variant rounded-lg p-4">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-outline text-label-sm font-label-sm uppercase">Active Strategies</span>
+          <span class="material-symbols-outlined text-primary text-[16px]">hub</span>
+        </div>
+        <div id="mc-active-strats" class="font-data-lg text-data-lg text-on-surface tabular-nums">—</div>
+        <div id="mc-strat-breakdown" class="text-label-sm mt-1">Loading…</div>
+      </div>
+    </section>
+
+    <!-- ── MAIN WORK AREA ── -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- Equity Curve Chart (8 cols) -->
+      <div class="lg:col-span-8 bg-surface-container border border-outline-variant rounded-lg flex flex-col" style="min-height:380px">
+        <div class="px-4 py-2 border-b border-outline-variant flex justify-between items-center bg-surface-container-high shrink-0">
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Equity Curve — Composite Strategy Index</h3>
+          <div class="flex gap-1.5">
+            <button data-range="1H" class="mc-range-btn bg-background px-2 py-0.5 text-label-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors">1H</button>
+            <button data-range="4H" class="mc-range-btn bg-background px-2 py-0.5 text-label-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors">4H</button>
+            <button data-range="1D" class="mc-range-btn bg-primary text-on-primary px-2 py-0.5 text-label-sm rounded transition-colors">1D</button>
+            <button data-range="MAX" class="mc-range-btn bg-background px-2 py-0.5 text-label-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors">MAX</button>
+          </div>
+        </div>
+        <div class="flex-grow relative p-4 bg-surface-container-lowest/50" style="min-height:320px">
+          <canvas id="mc-equity-canvas"></canvas>
+          <!-- Derived metrics overlay -->
+          <div class="absolute bottom-4 left-4 flex gap-6">
+            <div>
+              <div class="text-outline text-[10px] uppercase font-bold">Drawdown (Max)</div>
+              <div id="mc-drawdown" class="text-error font-data-md text-data-md tabular-nums">—</div>
+            </div>
+            <div>
+              <div class="text-outline text-[10px] uppercase font-bold">Volatility (Ann)</div>
+              <div id="mc-volatility" class="text-on-surface font-data-md text-data-md tabular-nums">—</div>
+            </div>
+            <div>
+              <div class="text-outline text-[10px] uppercase font-bold">Sharpe Ratio</div>
+              <div id="mc-sharpe" class="text-primary font-data-md text-data-md tabular-nums">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Health Widget (4 cols) -->
+      <div class="lg:col-span-4 bg-surface-container border border-outline-variant rounded-lg flex flex-col">
+        <div class="px-4 py-2 border-b border-outline-variant flex justify-between items-center bg-surface-container-high shrink-0">
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">System Health</h3>
+          <span class="material-symbols-outlined text-primary text-[16px]">dns</span>
+        </div>
+        <div class="p-3 space-y-2.5 flex-grow">
+          <!-- MT5 Terminal -->
+          <div class="flex items-center justify-between bg-background p-2.5 rounded border border-outline-variant/30">
+            <div class="flex items-center gap-2.5">
+              <div id="mc-dot-mt5" class="w-2 h-2 rounded-full bg-outline shrink-0"></div>
+              <span class="font-body-md text-on-surface text-[13px]">MT5 Terminal</span>
+            </div>
+            <span id="mc-status-mt5" class="font-label-sm text-outline uppercase text-[11px]">Offline</span>
+          </div>
+          <!-- Data Feed -->
+          <div class="flex items-center justify-between bg-background p-2.5 rounded border border-outline-variant/30">
+            <div class="flex items-center gap-2.5">
+              <div id="mc-dot-feed" class="w-2 h-2 rounded-full bg-outline shrink-0"></div>
+              <span class="font-body-md text-on-surface text-[13px]">Data Feed (HFT)</span>
+            </div>
+            <div class="text-right">
+              <div id="mc-status-feed" class="font-label-sm text-outline uppercase text-[11px]">Idle</div>
+              <div id="mc-feed-latency" class="text-[10px] text-outline">—</div>
+            </div>
+          </div>
+          <!-- Risk Engine -->
+          <div class="flex items-center justify-between bg-background p-2.5 rounded border border-outline-variant/30">
+            <div class="flex items-center gap-2.5">
+              <div id="mc-dot-risk" class="w-2 h-2 rounded-full bg-outline shrink-0"></div>
+              <span class="font-body-md text-on-surface text-[13px]">Risk Engine API</span>
+            </div>
+            <span id="mc-status-risk" class="font-label-sm text-outline uppercase text-[11px]">Unknown</span>
+          </div>
+          <!-- Backup Server -->
+          <div class="flex items-center justify-between bg-background p-2.5 rounded border border-outline-variant/30 opacity-50">
+            <div class="flex items-center gap-2.5">
+              <div class="w-2 h-2 rounded-full bg-outline shrink-0"></div>
+              <span class="font-body-md text-on-surface text-[13px]">Backup Server (FR)</span>
+            </div>
+            <span class="font-label-sm text-outline uppercase text-[11px]">Idle</span>
+          </div>
+
+          <!-- Compute Load -->
+          <div id="mc-compute-block" class="p-3 bg-primary-container/10 border border-primary/20 rounded">
+            <div class="text-primary text-[10px] uppercase font-bold mb-1.5">Compute Load</div>
+            <div class="w-full bg-surface-container h-1.5 rounded overflow-hidden">
+              <div id="mc-compute-bar" class="bg-primary h-full transition-all duration-500" style="width:0%"></div>
+            </div>
+            <div class="flex justify-between mt-1.5">
+              <span id="mc-mem-stat" class="text-[10px] text-outline">Memory: —</span>
+              <span id="mc-cpu-stat" class="text-[10px] text-outline">CPU: —</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Open Log Drawer trigger -->
+        <div class="px-3 pb-3 pt-0">
+          <button
+            id="mc-open-logs-btn"
+            class="w-full flex items-center justify-center gap-2 bg-surface-container-high border border-outline-variant rounded px-3 py-2 text-label-sm text-on-surface-variant hover:text-on-surface hover:border-primary/40 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[14px]">terminal</span>
+            System Execution Logs
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STRATEGY HEALTH GRID ── -->
+    <section id="mc-strategy-section">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-headline-md text-headline-md text-on-surface">Strategy Health Overview</h2>
+        <div class="flex items-center gap-2">
+          <span class="text-label-sm text-outline uppercase text-[11px]">View:</span>
+          <button class="mc-view-grid bg-surface-container p-1 rounded border border-outline-variant text-primary transition-colors" data-view="grid">
+            <span class="material-symbols-outlined text-[16px]">grid_view</span>
+          </button>
+          <button class="mc-view-list bg-background p-1 rounded border border-outline-variant text-on-surface-variant hover:text-on-surface transition-colors" data-view="list">
+            <span class="material-symbols-outlined text-[16px]">list</span>
+          </button>
+          <a href="/strategies" class="ml-2 text-label-sm text-primary hover:underline text-[11px] uppercase">View All →</a>
+        </div>
+      </div>
+
+      <!-- Grid view (default) -->
+      <div id="mc-strat-grid" class="trading-grid">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- List view (hidden by default) -->
+      <div id="mc-strat-list" class="hidden space-y-1"></div>
+    </section>
+  </div><!-- /scrollable content -->
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- LOG DRAWER — slides up from bottom         -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div
+    id="mc-log-drawer"
+    class="fixed bottom-0 left-sidebar-width right-0 h-64 bg-surface-container border-t border-outline-variant flex flex-col transition-transform duration-300 ease-in-out z-40"
+    style="transform:translateY(100%);"
+  >
+    <!-- Drawer header -->
+    <div class="px-4 py-2 border-b border-outline-variant flex justify-between items-center bg-surface-container-high shrink-0">
+      <div class="flex items-center gap-3">
+        <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">System Execution Logs</h3>
+        <span id="mc-log-live-dot" class="flex items-center gap-1.5 text-[10px] text-primary font-label-sm">
+          <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block"></span>
+          LIVE
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="mc-log-count" class="text-outline text-[11px]">0 entries</span>
+        <button id="mc-close-logs-btn" class="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded transition-colors">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+    </div>
+    <!-- Drawer body -->
+    <div id="mc-log-body" class="flex-grow overflow-y-auto p-4 font-label-sm text-outline space-y-0.5 bg-surface-container-lowest">
+      <div class="text-outline text-[12px]">Loading logs…</div>
+    </div>
+    <!-- Drawer handle bar (visual affordance) -->
+    <div class="shrink-0 flex justify-center py-1.5 bg-surface-container-high border-t border-outline-variant/50 cursor-pointer" id="mc-log-handle">
+      <div class="w-10 h-1 rounded-full bg-outline/50"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="module" src="/static/v3/pages/mission_control.js"></script>
+{% endblock %}
