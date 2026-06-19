@@ -1,0 +1,239 @@
+{% extends "v3/_base.html" %}
+
+{% block title %}Executive Analytics | Savanna Capital{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full overflow-hidden">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="h-14 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-container-padding shrink-0">
+    <div class="flex items-center gap-4">
+      <h2 class="font-headline-md text-headline-md font-semibold text-on-surface tracking-tight">Executive Analytics</h2>
+      <span class="text-label-sm text-outline uppercase font-label-sm hidden sm:inline">Quant Performance Tear Sheet</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="ex-refresh-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-sm font-label-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container hover:text-on-surface rounded transition-colors">
+        <span class="material-symbols-outlined text-[14px]">refresh</span> Refresh
+      </button>
+      <button id="ex-generate-report-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-sm font-label-sm font-bold uppercase bg-primary text-on-primary rounded hover:opacity-90 transition-opacity">
+        <span class="material-symbols-outlined text-[14px]">auto_awesome</span> Generate New Report
+      </button>
+    </div>
+  </header>
+
+  <!-- STATUS BAR (hidden by default) -->
+  <div id="ex-status-bar" class="hidden px-4 py-2 bg-error/10 border-b border-error text-error text-sm"></div>
+
+  <!-- SCROLLABLE CONTENT -->
+  <div class="flex-grow overflow-y-auto p-container-padding space-y-3 custom-scrollbar">
+
+    <!-- ROW 1: Four KPI tiles -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+      <!-- W1: Cumulative Return -->
+      <section class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">trending_up</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">Cumulative Return</span>
+          </div>
+          <span class="text-outline text-[10px] font-label-sm uppercase">All-time</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="ex-cumret-val" class="font-data-lg text-[28px] tabular-nums font-medium">—</span>
+        </div>
+        <span id="ex-cumret-delta" class="text-outline text-[11px] font-label-sm">loading…</span>
+      </section>
+
+      <!-- W2: Sharpe Ratio -->
+      <section class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">analytics</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">Sharpe Ratio</span>
+          </div>
+          <span id="ex-sharpe-tier" class="text-outline text-[10px] font-label-sm uppercase">—</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="ex-sharpe-val" class="font-data-lg text-[28px] tabular-nums font-medium">—</span>
+        </div>
+        <span class="text-outline text-[11px] font-label-sm">annualised</span>
+      </section>
+
+      <!-- W3: Alpha vs Risk-Free -->
+      <section class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">bolt</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">Alpha vs Risk-Free</span>
+          </div>
+          <span id="ex-alpha-rf" class="text-outline text-[10px] font-label-sm uppercase">— baseline</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="ex-alpha-val" class="font-data-lg text-[28px] tabular-nums font-medium">—</span>
+        </div>
+        <span class="text-outline text-[11px] font-label-sm">excess return over risk-free</span>
+      </section>
+
+      <!-- W4: Calmar Ratio -->
+      <section class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">shield</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">Calmar Ratio</span>
+          </div>
+          <span id="ex-calmar-tag" class="text-outline text-[10px] font-label-sm uppercase">CAGR ÷ Max DD</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="ex-calmar-val" class="font-data-lg text-[28px] tabular-nums font-medium">—</span>
+        </div>
+        <span class="text-outline text-[11px] font-label-sm">risk-adjusted return</span>
+      </section>
+    </div>
+
+    <!-- ROW 2: NAV Growth (8 cols) + Capital Allocation (4 cols) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+      <!-- W5: NAV Growth -->
+      <section class="lg:col-span-8 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col" style="min-height:400px">
+        <div class="px-4 py-2.5 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">show_chart</span>
+            <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider">NAV Growth — Composite Strategy Index</h3>
+          </div>
+          <div class="flex gap-1.5">
+            <button data-range="1H" class="ex-range-btn bg-background px-2 py-0.5 text-label-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors">1H</button>
+            <button data-range="4H" class="ex-range-btn bg-background px-2 py-0.5 text-label-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors">4H</button>
+            <button data-range="1D" class="ex-range-btn bg-primary text-on-primary px-2 py-0.5 text-label-sm rounded transition-colors">1D</button>
+            <button data-range="MAX" class="ex-range-btn bg-background px-2 py-0.5 text-label-sm rounded border border-outline-variant hover:bg-surface-variant transition-colors">MAX</button>
+          </div>
+        </div>
+        <div class="flex-grow relative px-4 py-3 bg-surface-container-lowest/40" style="min-height:340px">
+          <canvas id="ex-nav-canvas"></canvas>
+          <div class="absolute top-3 right-4 flex flex-col gap-1.5">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-0.5 rounded bg-primary inline-block"></span>
+              <span class="text-[10px] text-on-surface-variant font-label-sm uppercase">Composite NAV</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-0.5 inline-block border-t border-dashed border-outline"></span>
+              <span class="text-[10px] text-on-surface-variant font-label-sm uppercase">Risk-Free Trend</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- W6: Capital Allocation -->
+      <section class="lg:col-span-4 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col" style="min-height:400px">
+        <div class="px-4 py-2.5 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">pie_chart</span>
+            <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider">Capital Allocation by Strategy</h3>
+          </div>
+          <span id="ex-alloc-aum" class="text-outline text-[10px] font-label-sm uppercase">— AUM</span>
+        </div>
+        <div class="flex-grow p-4 flex flex-col items-center justify-center gap-4">
+          <div class="relative" style="width:200px;height:200px">
+            <canvas id="ex-alloc-canvas"></canvas>
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span id="ex-alloc-center" class="font-data-lg text-[18px] text-on-surface tabular-nums">—</span>
+              <span class="text-[10px] text-outline font-label-sm uppercase">active</span>
+            </div>
+          </div>
+          <div id="ex-alloc-legend" class="w-full space-y-1"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ROW 3: Strategy Risk/Return (4 cols) + Drawdown Profile (5 cols) + Report Panel (3 cols) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+      <!-- W7: Risk / Return Scatter -->
+      <section class="lg:col-span-4 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col" style="min-height:360px">
+        <div class="px-4 py-2.5 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">scatter_plot</span>
+            <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider">Strategy Risk / Return Profile</h3>
+          </div>
+          <span class="text-outline text-[10px] font-label-sm uppercase">drawdown vs return</span>
+        </div>
+        <div class="flex-grow p-4 relative" style="min-height:290px">
+          <canvas id="ex-scatter-canvas"></canvas>
+          <div class="absolute bottom-2 right-4 text-[9px] text-on-surface-variant font-label-sm uppercase">Risk (Max DD %)</div>
+          <div class="absolute top-4 left-2 text-[9px] text-on-surface-variant font-label-sm" style="writing-mode:vertical-rl;transform:rotate(180deg)">Return (Net PnL R)</div>
+        </div>
+      </section>
+
+      <!-- W8: Drawdown Profile -->
+      <section class="lg:col-span-5 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col" style="min-height:360px">
+        <div class="px-4 py-2.5 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">downward</span>
+            <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider">Drawdown Profile (LTM)</h3>
+          </div>
+          <span id="ex-dd-max" class="text-error font-data-md text-data-md tabular-nums">—</span>
+        </div>
+        <div class="flex-grow p-4" style="min-height:270px">
+          <canvas id="ex-dd-canvas"></canvas>
+        </div>
+        <div class="px-4 py-2 border-t border-outline-variant flex justify-between bg-surface-container-high/50">
+          <span id="ex-dd-recovery" class="text-[10px] text-on-surface-variant font-label-sm uppercase">Recovery: —</span>
+          <span id="ex-dd-avg" class="text-[10px] text-on-surface-variant font-label-sm uppercase">Avg Depth: —</span>
+        </div>
+      </section>
+
+      <!-- W9: Report Generation Panel -->
+      <section class="lg:col-span-3 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col" style="min-height:360px">
+        <div class="px-4 py-2.5 border-b border-outline-variant flex items-center gap-2 bg-surface-container-high shrink-0">
+          <span class="material-symbols-outlined text-primary text-[16px]">description</span>
+          <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface tracking-wider">Investor Reporting</h3>
+        </div>
+        <div class="flex-grow p-4 flex flex-col">
+          <span class="text-label-sm text-on-surface-variant font-label-sm uppercase tracking-wider mb-2">Recent Reports</span>
+          <div id="ex-report-history" class="flex-grow space-y-2 overflow-y-auto custom-scrollbar text-outline text-[12px]">
+            <div class="text-center py-6">No reports generated yet.</div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-outline-variant/50">
+            <button id="ex-generate-modal-btn" class="w-full flex items-center justify-center gap-2 bg-primary text-on-primary font-label-sm text-label-sm font-bold uppercase tracking-wider py-2.5 rounded hover:opacity-90 transition-opacity">
+              <span class="material-symbols-outlined text-[14px]">add</span> Generate New Report
+            </button>
+            <p class="text-outline text-[10px] text-center mt-1.5 font-label-sm">Produces a full quant tearsheet</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="h-6"></div>
+  </div>
+
+  <!-- TEARSHEET MODAL -->
+  <div id="ex-tearsheet-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div id="ex-modal-backdrop" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+    <div class="absolute inset-3 md:inset-6 lg:inset-10 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-5 py-2.5 border-b border-outline-variant flex items-center justify-between bg-surface-container-high shrink-0">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-primary text-[18px]">auto_awesome</span>
+          <h2 class="font-headline-md text-headline-md font-semibold text-on-surface">Quant Tear Sheet</h2>
+          <span id="ex-modal-date" class="text-outline text-[11px] font-label-sm"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="ex-modal-pdf-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-sm font-label-sm bg-primary text-on-primary rounded hover:opacity-90 transition-opacity">
+            <span class="material-symbols-outlined text-[14px]">download</span> Download PDF
+          </button>
+          <button id="ex-modal-close-btn" class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded transition-colors">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+      </div>
+      <div id="ex-tearsheet-body" class="flex-grow overflow-y-auto p-6 custom-scrollbar bg-surface-container-lowest">
+        <div class="text-outline text-center py-12">Compiling tearsheet…</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script type="module" src="/static/v3/pages/executive_analytics.js"></script>
+{% endblock scripts %}

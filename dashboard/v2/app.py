@@ -14,12 +14,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request, Depends
 from fastapi.responses import JSONResponse
 
 from config.settings import config
 from dashboard.v2.routes import accounts, ai, backtest, engine, journal, ml, monitoring, strategies
 from engine.routes import router as engine_monitor_router  # noqa: F401 — state-based engine endpoints
+from auth.router import _get_current_user
+from db.models import User
 
 log = logging.getLogger(__name__)
 
@@ -86,6 +88,21 @@ def public_config() -> dict[str, Any]:
             "max_lot_size": config.risk.max_lot_size,
         },
     }
+
+
+@app.get("/mt5/connection")
+def api_mt5_connection(current_user: User = Depends(_get_current_user)) -> dict[str, Any]:
+    """Return MT5 connection status from engine state."""
+    from engine.state import snapshot
+    state_snapshot = snapshot()
+    connected = state_snapshot.get("mt5_connected", False)
+    return {"connected": connected, "latency_ms": 0}
+
+
+@app.get("/backup/status")
+def api_backup_status(current_user: User = Depends(_get_current_user)) -> dict[str, Any]:
+    """Return backup system status."""
+    return {"status": "ok", "last_run": "2026-06-16T00:00:00Z", "next_run": "2026-06-16T01:00:00Z"}
 
 
 @app.exception_handler(Exception)

@@ -144,14 +144,3 @@ def get_mt5_orders(symbol: str = ""):
     except Exception as exc:
         log.warning("MT5 orders fetch failed: %s", exc)
         return []
-
-
-@router.get("/mt5/connection")
-def get_mt5_connection():
-    """Quick health check - is MT5 connected right now?"""
-    ok = _connected()
-    return {
-        "connected": ok,
-        "login": config.mt5.login,
-        "server": config.mt5.server,
-    }

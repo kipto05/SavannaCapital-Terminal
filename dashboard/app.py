@@ -1,8 +1,9 @@
-"""dashboard/app.py -- Savanna Capital Quant OS dashboard."""
+"""dashboard/app.py — Savanna Capital Quant OS dashboard."""
 from __future__ import annotations
 
 import logging
 import threading
+import math
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
@@ -136,7 +137,7 @@ app.include_router(notifications_router)
 from dashboard.v2.app import app as v2_app  # noqa: E402
 app.mount("/api/v2", v2_app)
 
-# -- Static file serving (custom) -----------------------------------------------
+# -- Static file serving (custom) --------------------------------------------
 @app.get("/static/{file_path:path}")
 async def serve_static(file_path: str):
     """Serve static files from the static directory."""
@@ -397,7 +398,7 @@ def api_suggestions(current_user: User = Depends(_get_current_user), db: Session
     return [r.to_dict() for r in rows]
 
 @app.get("/api/data/datasets")
-def api_datasets(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
+def api_datasets(current_user: User = Depends(_get_current_user)):
     tf_map = getattr(config, "TIMEFRAMES_BY_ASSET", {})
     bar_counts = {}
     try:
@@ -443,6 +444,266 @@ def api_settings_save(body: dict, current_user: User = Depends(_get_current_user
     from db.settings_service import settings_service
     settings_service.set_many(body)
     return {"saved": True, "keys": list(body.keys())}
+
+
+# -- Executive Analytics endpoint ---------------------------------------------
+@app.get("/api/v3/analytics")
+def get_analytics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user)
+) -> dict:
+    log.info("Generating executive analytics")
+    risk_free_rate = getattr(config.risk, 'risk_free_rate', 0.02)
+
+    # Total AUM (latest equity)
+    latest_snapshot = db.query(AccountSnapshot).order_by(AccountSnapshot.created_at.desc()).first()
+    total_aum = latest_snapshot.equity if latest_snapshot else 0.0
+
+    # Collect all snapshots
+    snapshots = db.query(AccountSnapshot).order_by(AccountSnapshot.created_at.asc()).all()
+
+    nav_series = []
+    cumulative_return = 0.0
+    sharpe_ratio = 0.0
+    alpha = 0.0
+    calmar_ratio = 0.0
+    drawdown_events = []
+
+    if snapshots:
+        # Build nav_series with risk-free column
+        first_snapshot = snapshots[0]
+        initial_equity = first_snapshot.equity
+        first_date = first_snapshot.created_at
+        for s in snapshots:
+            days_elapsed = (s.created_at - first_date).total_seconds() / 86400.0
+            rf_val = initial_equity * ((1 + risk_free_rate) ** (days_elapsed / 365.0))
+            nav_series.append({
+                "date": s.created_at.isoformat(),
+                "nav": s.equity,
+                "risk_free": rf_val
+            })
+
+        # Build daily NAV series for metric calculations
+        daily_dict = {}
+        for s in snapshots:
+            d = s.created_at.date()
+            daily_dict[d] = s.equity  # last snapshot of the day wins
+
+        if daily_dict:
+            all_dates = sorted(daily_dict.keys())
+            start_date = all_dates[0]
+            end_date = all_dates[-1]
+            # generate continuous date range
+            current = start_date
+            continuous_dates = []
+            while current <= end_date:
+                continuous_dates.append(current)
+                current += timedelta(days=1)
+            daily_filled = []
+            current_nav = None
+            for d in continuous_dates:
+                if d in daily_dict:
+                    current_nav = daily_dict[d]
+                if current_nav is not None:
+                    daily_filled.append((d, current_nav))
+
+            if len(daily_filled) >= 2:
+                # Compute cumulative return and CAGR
+                first_nav = daily_filled[0][1]
+                last_nav = daily_filled[-1][1]
+                cumulative_return = (last_nav - first_nav) / first_nav if first_nav != 0 else 0.0
+                days_total = (daily_filled[-1][0] - daily_filled[0][0]).days
+                if days_total > 0 and first_nav > 0 and last_nav > 0:
+                    cagr = (last_nav / first_nav) ** (365.0 / days_total) - 1.0
+                else:
+                    cagr = 0.0
+                alpha = cagr - risk_free_rate
+
+                # Sharpe ratio from daily returns
+                returns = []
+                daily_rf = risk_free_rate / 252.0
+                for i in range(1, len(daily_filled)):
+                    prev_nav = daily_filled[i-1][1]
+                    curr_nav = daily_filled[i][1]
+                    if prev_nav > 0:
+                        ret = (curr_nav / prev_nav) - 1.0
+                        returns.append(ret)
+                if len(returns) >= 2:
+                    mean_ret = sum(returns) / len(returns)
+                    excess = [r - daily_rf for r in returns]
+                    mean_excess = sum(excess) / len(excess)
+                    if len(excess) > 1:
+                        variance = sum((e - mean_excess) ** 2 for e in excess) / (len(excess) - 1)
+                        std_excess = math.sqrt(variance) if variance > 0 else 0.0
+                    else:
+                        std_excess = 0.0
+                    if std_excess > 0:
+                        sharpe_ratio = mean_excess / std_excess * math.sqrt(252)
+                else:
+                    sharpe_ratio = 0.0
+
+                # Max drawdown
+                peak = daily_filled[0][1]
+                max_dd = 0.0
+                for _, nav in daily_filled:
+                    if nav > peak:
+                        peak = nav
+                    else:
+                        dd = (peak - nav) / peak
+                        if dd > max_dd:
+                            max_dd = dd
+                calmar_ratio = cagr / max_dd if max_dd > 0 else 0.0
+
+                # Drawdown events (last 10)
+                events = []
+                peak_nav = daily_filled[0][1]
+                peak_date = daily_filled[0][0]
+                in_drawdown = False
+                max_dd_in_ep = 0.0
+                trough_date = None
+                peak_at_ep_start = None
+
+                for i in range(1, len(daily_filled)):
+                    d, nav = daily_filled[i]
+                    if nav > peak_nav:
+                        if in_drawdown:
+                            recovery_date = d
+                            duration_days = (trough_date - peak_at_ep_start).days
+                            recovery_days = (recovery_date - trough_date).days
+                            events.append({
+                                "date": trough_date.isoformat(),
+                                "drawdown": max_dd_in_ep,
+                                "duration_days": duration_days,
+                                "recovery_days": recovery_days
+                            })
+                            in_drawdown = False
+                            max_dd_in_ep = 0.0
+                        peak_nav = nav
+                        peak_date = d
+                    else:
+                        dd = (peak_nav - nav) / peak_nav
+                        if dd > max_dd_in_ep:
+                            max_dd_in_ep = dd
+                            trough_date = d
+                        if not in_drawdown and dd > 0.001:
+                            in_drawdown = True
+                            peak_at_ep_start = peak_date
+                events.sort(key=lambda e: e["date"], reverse=True)
+                drawdown_events = events[:10]
+            # else: insufficient daily points, metrics remain 0
+    # else: no snapshots
+
+    # Capital allocation from active strategies
+    active_configs = db.query(StrategyConfig).filter_by(is_active=True).order_by(StrategyConfig.name).all()
+    capital_allocation = []
+    if active_configs:
+        equal_alloc = 1.0 / len(active_configs)
+        has_alloc = any(
+            cfg.params.get('allocation') is not None or cfg.params.get('weight') is not None
+            for cfg in active_configs
+        )
+        for cfg in active_configs:
+            if has_alloc:
+                alloc = cfg.params.get('allocation', cfg.params.get('weight'))
+                if alloc is None:
+                    alloc = equal_alloc
+            else:
+                alloc = equal_alloc
+            capital_allocation.append({
+                "strategy": cfg.name,
+                "allocation": float(alloc)
+            })
+
+    # Strategy metrics
+    strategy_metrics = []
+    all_configs = db.query(StrategyConfig).order_by(StrategyConfig.name).all()
+    for cfg in all_configs:
+        sharpe = 0.0
+        max_dd = 0.0
+        net_pnl_r = 0.0
+        trades_count = 0
+
+        # Prefer latest completed backtest
+        run = db.query(BacktestRun).filter(
+            BacktestRun.strategy_name == cfg.name,
+            BacktestRun.status == 'complete'
+        ).order_by(BacktestRun.completed_at.desc()).first()
+
+        if run:
+            sharpe = run.sharpe_approx or 0.0
+            max_dd = run.max_drawdown or 0.0
+            net_pnl_r = run.net_pnl_r or 0.0
+            trades_count = run.n_trades or 0
+        else:
+            # Aggregate from live trades
+            trades = db.query(Trade).filter(Trade.strategy_name == cfg.name).all()
+            trades_count = len(trades)
+            net_pnl_r = sum(t.pnl_r for t in trades if t.pnl_r is not None)
+            risk_frac = cfg.params.get('risk_per_trade', config.risk.risk_per_trade) if cfg.params else config.risk.risk_per_trade
+
+            # Compute daily returns for Sharpe
+            daily_returns = {}
+            for t in trades:
+                if t.pnl_r is not None and t.closed_at:
+                    closed = t.closed_at
+                    if closed.tzinfo is None:
+                        closed = closed.replace(tzinfo=timezone.utc)
+                    date_key = closed.date()
+                    daily_returns[date_key] = daily_returns.get(date_key, 0.0) + (t.pnl_r * risk_frac)
+
+            if daily_returns:
+                dates = sorted(daily_returns.keys())
+                returns = [daily_returns[d] for d in dates]
+                if len(returns) >= 2:
+                    mean = sum(returns) / len(returns)
+                    if len(returns) > 1:
+                        variance = sum((r - mean) ** 2 for r in returns) / (len(returns) - 1)
+                        std = math.sqrt(variance) if variance > 0 else 0.0
+                    else:
+                        std = 0.0
+                    if std > 0:
+                        sharpe = mean / std * math.sqrt(252)
+
+            # Max drawdown from equity curve
+            sorted_trades = sorted(
+                [t for t in trades if t.pnl_r is not None and t.opened_at],
+                key=lambda t: t.opened_at
+            )
+            if sorted_trades:
+                equity = 1.0
+                peak = 1.0
+                max_dd_local = 0.0
+                for t in sorted_trades:
+                    equity *= (1 + t.pnl_r * risk_frac)
+                    if equity > peak:
+                        peak = equity
+                    if peak > 0:
+                        dd = (peak - equity) / peak
+                        if dd > max_dd_local:
+                            max_dd_local = dd
+                max_dd = max_dd_local
+
+        strategy_metrics.append({
+            "strategy": cfg.name,
+            "sharpe_ratio": float(sharpe),
+            "max_drawdown": float(max_dd),
+            "net_pnl_r": float(net_pnl_r),
+            "trades": trades_count
+        })
+
+    return {
+        "cumulative_return": cumulative_return,
+        "sharpe_ratio": sharpe_ratio,
+        "alpha": alpha,
+        "calmar_ratio": calmar_ratio,
+        "nav_series": nav_series,
+        "capital_allocation": capital_allocation,
+        "strategy_metrics": strategy_metrics,
+        "drawdown_events": drawdown_events,
+        "total_aum": total_aum,
+        "risk_free_rate": risk_free_rate
+    }
+
 
 # -- MT5 endpoints -------------------------------------------------------------
 @app.get("/api/mt5/positions")
@@ -550,7 +811,21 @@ def login_page(request: Request) -> HTMLResponse:
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return _render_page("mission_control", "Mission Control", "mission_control", request)
+    tpl = _get_templates()
+    token = ""
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    return tpl.TemplateResponse(
+        request,
+        "v3/pages/mission_control.html",
+        {
+            "title": "Mission Control",
+            "active": "mission_control",
+            "page_title": "Mission Control",
+            "jwt_token": token,
+        },
+    )
 
 @app.get("/executive", response_class=HTMLResponse)
 def executive(request: Request):
@@ -566,7 +841,21 @@ def multi_account(request: Request):
 
 @app.get("/trade-ops", response_class=HTMLResponse)
 def trade_ops(request: Request):
-    return _render_page("trade_ops", "Trade Operations", "trade_ops", request)
+    tpl = _get_templates()
+    token = ""
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    return tpl.TemplateResponse(
+        request,
+        "v3/pages/trade_operations.html",
+        {
+            "title": "Trade Operations",
+            "active": "trade_ops",
+            "page_title": "Trade Operations",
+            "jwt_token": token,
+        },
+    )
 
 @app.get("/risk-compliance", response_class=HTMLResponse)
 def risk_compliance(request: Request):
@@ -594,7 +883,21 @@ def research(request: Request):
 
 @app.get("/strategies", response_class=HTMLResponse)
 def strategies_page(request: Request):
-    return _render_page("strategies", "Strategy Library", "strategies", request)
+    tpl = _get_templates()
+    token = ""
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    return tpl.TemplateResponse(
+        request,
+        "v3/pages/strategy_library.html",
+        {
+            "title": "Strategy Library",
+            "active": "strategies",
+            "page_title": "Strategy Library",
+            "jwt_token": token,
+        },
+    )
 
 @app.get("/backtest", response_class=HTMLResponse)
 def backtest(request: Request):
@@ -602,4 +905,8 @@ def backtest(request: Request):
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request):
-    return _render_page("settings", "Settings", "settings", request)
+    return v3_page("settings", request)
+
+@app.get("/notifications", response_class=HTMLResponse)
+def notifications_page(request: Request):
+    return v3_page("notifications", request)
