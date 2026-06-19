@@ -1,0 +1,217 @@
+{% extends "v3/_base.html" %}
+
+{% block title %}Risk & Compliance | Savanna Capital{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full overflow-hidden">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="h-16 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-container-padding shrink-0">
+    <div class="flex items-center gap-4">
+      <h2 class="font-headline-md text-headline-md font-semibold text-on-surface tracking-tight">Risk & Compliance</h2>
+      <span class="text-label-sm text-outline uppercase font-label-sm hidden sm:inline">Regulatory Monitoring</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="risk-refresh-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-sm font-label-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container hover:text-on-surface rounded transition-colors">
+        <span class="material-symbols-outlined text-[14px]">refresh</span> Refresh
+      </button>
+    </div>
+  </header>
+
+  <!-- STATUS BAR (hidden by default) -->
+  <div id="risk-status-bar" class="hidden px-4 py-2 bg-error/10 border-b border-error text-error text-sm"></div>
+
+  <!-- SCROLLABLE CONTENT -->
+  <div class="flex-grow overflow-y-auto p-container-padding space-y-3 custom-scrollbar">
+
+    <!-- ROW 1: Four KPI panels -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+      <!-- KPI: VaR (95%, 1D) -->
+      <section title="Value at Risk (VaR) calculated using Monte Carlo simulation at 95% confidence over a 1-day horizon." class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">warning</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">VaR (95%, 1D)</span>
+          </div>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="kpi-var" class="font-data-lg text-data-lg text-on-surface">—</span>
+          <span id="kpi-var-pct" class="text-[11px] text-outline font-label-sm">—</span>
+        </div>
+      </section>
+
+      <!-- KPI: Beta -->
+      <section title="Beta measures portfolio volatility relative to the overall market; >1 means higher volatility than market, <1 means lower." class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">timeline</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">Beta</span>
+          </div>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="kpi-beta" class="font-data-lg text-data-lg text-on-surface">—</span>
+        </div>
+      </section>
+
+      <!-- KPI: Margin Usage (with bar) -->
+      <section title="Current margin utilization as a percentage of available margin; values above 80% indicate high leverage." class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-end justify-between">
+          <span id="kpi-margin" class="font-data-lg text-data-lg text-tertiary">—</span>
+          <div class="w-16 h-1 bg-surface-container-highest rounded-full mt-2">
+            <div id="bar-margin" class="h-full bg-tertiary rounded-full" style="width:0%"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPI: Net PnL -->
+      <section title="Net profit and loss of all active strategies over the current trading day." class="bg-surface-container-low border border-outline-variant rounded-lg p-4 hover:border-primary/40 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[16px]">payments</span>
+            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant tracking-wider">Net PnL</span>
+          </div>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="kpi-pnl" class="font-data-lg text-data-lg text-on-surface">—</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- ROW 2: Left Sidebar (2) + Center (8) + Right (2) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-1 mt-3">
+
+      <!-- Left Sidebar: Risk Navigation -->
+      <aside class="lg:col-span-2 bg-surface-container-low border border-outline-variant flex flex-col min-h-0">
+        <div class="h-7 bg-surface-container border-b border-outline flex items-center px-3 shrink-0">
+          <span class="text-[11px] font-bold uppercase tracking-wider">Risk Navigation</span>
+        </div>
+        <nav class="flex-1 overflow-y-auto p-2">
+          <ul class="space-y-1">
+            <li><a href="#telemetry" class="nav-item active flex items-center gap-2 px-3 py-2 text-label-sm font-label-sm rounded hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[16px]">trending_up</span> Risk Telemetry</a></li>
+            <li><a href="#compliance" class="nav-item flex items-center gap-2 px-3 py-2 text-label-sm font-label-sm rounded hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[16px]">gavel</span> Compliance</a></li>
+            <li><a href="#stress" class="nav-item flex items-center gap-2 px-3 py-2 text-label-sm font-label-sm rounded hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[16px]">speed</span> Stress Tests</a></li>
+            <li><a href="#margin" class="nav-item flex items-center gap-2 px-3 py-2 text-label-sm font-label-sm rounded hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[16px]">attach_money</span> Margin</a></li>
+            <li><a href="#reports" class="nav-item flex items-center gap-2 px-3 py-2 text-label-sm font-label-sm rounded hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[16px]">description</span> Reports</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Center Panel: Strategy Risk Metrics -->
+      <main class="lg:col-span-8 bg-surface-container-low border border-outline-variant flex flex-col min-h-0">
+        <div class="h-7 bg-surface-container border-b border-outline flex items-center justify-between px-3 shrink-0">
+          <span class="text-[11px] font-bold uppercase tracking-wider">Strategy Risk Metrics</span>
+          <button id="export-csv-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-label-sm font-label-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container hover:text-on-surface rounded transition-colors">
+            <span class="material-symbols-outlined text-[14px]">download</span> Export CSV
+          </button>
+        </div>
+        <!-- Filter Bar -->
+        <div class="h-8 bg-surface-container border-b border-outline flex items-center px-2 gap-2 shrink-0">
+          <select id="filter-status" class="bg-surface-container-highest border border-outline-variant rounded px-2 py-1 text-[11px] text-on-surface font-label-sm">
+            <option value="All" selected>All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Paused">Paused</option>
+          </select>
+          <select id="filter-timeframe" class="bg-surface-container-highest border border-outline-variant rounded px-2 py-1 text-[11px] text-on-surface font-label-sm">
+            <option value="All" selected>All Timeframes</option>
+            <option value="M1">M1</option>
+            <option value="M5">M5</option>
+            <option value="M15">M15</option>
+            <option value="M30">M30</option>
+            <option value="H1">H1</option>
+            <option value="H4">H4</option>
+            <option value="D1">D1</option>
+          </select>
+          <select id="filter-asset" class="bg-surface-container-highest border border-outline-variant rounded px-2 py-1 text-[11px] text-on-surface font-label-sm">
+            <option value="All" selected>All Asset Classes</option>
+            <option value="crypto">Crypto</option>
+            <option value="fx">FX</option>
+            <option value="equities">Equities</option>
+            <option value="metals">Metals</option>
+            <option value="fixed_income">Fixed Income</option>
+          </select>
+        </div>
+        <div class="flex-1 overflow-auto custom-scrollbar">
+          <table id="strategy-risk-table" class="w-full text-left border-collapse">
+            <thead class="sticky top-0 bg-surface-container-highest z-10 border-b border-outline-variant">
+              <tr>
+                <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant cursor-pointer hover:text-on-surface" data-sort="name">Strategy</th>
+                <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant cursor-pointer hover:text-on-surface" data-sort="symbol">Symbol</th>
+                <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant cursor-pointer hover:text-on-surface" data-sort="timeframe">TF</th>
+                <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant cursor-pointer hover:text-on-surface" data-sort="status">Status</th>
+                <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant cursor-pointer hover:text-on-surface text-right" data-sort="var_pct">VaR %</th>
+                <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant cursor-pointer hover:text-on-surface text-right" data-sort="exposure_k">Exposure ($K)</th>
+                <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant cursor-pointer hover:text-on-surface text-right" data-sort="max_dd_pct">Max DD %</th>
+                <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant cursor-pointer hover:text-on-surface text-right" data-sort="sharpe">Sharpe</th>
+                <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant cursor-pointer hover:text-on-surface text-right" data-sort="win_rate">Win Rate %</th>
+                <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="strategy-risk-tbody" class="divide-y divide-surface-container-highest font-data-md text-data-md text-on-surface-variant">
+              <tr><td colspan="10" class="px-4 py-6 text-center text-outline">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+
+      <!-- Right Sidebar -->
+      <aside class="lg:col-span-2 flex flex-col gap-1 min-h-0">
+        <!-- VaR Breakdown Donut -->
+        <div class="flex-1 bg-surface-container-low border border-outline-variant flex flex-col min-h-0">
+          <div class="h-7 bg-surface-container border-b border-outline flex items-center px-3 shrink-0">
+            <span class="text-[11px] font-bold uppercase tracking-wider">VaR Breakdown</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center justify-center p-4">
+            <div class="relative w-40 h-40">
+              <canvas id="var-donut-canvas" width="160" height="160"></canvas>
+            </div>
+            <div id="var-legend" class="w-full mt-4 space-y-2"></div>
+          </div>
+        </div>
+        <!-- Active Alerts -->
+        <div class="h-48 bg-surface-container-low border border-outline-variant flex flex-col min-h-0">
+          <div class="h-7 bg-surface-container border-b border-outline flex items-center justify-between px-3 shrink-0">
+            <span class="text-[11px] font-bold uppercase tracking-wider">Active Alerts</span>
+            <span id="alerts-count" class="text-[10px] text-on-surface-variant">0</span>
+          </div>
+          <div id="alerts-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+        </div>
+        <!-- Stress Tests -->
+        <div class="h-48 bg-surface-container-low border border-outline-variant flex flex-col min-h-0">
+          <div class="h-7 bg-surface-container border-b border-outline flex items-center px-3 shrink-0">
+            <span class="text-[11px] font-bold uppercase tracking-wider">Stress Tests</span>
+          </div>
+          <div id="stress-tests-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- BOTTOM PANEL: Compliance Event Log -->
+    <div class="mt-3 bg-surface-container-low border border-outline-variant flex flex-col min-h-0" style="height: 256px;">
+      <div class="h-7 bg-surface-container border-b border-outline flex items-center justify-between px-3 shrink-0">
+        <span class="text-[11px] font-bold uppercase tracking-wider">Compliance Event Log</span>
+        <span id="compliance-count" class="text-[10px] text-on-surface-variant">0</span>
+      </div>
+      <div class="flex-1 overflow-y-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse">
+          <thead class="sticky top-0 bg-surface-container-highest z-10 border-b border-outline-variant">
+            <tr>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant">Time (UTC)</th>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant">Event</th>
+              <th class="px-4 py-2 text-[10px] font-bold uppercase text-on-surface-variant text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody id="compliance-log-tbody" class="divide-y divide-surface-container-highest font-data-md text-data-md text-on-surface-variant">
+            <tr><td colspan="3" class="px-4 py-4 text-center text-on-surface-variant text-[10px]">No compliance events</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script src="/static/v3/pages/risk_compliance.js"></script>
+{% endblock scripts %}
