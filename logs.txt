@@ -1,0 +1,1293 @@
+2026-06-13 13:35:42 INFO  __main__ - Dashboard-only mode — skipping MT5 engine
+INFO:     Started server process [3892]
+INFO:     Waiting for application startup.
+2026-06-13 13:35:47 INFO  dashboard.app - Backend ready — v2 routes loaded
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52209 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52208 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52208 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52218 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+2026-06-13 13:36:11 INFO  auth.router - Login: username=admin ip=127.0.0.1
+INFO:     127.0.0.1:52218 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52218 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52218 - "GET /api/v2/mt5/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52223 - "GET /api/v2/mt5/positions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52224 - "GET /api/v2/strategies/stats/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52227 - "GET /api/v2/mt5/connection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52225 - "GET /api/trades/recent?limit=100 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 799, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    |     result = await app(  # type: ignore[func-returns-value]
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    |     return await self.app(scope, receive, send)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    |     solved = await call(**solved_result.values)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    |     return get_current_user(credentials.credentials, db)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    |     payload = decode_token(token)
+    |               ^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    |     payload = jwt.decode(
+    |               ^^^^^^^^^^^
+    | TypeError: decode() got an unexpected keyword argument 'leeway'
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    solved = await call(**solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    return get_current_user(credentials.credentials, db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    payload = decode_token(token)
+              ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+TypeError: decode() got an unexpected keyword argument 'leeway'
+INFO:     127.0.0.1:52226 - "GET /api/account/snapshots?limit=500 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 799, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    |     result = await app(  # type: ignore[func-returns-value]
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    |     return await self.app(scope, receive, send)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    |     solved = await call(**solved_result.values)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    |     return get_current_user(credentials.credentials, db)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    |     payload = decode_token(token)
+    |               ^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    |     payload = jwt.decode(
+    |               ^^^^^^^^^^^
+    | TypeError: decode() got an unexpected keyword argument 'leeway'
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    solved = await call(**solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    return get_current_user(credentials.credentials, db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    payload = decode_token(token)
+              ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+TypeError: decode() got an unexpected keyword argument 'leeway'
+INFO:     127.0.0.1:52218 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52224 - "GET /api/v2/mt5/connection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52218 - "GET /api/v2/engine/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52218 - "GET /api/v2/accounts/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52218 - "GET /multi-account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52218 - "GET /api/v2/accounts/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52218 - "GET /api/trades/recent?limit=10 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 799, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    |     result = await app(  # type: ignore[func-returns-value]
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    |     return await self.app(scope, receive, send)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    |     solved = await call(**solved_result.values)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    |     return get_current_user(credentials.credentials, db)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    |     payload = decode_token(token)
+    |               ^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    |     payload = jwt.decode(
+    |               ^^^^^^^^^^^
+    | TypeError: decode() got an unexpected keyword argument 'leeway'
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    solved = await call(**solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    return get_current_user(credentials.credentials, db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    payload = decode_token(token)
+              ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+TypeError: decode() got an unexpected keyword argument 'leeway'
+INFO:     127.0.0.1:52235 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52235 - "GET /api/v2/mt5/account HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52236 - "GET /api/v2/mt5/positions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52240 - "GET /api/v2/mt5/connection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52238 - "GET /api/trades/recent?limit=100 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 799, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    |     result = await app(  # type: ignore[func-returns-value]
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    |     return await self.app(scope, receive, send)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    |     solved = await call(**solved_result.values)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    |     return get_current_user(credentials.credentials, db)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    |     payload = decode_token(token)
+    |               ^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    |     payload = jwt.decode(
+    |               ^^^^^^^^^^^
+    | TypeError: decode() got an unexpected keyword argument 'leeway'
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    solved = await call(**solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    return get_current_user(credentials.credentials, db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    payload = decode_token(token)
+              ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+TypeError: decode() got an unexpected keyword argument 'leeway'
+INFO:     127.0.0.1:52239 - "GET /api/account/snapshots?limit=500 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 799, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    |     result = await app(  # type: ignore[func-returns-value]
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    |     return await self.app(scope, receive, send)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    |     solved = await call(**solved_result.values)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    |     return get_current_user(credentials.credentials, db)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    |     payload = decode_token(token)
+    |               ^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    |     payload = jwt.decode(
+    |               ^^^^^^^^^^^
+    | TypeError: decode() got an unexpected keyword argument 'leeway'
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    solved = await call(**solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    return get_current_user(credentials.credentials, db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    payload = decode_token(token)
+              ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+TypeError: decode() got an unexpected keyword argument 'leeway'
+INFO:     127.0.0.1:52237 - "GET /api/v2/strategies/stats/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52240 - "GET /api/v2/engine/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52236 - "GET /api/v2/mt5/connection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52236 - "GET /api/v2/accounts/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52235 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52245 - "GET /ai-research HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52245 - "GET /api/v2/ai/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52245 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52245 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52246 - "GET /backtest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52246 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /api/v2/backtest/strategies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52246 - "GET /api/v2/backtest/symbols HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52252 - "GET /api/v2/backtest/timeframes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52253 - "GET /api/v2/backtest/runs?limit=20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52261 - "GET /backtest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52260 - "GET /api/v2/backtest/symbols HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52266 - "GET /api/v2/backtest/timeframes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52261 - "GET /api/v2/backtest/strategies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52265 - "GET /api/v2/backtest/runs?limit=20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52265 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52265 - "GET /ai-research HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52265 - "GET /api/v2/ai/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52265 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52265 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52269 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52271 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52271 - "GET /strategies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52271 - "GET /api/v2/strategies HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:52269 - "GET /api/v2/strategies/evidence?limit=50 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52269 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52269 - "GET /api/v2/strategies/stats/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52274 - "GET /trade-ops HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52274 - "GET /api/v2/mt5/accounts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52280 - "GET /api/v2/engine/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52279 - "GET /api/v2/mt5/connection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52275 - "GET /api/trades/recent?limit=50 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 799, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    |     result = await app(  # type: ignore[func-returns-value]
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    |     return await self.app(scope, receive, send)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |   File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    |     solved_result = await solve_dependencies(
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    |     solved = await call(**solved_result.values)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    |     return get_current_user(credentials.credentials, db)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    |     payload = decode_token(token)
+    |               ^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    |     payload = jwt.decode(
+    |               ^^^^^^^^^^^
+    | TypeError: decode() got an unexpected keyword argument 'leeway'
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 421, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 62, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\applications.py", line 1159, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 99, in _auth_guard
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "C:\Users\hp\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\app.py", line 64, in _security_headers
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\routing.py", line 457, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 678, in solve_dependencies
+    solved = await call(**solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\router.py", line 107, in _get_current_user
+    return get_current_user(credentials.credentials, db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 125, in get_current_user
+    payload = decode_token(token)
+              ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hp\SavannaCapital-Terminal\auth\service.py", line 98, in decode_token
+    payload = jwt.decode(
+              ^^^^^^^^^^^
+TypeError: decode() got an unexpected keyword argument 'leeway'
+INFO:     127.0.0.1:52281 - "GET /api/v2/mt5/positions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52279 - "GET /api/v2/mt5/positions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52279 - "GET /api/v2/mt5/orders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52279 - "GET /api/v2/engine/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52282 - "GET /backtest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52282 - "GET /api/v2/backtest/strategies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52283 - "GET /api/v2/backtest/symbols HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52284 - "GET /api/v2/backtest/timeframes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52285 - "GET /api/v2/backtest/runs?limit=20 HTTP/1.1" 200 OK
+2026-06-13 13:37:44 INFO  dashboard.v2.routes.backtest - Backtest queued: run_id=38 BTCUSD M1 MomentumReversion
+INFO:     127.0.0.1:52286 - "POST /api/v2/backtest/run HTTP/1.1" 200 OK
+2026-06-13 13:37:44 INFO  quant.runner - Backtest 38 started: BTCUSD M1 MomentumReversion
+2026-06-13 13:37:44 INFO  quant.runner - Backtest 38: fetching BTCUSD M1 (2024-01-01 → 2025-01-01)
+2026-06-13 13:37:44 INFO  data.repository - MT5: attempting attach mode (mt5.initialize() no-args)
+2026-06-13 13:37:44 INFO  data.repository - MT5 attach OK: terminal=JustMarkets MetaTrader 5 connected=True
+2026-06-13 13:37:44 INFO  data.repository - MT5 resolved symbol: BTCUSD.m (canonical=BTCUSD, server=JustMarkets-Demo3)
+2026-06-13 13:37:44 INFO  data.repository - MT5 copy_rates_range: symbol=BTCUSD.m timeframe=M1 2024-01-01T00:00:00+00:00 -> 2025-01-01T00:00:00+00:00
+2026-06-13 13:37:44 WARNING data.repository - No MT5 data: symbol=BTCUSD.m timeframe=M1 error=(1, 'Success')
+2026-06-13 13:37:44 ERROR quant.runner - Backtest 38 FAILED: No MT5 data returned for BTCUSD M1
+Traceback (most recent call last):
+  File "C:\Users\hp\SavannaCapital-Terminal\quant\runner.py", line 95, in run_backtest_job
+    raise ValueError(f"No MT5 data returned for {symbol} {timeframe}")
+ValueError: No MT5 data returned for BTCUSD M1
+INFO:     127.0.0.1:52286 - "GET /api/v2/backtest/run/38 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52287 - "GET /ml HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52287 - "GET /api/v2/ml/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52287 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52288 - "GET /api/v2/ml/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52292 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+2026-06-13 13:38:06 INFO  dashboard.v2.routes.ml - ML training job queued: model_id=1 XAUUSD M5
+INFO:     127.0.0.1:52293 - "POST /api/v2/ml/train HTTP/1.1" 200 OK
+2026-06-13 13:38:06 ERROR dashboard.v2.routes.ml - ML training failed for model 1: build_features() got an unexpected keyword argument 'lookback'
+Traceback (most recent call last):
+  File "C:\Users\hp\SavannaCapital-Terminal\dashboard\v2\routes\ml.py", line 73, in _train_worker
+    features_df = build_features(symbol, timeframe, lookback=1000)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: build_features() got an unexpected keyword argument 'lookback'
+INFO:     127.0.0.1:52293 - "GET /api/v2/ml/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52293 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52293 - "GET /api/v2/ml/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52293 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52295 - "GET /api/v2/ml/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52296 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52295 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52297 - "GET /api/v2/ml/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52299 - "GET /api/v2/ml/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52298 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52299 - "GET /api/v2/strategies/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52300 - "GET /ai-research HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52300 - "GET /api/v2/ai/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52300 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52300 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52301 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52301 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52310 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52320 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52321 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52329 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52330 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52334 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52335 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52341 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52340 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52345 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52346 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52357 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52358 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52362 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52363 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52366 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52367 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52369 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52368 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52370 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52371 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52372 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52373 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52378 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52377 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52389 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52390 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52402 - "GET /api/v2/ai/heatmap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52402 - "GET /api/v2/ai/suggestions?limit=50 HTTP/1.1" 200 OK

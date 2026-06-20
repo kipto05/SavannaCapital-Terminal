@@ -1,0 +1,247 @@
+{% extends "v3/_base.html" %}
+{% block title %}Research Lab | Savanna Capital{% endblock %}
+
+{% block content %}
+<div class="flex h-full overflow-hidden">
+  <!-- TOP BREADCRUMB BAR -->
+  <div class="absolute top-0 left-0 right-0 z-20 bg-surface-container border-b border-outline-variant">
+    <div class="px-4 py-2 flex items-center gap-2">
+      <span class="text-outline text-label-sm font-label-sm uppercase">Research Pipeline</span>
+      <span class="material-symbols-outlined text-outline text-[14px]">chevron_right</span>
+      <span class="text-on-surface-variant text-label-sm font-label-sm">Idea</span>
+      <span class="material-symbols-outlined text-outline text-[14px]">chevron_right</span>
+      <span class="text-primary font-label-sm font-bold">Research</span>
+      <span class="material-symbols-outlined text-outline text-[14px]">chevron_right</span>
+      <span class="text-on-surface-variant text-label-sm font-label-sm">Hypothesis</span>
+      <span class="material-symbols-outlined text-outline text-[14px]">chevron_right</span>
+      <span class="text-on-surface-variant text-label-sm font-label-sm">Backtest</span>
+      <span class="material-symbols-outlined text-outline text-[14px]">chevron_right</span>
+      <span class="text-on-surface-variant text-label-sm font-label-sm">Validation</span>
+      <span class="material-symbols-outlined text-outline text-[14px]">chevron_right</span>
+      <span class="text-on-surface-variant text-label-sm font-label-sm">Deploy</span>
+    </div>
+  </div>
+
+  <!-- MAIN PANEL CONTAINER (with top padding for breadcrumb) -->
+  <div class="flex w-full pt-10 overflow-hidden">
+    <!-- LEFT PANEL — Dataset Explorer (fixed width) -->
+    <aside class="w-64 bg-surface-container border-r border-outline-variant flex flex-col overflow-hidden shrink-0">
+      <div class="px-4 py-2 border-b border-outline-variant bg-surface-container-high shrink-0">
+        <h2 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Dataset Explorer</h2>
+      </div>
+      <div class="flex-1 overflow-y-auto p-3 space-y-4" data-panel="datasets">
+        <!-- Categories populated by JS -->
+        <div id="dataset-categories" class="space-y-3">
+          <!-- Hardcoded datasets for now -->
+          <div class="category-group">
+            <div class="text-outline text-[11px] uppercase font-bold mb-1.5">Metals</div>
+            <div class="space-y-1">
+              <div class="dataset-card bg-background border border-outline-variant rounded p-2.5 cursor-pointer hover:border-primary hover:bg-surface-container-high transition-colors"
+                   data-symbol="XAUUSD"
+                   data-dataset="Gold (XAUUSD)">
+                <div class="font-body-sm text-on-surface font-medium mb-1">Gold (XAUUSD)</div>
+                <div class="text-outline text-[10px] space-y-0.5">
+                  <div>Size: 2.1 GB</div>
+                  <div>Timeframe: M1-M15</div>
+                  <div>Refreshed: 2 min ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="category-group">
+            <div class="text-outline text-[11px] uppercase font-bold mb-1.5">Crypto (L2)</div>
+            <div class="space-y-1">
+              <div class="dataset-card bg-background border border-outline-variant rounded p-2.5 cursor-pointer hover:border-primary hover:bg-surface-container-high transition-colors"
+                   data-symbol="BTC-USD"
+                   data-dataset="BTC-USD L2">
+                <div class="font-body-sm text-on-surface font-medium mb-1">BTC-USD L2</div>
+                <div class="text-outline text-[10px] space-y-0.5">
+                  <div>Size: 4.3 GB</div>
+                  <div>Timeframe: 1s-1m</div>
+                  <div>Refreshed: 15 sec ago</div>
+                </div>
+              </div>
+              <div class="dataset-card bg-background border border-outline-variant rounded p-2.5 cursor-pointer hover:border-primary hover:bg-surface-container-high transition-colors"
+                   data-symbol="ETH-USD"
+                   data-dataset="ETH-USD L2">
+                <div class="font-body-sm text-on-surface font-medium mb-1">ETH-USD L2</div>
+                <div class="text-outline text-[10px] space-y-0.5">
+                  <div>Size: 3.8 GB</div>
+                  <div>Timeframe: 1s-1m</div>
+                  <div>Refreshed: 22 sec ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="category-group">
+            <div class="text-outline text-[11px] uppercase font-bold mb-1.5">Equities</div>
+            <div class="space-y-1">
+              <div class="dataset-card bg-background border border-outline-variant rounded p-2.5 cursor-pointer hover:border-primary hover:bg-surface-container-high transition-colors"
+                   data-symbol="AAPL"
+                   data-dataset="AAPL Equities">
+                <div class="font-body-sm text-on-surface font-medium mb-1">AAPL Equities</div>
+                <div class="text-outline text-[10px] space-y-0.5">
+                  <div>Size: 1.2 GB</div>
+                  <div>Timeframe: M1-M15</div>
+                  <div>Refreshed: 5 min ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER PANEL — Research Workspace (flexible width) -->
+    <main class="flex-1 bg-surface-container overflow-hidden flex flex-col">
+      <div class="px-4 py-2 border-b border-outline-variant bg-surface-container-high shrink-0 flex justify-between items-center">
+        <h2 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Research Workspace</h2>
+        <div id="workspace-tabs" class="flex gap-1">
+          <!-- Tabs populated by JS -->
+        </div>
+      </div>
+
+      <!-- Empty state (shown when no dataset selected) -->
+      <div id="workspace-empty" class="flex-1 flex items-center justify-center">
+        <div class="text-center">
+          <div class="material-symbols-outlined text-outline text-[64px] mb-3">science</div>
+          <div class="text-on-surface-variant font-body-md mb-1">No dataset selected</div>
+          <div class="text-outline text-label-sm">Select a dataset from the explorer to begin research</div>
+        </div>
+      </div>
+
+      <!-- Workspace content (hidden until dataset loaded) -->
+      <div id="workspace-content" class="flex-1 overflow-y-hidden flex flex-col hidden">
+        <!-- Notebook area -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          <!-- Code blocks populated by JS -->
+          <div id="code-blocks" class="space-y-4">
+            <!-- Example code block structure (populated by JS) -->
+          </div>
+
+          <!-- Visualization placeholder -->
+          <div class="bg-background border border-outline-variant rounded-lg p-4">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Alpha Signal Intensity Map</h3>
+              <button id="refresh-viz-btn" class="text-primary text-[11px] font-label-sm hover:underline flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">refresh</span>
+                Refresh
+              </button>
+            </div>
+            <div class="bg-surface-container-highest rounded p-3">
+              <canvas id="alpha-heatmap" width="600" height="400" class="w-full"></canvas>
+            </div>
+            <div class="mt-2 flex items-center justify-center gap-4 text-[10px] text-outline">
+              <div class="flex items-center gap-1">
+                <div class="w-4 h-3 bg-blue-500 rounded"></div>
+                <span>Weak</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <div class="w-4 h-3 bg-yellow-500 rounded"></div>
+                <span>Moderate</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <div class="w-4 h-3 bg-red-500 rounded"></div>
+                <span>Strong</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL — Observations (fixed width) -->
+    <aside class="w-80 bg-surface-container border-l border-outline-variant flex flex-col overflow-hidden shrink-0">
+      <div class="px-4 py-2 border-b border-outline-variant bg-surface-container-high shrink-0">
+        <h2 class="font-label-sm text-label-sm uppercase font-bold text-on-surface">Observations</h2>
+      </div>
+
+      <!-- Observations list -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-2" id="observations-list">
+        <!-- Observations populated by JS -->
+        <div class="text-outline text-[12px] italic">No observations yet</div>
+      </div>
+
+      <!-- Add observation form (hidden by default) -->
+      <div id="observation-form" class="px-3 py-2 border-t border-outline-variant bg-surface-container-high hidden">
+        <div class="space-y-2">
+          <div>
+            <label class="text-[10px] uppercase font-bold text-outline mb-1 block">Type</label>
+            <select id="obs-type" class="w-full bg-background border border-outline-variant rounded px-2 py-1 text-[11px] text-on-surface focus:border-primary focus:outline-none">
+              <option value="STAT_SIG">Statistical Significance</option>
+              <option value="ANOMALY">Anomaly</option>
+              <option value="DATA_GAP">Data Gap</option>
+              <option value="VOLATILITY">Volatility Shift</option>
+              <option value="REGIME_SHIFT">Regime Shift</option>
+              <option value="MODEL_ALERT">Model Alert</option>
+              <option value="CORRELATION">Correlation</option>
+              <option value="RISK">Risk</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] uppercase font-bold text-outline mb-1 block">Note</label>
+            <textarea id="obs-note" rows="3" class="w-full bg-background border border-outline-variant rounded px-2 py-1 text-[11px] text-on-surface focus:border-primary focus:outline-none resize-none" placeholder="Enter observation..."></textarea>
+          </div>
+          <div>
+            <label class="text-[10px] uppercase font-bold text-outline mb-1 block">Tags (comma separated)</label>
+            <input type="text" id="obs-tags" class="w-full bg-background border border-outline-variant rounded px-2 py-1 text-[11px] text-on-surface focus:border-primary focus:outline-none" placeholder="e.g. crypto, volatility">
+          </div>
+          <div class="flex gap-2">
+            <button id="obs-save-btn" class="flex-1 bg-primary text-on-primary px-2 py-1 rounded text-[11px] font-label-sm hover:opacity-90 transition-opacity">Save</button>
+            <button id="obs-cancel-btn" class="flex-1 bg-background border border-outline-variant text-on-surface px-2 py-1 rounded text-[11px] font-label-sm hover:bg-surface-container-high transition-colors">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add observation button -->
+      <div class="p-3 border-t border-outline-variant shrink-0">
+        <button id="add-obs-btn" class="w-full bg-background border border-outline-variant text-on-surface px-3 py-1.5 rounded text-[11px] font-label-sm hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-1.5">
+          <span class="material-symbols-outlined text-[14px]">add</span>
+          Add Observation
+        </button>
+      </div>
+
+      <!-- Workspace stats block -->
+      <div class="px-3 py-2 border-t border-outline-variant bg-surface-container-high/50 shrink-0">
+        <div class="text-[10px] uppercase font-bold text-outline mb-2">Workspace Runtime</div>
+        <div class="space-y-1.5 text-[11px]">
+          <div class="flex justify-between">
+            <span class="text-outline">RAM:</span>
+            <span class="text-on-surface font-mono" id="stat-ram">—</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-outline">GPU:</span>
+            <span class="text-on-surface font-mono" id="stat-gpu">—</span>
+          </div>
+          <div class="w-full bg-surface-container h-1 rounded overflow-hidden mt-1">
+            <div id="stat-compute-bar" class="bg-accent h-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between mt-1.5">
+            <span class="text-outline">Blocks executed:</span>
+            <span class="text-on-surface font-mono" id="stat-blocks">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-outline">Last run:</span>
+            <span class="text-on-surface font-mono" id="stat-last-run">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commit button (fixed at bottom) -->
+      <div class="p-3 border-t border-outline-variant shrink-0">
+        <button id="commit-hypothesis-btn" class="w-full bg-primary text-on-primary px-3 py-2 rounded font-label-sm font-bold uppercase hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-[14px]">publish</span>
+          Commit to Hypothesis
+        </button>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="module" src="/static/v3/pages/research_lab.js"></script>
+{% endblock %}

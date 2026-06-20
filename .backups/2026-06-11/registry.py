@@ -28,14 +28,12 @@ log = logging.getLogger(__name__)
 # ── Package discovery ───────────────────────────────────────────────────────────
 
 _STRATEGY_PACKAGE = "strategies"
-# NOTE: The former standalone modules strategies.momentum_reversion and
-# strategies.divergence_swing were duplicates of classes defined in
-# strategies.crypto and have been removed. The registry now imports only
-# the asset-class group modules, the shims, and ai_trading.
 _KNOWN_MODULES: list[str] = [
+    "strategies.momentum_reversion",
     "strategies.band_reversion",
     "strategies.stochastic_trend",
     "strategies.session_breakout",
+    "strategies.divergence_swing",
     "strategies.vwap_reversion",
     "strategies.macd_impulse",
     "strategies.ai_trading",

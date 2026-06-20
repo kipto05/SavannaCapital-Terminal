@@ -7,6 +7,7 @@ import math
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
+from collections import defaultdict
 
 from fastapi import (
     APIRouter,
@@ -17,7 +18,6 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
@@ -385,8 +385,6 @@ def api_backtest_create(body: dict, current_user: User = Depends(_get_current_us
     db.flush()
     return {"id": str(run.id), "status": "pending"}
 
-# NOTE: /api/ml/models is now provided by the ML router -- no duplicate inline handler.
-
 @app.get("/api/ai_advisor/suggestions")
 def api_suggestions(current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
     rows = (
@@ -446,7 +444,7 @@ def api_settings_save(body: dict, current_user: User = Depends(_get_current_user
     return {"saved": True, "keys": list(body.keys())}
 
 
-# -- Executive Analytics endpoint ---------------------------------------------
+# -- Executive Analytics endpoint --------------------------------------------
 @app.get("/api/v3/analytics")
 def get_analytics(
     db: Session = Depends(get_db),
@@ -705,6 +703,287 @@ def get_analytics(
     }
 
 
+# -- Risk Monitor v3 endpoint ----------------------------------------------------
+# Asset classification uses config.risk.asset_class_prefixes for runtime override
+
+def _asset(sym: str) -> str:
+    """Asset class for a symbol."""
+    s = sym.upper()
+    prefixes = config.risk.asset_class_prefixes
+    if any(s.startswith(p) for p in prefixes.get("crypto", [])):
+        return "crypto"
+    if any(s.startswith(p) for p in prefixes.get("equities", [])):
+        return "equities"
+    if any(s.startswith(p) for p in prefixes.get("metals", [])):
+        return "metals"
+    if any(s.startswith(p) for p in prefixes.get("fx", [])):
+        return "fx"
+    return "other"
+
+
+def _grp(name: str) -> str:
+    n = name.lower()
+    if any(k in n for k in ("trend", "ema", "macd", "momentum")):
+        return "trend"
+    if any(k in n for k in ("reversion", "mean", "band", "vwap", "stoch")):
+        return "mean_reversion"
+    if any(k in n for k in ("scalp", "hf", "hft")):
+        return "hft_scalp"
+    if any(k in n for k in ("breakout", "session", "macro")):
+        return "macroscopic_event"
+    if any(k in n for k in ("divergence", "swing")):
+        return "swing_divergence"
+    return "other"
+
+
+def _pearson(a: list[float], b: list[float]) -> float:
+    n = min(len(a), len(b))
+    if n < 3:
+        return 0.0
+    a2, b2 = a[:n], b[:n]
+    ma = sum(a2) / n
+    mb = sum(b2) / n
+    num = sum((a2[i] - ma) * (b2[i] - mb) for i in range(n))
+    da = math.sqrt(sum((x - ma) ** 2 for x in a2))
+    db = math.sqrt(sum((x - mb) ** 2 for x in b2))
+    if da < 1e-12 or db < 1e-12:
+        return 0.0
+    return num / (da * db)
+
+
+def get_contract_multiplier(sym: str) -> int:
+    """Return contract multiplier for given symbol based on asset class."""
+    asset = _asset(sym)
+    multipliers = config.risk.contract_multipliers
+    return multipliers.get(asset, multipliers.get("default", 1))
+
+
+@app.get("/api/v3/risk/overview")
+def get_risk_overview(
+    current_user: User = Depends(_get_current_user),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Portfolio Risk Monitor — v3 endpoint."""
+    log.info("Risk overview generated")
+    try:
+        # Fetch latest account snapshot
+        latest = db.query(AccountSnapshot).order_by(AccountSnapshot.created_at.desc()).first()
+        prev = (
+            db.query(AccountSnapshot)
+            .filter(AccountSnapshot.id != (latest.id if latest else 0))
+            .order_by(AccountSnapshot.created_at.desc())
+            .first()
+        )
+        eq_now = float(latest.equity) if latest else 0.0
+        eq_prev = float(prev.equity) if prev else 0.0
+
+        # Margin and free margin
+        margin = float(latest.margin) if latest and latest.margin is not None else 0.0
+        free_margin = float(latest.free_margin) if latest and latest.free_margin is not None else 0.0
+
+        # KPIs
+        daily_dd_pct = ((eq_now - eq_prev) / eq_prev * 100) if eq_prev > 0 else 0.0
+        margin_usage_pct = (margin / eq_now * 100) if eq_now > 0 else 0.0
+
+        # Weekly drawdown
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        wk_snaps = (
+            db.query(AccountSnapshot)
+            .filter(AccountSnapshot.created_at >= week_ago)
+            .order_by(AccountSnapshot.created_at.asc())
+            .all()
+        )
+        weekly_dd_pct = 0.0
+        if wk_snaps and eq_prev > 0:
+            min_equity_week = min(float(s.equity) for s in wk_snaps)
+            weekly_dd_pct = (eq_now - min_equity_week) / eq_prev * 100
+
+        # VaR 95% 1-day (parametric)
+        all_snaps = db.query(AccountSnapshot).order_by(AccountSnapshot.created_at.asc()).limit(365).all()
+        var_95_1d_usd = 0.0
+        if len(all_snaps) >= 5:
+            eqs = [float(s.equity) for s in all_snaps]
+            rets = [
+                (eqs[i] - eqs[i-1]) / eqs[i-1]
+                for i in range(1, len(eqs))
+                if eqs[i-1] != 0
+            ]
+            if len(rets) >= 2:
+                mu = sum(rets) / len(rets)
+                variance = sum((r - mu) ** 2 for r in rets) / (len(rets) - 1)
+                daily_vol = math.sqrt(variance)
+                var_95_1d_usd = config.risk.var_z_score_95 * daily_vol * eq_now
+
+        # Active positions
+        trades = (
+            db.query(Trade)
+            .filter(Trade.is_active.is_(True))
+            .order_by(Trade.opened_at.desc())
+            .limit(config.risk.max_positions_fetch)
+            .all()
+        )
+
+        positions = []
+        total_exposure_usd = 0.0
+        by_asset = defaultdict(float)
+        by_strat = defaultdict(float)
+        strat_ret = defaultdict(list)
+
+        for t in trades:
+            entry = float(t.entry or t.open_price or 0.0)
+            size = float(t.lot_size or 0.0)
+            multiplier = get_contract_multiplier(t.symbol)
+            notional = size * entry * multiplier if entry > 0 else 0.0
+            pnl = float(t.pnl or 0.0)
+            sl = float(t.sl or 0.0)
+            tp = float(t.tp or 0.0)
+
+            # Risk percentage
+            risk_pct = 0.0
+            if entry > 0 and sl > 0 and eq_now > 0:
+                risk_amount = size * abs(entry - sl) * multiplier
+                risk_pct = (risk_amount / eq_now) * 100
+
+            positions.append({
+                "account": "Quant-A1",
+                "symbol": t.symbol,
+                "dir": "Long" if t.side and t.side.name == "BUY" else "Short",
+                "entry": entry,
+                "price": entry,
+                "size": size,
+                "sl": sl if sl != 0 else None,
+                "tp": tp if tp != 0 else None,
+                "tp1": float(t.tp1) if t.tp1 is not None else None,
+                "pnl": pnl,
+                "pnl_r": float(t.pnl_r) if t.pnl_r is not None else None,
+                "risk_pct": round(risk_pct, 2),
+                "asset_class": _asset(t.symbol),
+                "strategy": t.strategy_name or "",
+                "exposure_usd": round(notional, 0),
+            })
+            total_exposure_usd += notional
+            by_asset[_asset(t.symbol)] += notional
+            g = _grp(t.strategy_name or "")
+            by_strat[g] += notional
+            if t.pnl_r is not None:
+                strat_ret[g].append(float(t.pnl_r))
+
+        # Add concentration_pct based on total_exposure_usd
+        if total_exposure_usd > 0:
+            for pos in positions:
+                pos["concentration_pct"] = round((pos["exposure_usd"] / total_exposure_usd) * 100, 2)
+        else:
+            for pos in positions:
+                pos["concentration_pct"] = 0.0
+
+        # Asset allocation percentages
+        asset_allocation = {
+            k: round(v / total_exposure_usd * 100, 1) if total_exposure_usd > 0 else 0.0
+            for k, v in by_asset.items()
+        }
+        for key in ("equities", "fx", "crypto", "metals", "other"):
+            asset_allocation.setdefault(key, 0.0)
+
+        # Strategy exposure (sorted descending)
+        strategy_exposure_usd = dict(sorted(by_strat.items(), key=lambda x: -x[1]))
+
+        # Correlation matrix
+        group_names = sorted(set(_grp(t.strategy_name or "") for t in trades if t.strategy_name))
+        n = len(group_names)
+        corr_matrix = [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
+        if n >= 2:
+            for i in range(n):
+                for j in range(i + 1, n):
+                    r = _pearson(
+                        strat_ret.get(group_names[i], []),
+                        strat_ret.get(group_names[j], []),
+                    )
+                    corr_matrix[i][j] = round(r, 2)
+                    corr_matrix[j][i] = round(r, 2)
+
+        correlation = {
+            "labels": group_names,
+            "matrix": corr_matrix,
+            "period_days": config.risk.correlation_period_days,
+        }
+
+        # Alerts
+        alerts = []
+        now_ts = datetime.now(timezone.utc).isoformat()
+
+        # Asset concentration > threshold
+        if total_exposure_usd > 0:
+            for asset_name, alloc_val in by_asset.items():
+                if alloc_val / total_exposure_usd > config.risk.asset_concentration_threshold_pct / 100:
+                    alerts.append({
+                        "severity": "error",
+                        "account": "System",
+                        "symbol": asset_name.upper(),
+                        "message": f"High concentration: {asset_name} at {alloc_val / total_exposure_usd * 100:.1f}% of portfolio",
+                        "ts": now_ts,
+                    })
+                    break  # one alert per asset class
+
+        # Daily drawdown < threshold
+        if daily_dd_pct < config.risk.daily_dd_threshold_pct:
+            alerts.append({
+                "severity": "warning",
+                "account": "System",
+                "symbol": "PORTFOLIO",
+                "message": f"Daily drawdown {daily_dd_pct:.2f}% below threshold {config.risk.daily_dd_threshold_pct}%",
+                "ts": now_ts,
+            })
+
+        # Margin usage > threshold
+        if margin_usage_pct > config.risk.margin_usage_threshold_pct:
+            alerts.append({
+                "severity": "error",
+                "account": "System",
+                "symbol": "MARGIN",
+                "message": f"Margin usage {margin_usage_pct:.1f}% above {config.risk.margin_usage_threshold_pct}% threshold",
+                "ts": now_ts,
+            })
+
+        # Free margin ratio < threshold
+        if eq_now > 0 and (free_margin / eq_now) < config.risk.free_margin_ratio_threshold:
+            alerts.append({
+                "severity": "warning",
+                "account": "System",
+                "symbol": "FREE_MARGIN",
+                "message": f"Free margin ratio {free_margin / eq_now * 100:.1f}% below {config.risk.free_margin_ratio_threshold * 100}% floor",
+                "ts": now_ts,
+            })
+
+        headers = {"Cache-Control": "no-cache, no-store, must-revalidate, max-age=0"}
+        return JSONResponse(
+            content={
+                "kpis": {
+                    "daily_dd_pct": round(daily_dd_pct, 2),
+                    "weekly_dd_pct": round(weekly_dd_pct, 2),
+                    "total_exposure_usd": round(total_exposure_usd, 0),
+                    "var_95_1d_usd": round(var_95_1d_usd, 0),
+                    "margin_usage_pct": round(margin_usage_pct, 1),
+                    "positions_count": len(positions),
+                },
+                "positions": positions,
+                "asset_allocation": asset_allocation,
+                "strategy_exposure_usd": strategy_exposure_usd,
+                "correlation": correlation,
+                "alerts": alerts,
+                "metadata": {
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                    "snapshot_id": latest.id if latest else None,
+                    "equity_currency": "USD",
+                },
+            },
+            headers=headers,
+        )
+
+    except Exception as exc:
+        log.exception("Risk overview endpoint failed: %s", exc)
+        raise HTTPException(status_code=500, detail={"error": "Internal server error"})
+
+
 # -- MT5 endpoints -------------------------------------------------------------
 @app.get("/api/mt5/positions")
 def api_mt5_positions(current_user: User = Depends(_get_current_user)):
@@ -910,3 +1189,17 @@ def settings_page(request: Request):
 @app.get("/notifications", response_class=HTMLResponse)
 def notifications_page(request: Request):
     return v3_page("notifications", request)
+
+@app.on_event("startup")
+def _startup():
+    # Ensure DB is reachable; log platform configuration
+    try:
+        with engine.connect() as conn:
+            conn.execute(select(1))
+            log.info("Database connection OK")
+    except Exception as exc:
+        log.exception("Database connection failed on startup: %s", exc)
+        raise
+    log.info("Savanna Capital Quant OS v3 starting...")
+    log.info("Dashboard: http://127.0.0.1:8000")
+    log.info("Active config: %s", config)

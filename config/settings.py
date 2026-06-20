@@ -1,3 +1,4 @@
+"""config/settings.py — Savanna Capital Quant OS configuration."""
 from __future__ import annotations
 
 import os
@@ -226,6 +227,29 @@ class RiskConfig:
         "XAUUSD": 0.01, "XAGUSD": 0.001, "BTCUSD": 0.01, "ETHUSD": 0.01,
         "AAPL": 0.01, "TSLA": 0.01, "NVDA": 0.01,
     })
+    # Portfolio Risk Monitor configuration
+    asset_class_prefixes: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            "crypto": ["BTC", "ETH", "SOL", "ADA", "LTC", "XRP", "DOGE", "AVAX", "DOT", "BNB"],
+            "equities": ["AAPL", "MSFT", "GOOGL", "TSLA", "META", "NVDA", "AMZN", "NFLX"],
+            "metals": ["XAU", "XAG", "XPT", "XPD", "GOLD", "SLVR"],
+            "fx": ["EUR", "GBP", "USD", "JPY", "AUD", "CAD", "CHF", "NZD"],
+        }
+    )
+    max_positions_fetch: int = 500
+    correlation_period_days: int = 30
+    var_z_score_95: float = 1.645
+    asset_concentration_threshold_pct: float = 35.0
+    daily_dd_threshold_pct: float = -2.0
+    margin_usage_threshold_pct: float = 80.0
+    free_margin_ratio_threshold: float = 0.2
+    contract_multipliers: dict = field(default_factory=lambda: {
+        "fx": 100_000,
+        "metals": 100,
+        "crypto": 1,
+        "equities": 1,
+        "default": 1,
+    })
 
 
 @dataclass
@@ -386,14 +410,12 @@ class PlatformConfig:
         cfg.mt5.server = os.environ.get("MT5_SERVER", cfg.mt5.server)
         cfg.mt5.path = os.environ.get("MT5_PATH", cfg.mt5.path)
 
-        # ── AI provider config ────────────────────────────────────────────
+        # AI provider config
         cfg.ai.provider = os.environ.get("AI_PROVIDER", cfg.ai.provider).lower()
-        # Global model settings
         cfg.ai.model = os.environ.get("AI_MODEL", cfg.ai.model)
         cfg.ai.stream = os.environ.get("AI_STREAM", "false").lower() in ("1", "true", "yes")
         cfg.ai.reasoning_budget = int(os.environ.get("AI_REASONING_BUDGET", "0"))
         cfg.ai.max_tokens = int(os.environ.get("AI_MAX_TOKENS", str(cfg.ai.max_tokens)))
-        # Per-use-case overrides
         cfg.ai.suggest_model = os.environ.get("AI_SUGGEST_MODEL", cfg.ai.suggest_model)
         cfg.ai.chat_model = os.environ.get("AI_CHAT_MODEL", cfg.ai.chat_model)
         cfg.ai.suggest_max_tokens = int(os.environ.get("AI_SUGGEST_MAX_TOKENS", str(cfg.ai.suggest_max_tokens)))
@@ -401,13 +423,11 @@ class PlatformConfig:
         cfg.ai.suggest_reasoning_budget = int(os.environ.get("AI_SUGGEST_REASONING_BUDGET", str(cfg.ai.suggest_reasoning_budget)))
         cfg.ai.chat_reasoning_budget = int(os.environ.get("AI_CHAT_REASONING_BUDGET", str(cfg.ai.chat_reasoning_budget)))
         cfg.ai.chat_stream = os.environ.get("AI_CHAT_STREAM", cfg.ai.chat_stream)
-        # Provider API keys
         cfg.ai.anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", cfg.ai.anthropic_api_key)
         cfg.ai.nvidia_api_key = os.environ.get("NVIDIA_API_KEY", cfg.ai.nvidia_api_key)
         cfg.ai.gemini_api_key = os.environ.get("GEMINI_API_KEY", cfg.ai.gemini_api_key)
         cfg.ai.openrouter_api_key = os.environ.get("OPENROUTER_API_KEY", cfg.ai.openrouter_api_key)
 
-        # Enabled if ANY provider key is present
         has_key = any([
             cfg.ai.anthropic_api_key,
             cfg.ai.nvidia_api_key,
@@ -416,7 +436,7 @@ class PlatformConfig:
         ])
         cfg.ai.enabled = has_key
 
-        # ── SMTP config ─────────────────────────────────────────────────────
+        # SMTP config
         cfg.smtp.host = os.environ.get("SMTP_HOST", cfg.smtp.host)
         cfg.smtp.port = int(os.environ.get("SMTP_PORT", str(cfg.smtp.port)))
         cfg.smtp.username = os.environ.get("SMTP_USERNAME", cfg.smtp.username)
@@ -424,7 +444,7 @@ class PlatformConfig:
         cfg.smtp.use_tls = os.environ.get("SMTP_USE_TLS", str(cfg.smtp.use_tls)).lower() in ("1", "true", "yes")
         cfg.smtp.from_email = os.environ.get("SMTP_FROM_EMAIL", cfg.smtp.from_email)
 
-        # ── Notification cleanup config ─────────────────────────────────────
+        # Notification cleanup config
         notification_retention = os.environ.get("NOTIFICATION_RETENTION_DAYS", str(cfg.notification.retention_days))
         cfg.notification.retention_days = int(notification_retention)
 

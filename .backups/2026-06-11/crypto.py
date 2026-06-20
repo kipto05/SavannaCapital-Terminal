@@ -1,39 +1,44 @@
-"""strategies/momentum_reversion.py — MomentumReversion — BTCUSD M15.
+"""
+strategies/crypto.py — crypto asset-class strategies.
 
-Pullback-to-fast-EMA in the direction of the H1 EMA trend.
-SL/TP from DynamicSLTPModel.
+MomentumReversion   — BTCUSD  H1/M15
+DivergenceSwing     — XAGUSD  H1/M15   (XAGUSD is Silver — listed in commodity pool)
+Note: XAGUSD is in the commodity pool. If you want pure crypto pair:
+use BTCUSD with crypto timeframes.
 """
 from __future__ import annotations
 
 import logging
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
-from db.session import SessionLocal
-from execution.notification_service import NotificationService
-from execution.sl_tp_model import DynamicSLTPModel
-from strategies.base import (
-    BaseStrategy,
-    Signal,
-    Side,
-    StrategyMeta,
-    atr,
-    ema,
-    rsi,
-)
+from execution.sl_tp_model import DynamicSLTPModel, SLTPResult
+from strategies.base import BaseStrategy, Signal, Side, StrategyMeta, atr, ema, rsi
 
 log = logging.getLogger(__name__)
 
+_ASSET_CLASS = "crypto"
+_DEFAULT_TFS = ["H1", "M15"]
+
+
+# ── MomentumReversion ────────────────────────────────────────────────────────
 
 class MomentumReversion(BaseStrategy):
+    """
+    Pullback-to-fast-EMA in the direction of the H1 EMA trend.
+
+    Trend filter runs on H1 close; signal fires on M15 close.
+    SL/TP is the sole property of DynamicSLTPModel.
+    """
+
     meta = StrategyMeta(
         name="momentum_reversion",
         label="Momentum Reversion",
         description="Pullback to fast EMA in direction of H1 EMA trend",
-        asset_class="crypto",
-        typical_timeframes=["H1", "M15"],
-            required_timeframes=["H1"],
+        asset_class=_ASSET_CLASS,
+        typical_timeframes=_DEFAULT_TFS,
         default_symbol="BTCUSD",
     )
 
@@ -69,7 +74,9 @@ class MomentumReversion(BaseStrategy):
         super().__init__(symbol=symbol or "BTCUSD", timeframe=timeframe or "M15", params=params)
         self.sltp = DynamicSLTPModel()
 
-    def generate_signal(self, data: dict[str, pd.DataFrame]) -> Signal | None:
+    def generate_signal(
+        self, data: dict[str, pd.DataFrame]
+    ) -> Signal | None:
         try:
             tf_signal = self.timeframe
             tf_trend = "H1"
@@ -113,85 +120,73 @@ class MomentumReversion(BaseStrategy):
             curr_rsi = rsi_vals.iloc[-1]
             curr_atr = atr_vals.iloc[-1]
 
-            # LONG
+            max_above = tf_close_sig.iloc[-2:].max()
+
+            # ── LONG ────────────────────────────────────────────────────────
             if bullish and prev_close < prev_entry_ema and curr_close >= curr_entry_ema:
                 if not (p["rsi_long_min"] < curr_rsi < p["rsi_long_max"]):
+                    log.debug(
+                        "%s: LONG RSI gate %.1f not in [%.1f,%.1f]",
+                        self.meta.name, curr_rsi, p["rsi_long_min"], p["rsi_long_max"],
+                    )
                     return None
                 if curr_atr < p["min_atr_threshold"]:
+                    log.debug(
+                        "%s: LONG ATR %.2f < min %.2f",
+                        self.meta.name, curr_atr, p["min_atr_threshold"],
+                    )
                     return None
 
                 side_v = Side.BUY
                 entry = curr_close
                 result = self.sltp.compute(df=df_sig, side=side_v.value, entry=entry)
                 if result is None:
+                    log.debug("%s: SLTP blocked long", self.meta.name)
                     return None
-                signal = Signal(
-                    side=side_v, entry=entry, sl=result.sl, tp=result.tp2,
-                    tp1=result.tp1, tp2=result.tp2, lot_size=p["lot_size"],
-                    tag=f"{self.meta.name}.long", regime=result.regime,
+                return Signal(
+                    side=side_v,
+                    entry=entry,
+                    sl=result.sl,
+                    tp=result.tp,
+                    tp1=result.tp1,
+                    tp2=result.tp2,
+                    lot_size=p["lot_size"],
+                    tag=f"{self.meta.name}.long",
+                    regime=result.regime,
                 )
 
-                # Publish notification
-                try:
-                    with SessionLocal() as db:
-                        ns = NotificationService(db)
-                        ns.publish(
-                            event_type="strategy_signal",
-                            title=f"Signal from {self.meta.name}",
-                            message=f"{self.meta.name} {signal.side.value} signal on {signal.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
-                            data={
-                                "strategy": self.meta.name,
-                                "symbol": signal.symbol,
-                                "side": signal.side.value,
-                                "entry": float(signal.entry),
-                                "sl": float(signal.sl),
-                                "tp": float(signal.tp)
-                            }
-                        )
-                except Exception as exc:
-                    log.exception("Failed to publish strategy signal notification: %s", exc)
-
-                return signal
-
-            # SHORT
+            # ── SHORT ───────────────────────────────────────────────────────
             if bearish and prev_close > prev_entry_ema and curr_close <= curr_entry_ema:
                 if not (p["rsi_short_min"] < curr_rsi < p["rsi_short_max"]):
+                    log.debug(
+                        "%s: SHORT RSI gate %.1f not in [%.1f,%.1f]",
+                        self.meta.name, curr_rsi, p["rsi_short_min"], p["rsi_short_max"],
+                    )
                     return None
                 if curr_atr < p["min_atr_threshold"]:
+                    log.debug(
+                        "%s: SHORT ATR %.2f < min %.2f",
+                        self.meta.name, curr_atr, p["min_atr_threshold"],
+                    )
                     return None
 
                 side_v = Side.SELL
                 entry = curr_close
                 result = self.sltp.compute(df=df_sig, side=side_v.value, entry=entry)
                 if result is None:
+                    log.debug("%s: SLTP blocked short", self.meta.name)
                     return None
-                signal = Signal(
-                    side=side_v, entry=entry, sl=result.sl, tp=result.tp2,
-                    tp1=result.tp1, tp2=result.tp2, lot_size=p["lot_size"],
-                    tag=f"{self.meta.name}.short", regime=result.regime,
+                return Signal(
+                    side=side_v,
+                    entry=entry,
+                    sl=result.sl,
+                    tp=result.tp,
+                    tp1=result.tp1,
+                    tp2=result.tp2,
+                    lot_size=p["lot_size"],
+                    tag=f"{self.meta.name}.short",
+                    regime=result.regime,
                 )
-
-                # Publish notification
-                try:
-                    with SessionLocal() as db:
-                        ns = NotificationService(db)
-                        ns.publish(
-                            event_type="strategy_signal",
-                            title=f"Signal from {self.meta.name}",
-                            message=f"{self.meta.name} {signal.side.value} signal on {signal.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
-                            data={
-                                "strategy": self.meta.name,
-                                "symbol": signal.symbol,
-                                "side": signal.side.value,
-                                "entry": float(signal.entry),
-                                "sl": float(signal.sl),
-                                "tp": float(signal.tp)
-                            }
-                        )
-                except Exception as exc:
-                    log.exception("Failed to publish strategy signal notification: %s", exc)
-
-                return signal
 
             return None
         except Exception as exc:

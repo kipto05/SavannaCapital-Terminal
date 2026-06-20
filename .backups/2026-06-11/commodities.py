@@ -10,8 +10,6 @@ from typing import Any
 
 import pandas as pd
 
-from db.session import SessionLocal
-from execution.notification_service import NotificationService
 from execution.sl_tp_model import DynamicSLTPModel, SLTPResult
 from strategies.base import BaseStrategy, Signal, Side, StrategyMeta, atr
 
@@ -87,8 +85,7 @@ class SessionBreakout(BaseStrategy):
             curr_hr = curr_ts.hour
 
             # ── Collect session bars ─────────────────────────────────────
-            hours = df.index.hour
-            mask_range = (hours >= p["range_session_start_hr"]) & (hours < p["range_session_end_hr"])
+            mask_range = df.index.hour.between(p["range_session_start_hr"], p["range_session_end_hr"] - 1, inclusive="left")
             range_session = df.loc[mask_range]
             if len(range_session) == 0:
                 return None
@@ -129,39 +126,17 @@ class SessionBreakout(BaseStrategy):
                         rr1=result.rr1,
                         rr2=abs(tp2 - entry) / abs(entry - result.sl),
                     )
-                signal = Signal(
+                return Signal(
                     side=Side.BUY,
                     entry=entry,
                     sl=result.sl,
-                    tp=result.tp2,
+                    tp=result.tp,
                     tp1=result.tp1,
                     tp2=result.tp2,
                     lot_size=p["lot_size"],
                     tag=f"{self.meta.name}.long",
                     regime=result.regime,
                 )
-
-                # Publish notification
-                try:
-                    with SessionLocal() as db:
-                        ns = NotificationService(db)
-                        ns.publish(
-                            event_type="strategy_signal",
-                            title=f"Signal from {self.meta.name}",
-                            message=f"{self.meta.name} {signal.side.value} signal on {self.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
-                            data={
-                                "strategy": self.meta.name,
-                                "symbol": self.symbol,
-                                "side": signal.side.value,
-                                "entry": float(signal.entry),
-                                "sl": float(signal.sl),
-                                "tp": float(signal.tp)
-                            }
-                        )
-                except Exception as exc:
-                    log.exception("Failed to publish strategy signal notification: %s", exc)
-
-                return signal
 
             # ── SHORT breakout ──────────────────────────────────────────
             if curr["close"] < range_low:
@@ -180,39 +155,17 @@ class SessionBreakout(BaseStrategy):
                         rr1=result.rr1,
                         rr2=abs(entry - tp2) / abs(entry - result.sl),
                     )
-                signal = Signal(
+                return Signal(
                     side=Side.SELL,
                     entry=entry,
                     sl=result.sl,
-                    tp=result.tp2,
+                    tp=result.tp,
                     tp1=result.tp1,
                     tp2=result.tp2,
                     lot_size=p["lot_size"],
                     tag=f"{self.meta.name}.short",
                     regime=result.regime,
                 )
-
-                # Publish notification
-                try:
-                    with SessionLocal() as db:
-                        ns = NotificationService(db)
-                        ns.publish(
-                            event_type="strategy_signal",
-                            title=f"Signal from {self.meta.name}",
-                            message=f"{self.meta.name} {signal.side.value} signal on {self.symbol}: entry={signal.entry:.5f}, sl={signal.sl:.5f}, tp={signal.tp:.5f}",
-                            data={
-                                "strategy": self.meta.name,
-                                "symbol": self.symbol,
-                                "side": signal.side.value,
-                                "entry": float(signal.entry),
-                                "sl": float(signal.sl),
-                                "tp": float(signal.tp)
-                            }
-                        )
-                except Exception as exc:
-                    log.exception("Failed to publish strategy signal notification: %s", exc)
-
-                return signal
 
             return None
         except Exception as exc:
