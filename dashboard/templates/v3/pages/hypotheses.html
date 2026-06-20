@@ -1,0 +1,255 @@
+{% extends "v3/_base.html" %}
+
+{% block title %}Hypotheses | Savanna Capital Trading OS{% endblock %}
+
+{% block content %}
+<!-- Page Container -->
+<div class="flex flex-col h-full">
+  <!-- Top Bar -->
+  <header class="flex justify-between items-center px-6 py-4 border-b border-outline-variant bg-surface-container-lowest">
+    <div class="flex items-center gap-6">
+      <h1 class="text-headline-md font-headline-md text-on-surface">Hypotheses</h1>
+      <button id="refreshBtn" class="text-outline-variant hover:text-primary transition-colors" title="Refresh">
+        <span class="material-symbols-outlined text-[20px]">refresh</span>
+      </button>
+    </div>
+    <div class="flex items-center gap-3">
+      <button id="deployStrategyBtn" class="bg-primary-container text-on-primary-container px-4 py-2 font-label-sm text-label-sm font-bold border border-primary-container hover:shadow-[0_0_15px_rgba(0,229,255,0.3)] transition-all">
+        DEPLOY STRATEGY
+      </button>
+    </div>
+  </header>
+
+  <!-- Context Bar: Filters & Actions -->
+  <section class="flex justify-between items-end px-6 py-4 gap-4 bg-surface-container-low">
+    <div class="flex items-center gap-3">
+      <!-- View Toggle (Kanban / Table) -->
+      <div class="flex items-center gap-2 bg-surface-container border border-outline-variant p-1">
+        <button id="kanbanViewBtn" class="px-3 py-1 bg-surface-container-highest text-primary font-label-sm text-label-sm">Kanban</button>
+        <button id="tableViewBtn" class="px-3 py-1 text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm">Table</button>
+      </div>
+      <div class="h-8 w-px bg-outline-variant"></div>
+      <!-- Asset Class Filter -->
+      <select id="assetClassFilter" class="bg-surface-container-low border border-outline-variant text-label-sm font-label-sm text-on-surface px-3 py-1.5 focus:ring-primary">
+        <option value="">All Asset Classes</option>
+        <option value="equities">Equities</option>
+        <option value="fx">FX</option>
+        <option value="crypto">Crypto</option>
+        <option value="commodities">Commodities</option>
+      </select>
+      <!-- Status Filter -->
+      <select id="statusFilter" class="bg-surface-container-low border border-outline-variant text-label-sm font-label-sm text-on-surface px-3 py-1.5 focus:ring-primary">
+        <option value="">All Status</option>
+        <option value="draft">Draft</option>
+        <option value="researching">Researching</option>
+        <option value="backtesting">Backtesting</option>
+        <option value="validated">Validated</option>
+        <option value="deployed">Deployed</option>
+        <option value="rejected">Rejected</option>
+      </select>
+      <!-- Search Input -->
+      <div class="relative">
+        <input type="text" id="searchInput" class="bg-surface-container border border-outline-variant pl-10 pr-4 py-1.5 text-label-sm font-label-sm text-on-surface focus:ring-primary" placeholder="Search hypotheses...">
+        <span class="absolute inset-y-0 left-3 flex items-center text-outline">
+          <span class="material-symbols-outlined text-[18px]">search</span>
+        </span>
+      </div>
+      <!-- Toggle Rejected Column -->
+      <label class="flex items-center gap-2 text-label-sm text-on-surface-variant cursor-pointer">
+        <input type="checkbox" id="showRejectedToggle" class="accent-primary">
+        <span>Show Rejected</span>
+      </label>
+    </div>
+    <div class="flex items-center gap-3">
+      <button id="newHypothesisBtn" class="flex items-center gap-2 bg-primary text-on-primary px-4 py-2 font-label-sm text-label-sm font-bold border border-primary hover:shadow-[0_0_15px_rgba(0,229,255,0.3)] transition-all">
+        <span class="material-symbols-outlined text-[16px]">add</span>
+        NEW HYPOTHESIS
+      </button>
+    </div>
+  </section>
+
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col overflow-hidden bg-surface-container-lowest">
+    <!-- Summary Table (Collapsible) -->
+    <div id="summaryTable" class="border border-outline-variant bg-surface-container-lowest mb-4">
+      <div id="summaryHeader" class="bg-surface-container-high px-6 py-3 flex justify-between items-center cursor-pointer hover:bg-surface-container-highest transition-colors">
+        <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Hypothesis Summary</span>
+        <div class="flex items-center gap-4">
+          <span id="hypothesisCount" class="text-label-sm text-primary">0 Total Hypotheses</span>
+          <span class="material-symbols-outlined text-outline transition-transform" id="summaryToggleIcon">expand_less</span>
+        </div>
+      </div>
+      <div id="summaryTableBody" class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-surface-container-low">
+              <th class="px-4 py-2 font-label-sm text-label-sm text-outline border-b border-outline-variant">ID</th>
+              <th class="px-4 py-2 font-label-sm text-label-sm text-outline border-b border-outline-variant">STRATEGY NAME</th>
+              <th class="px-4 py-2 font-label-sm text-label-sm text-outline border-b border-outline-variant">ASSET CLASS</th>
+              <th class="px-4 py-2 font-label-sm text-label-sm text-outline border-b border-outline-variant">TIMEFRAME</th>
+              <th class="px-4 py-2 font-label-sm text-label-sm text-outline border-b border-outline-variant">CONFIDENCE</th>
+              <th class="px-4 py-2 font-label-sm text-label-sm text-outline border-b border-outline-variant">STATUS</th>
+            </tr>
+          </thead>
+          <tbody id="summaryTableBodyRows" class="divide-y divide-outline-variant">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <div id="kanbanBoard" class="flex-1 flex gap-4 overflow-x-auto pb-4 px-2">
+      <!-- Column: DRAFT -->
+      <div class="kanban-column flex flex-col gap-3 min-w-[280px]" data-status="draft">
+        <div class="flex items-center justify-between px-2">
+          <h3 class="font-label-sm text-label-sm text-on-surface-variant tracking-widest uppercase">Draft</h3>
+          <span class="material-symbols-outlined text-outline cursor-pointer hover:text-on-surface">more_horiz</span>
+        </div>
+        <div class="flex-1 flex flex-col gap-3 bg-surface-container-low/40 p-2 border border-dashed border-outline-variant" id="column-draft">
+          <!-- Cards populated by JS -->
+        </div>
+      </div>
+
+      <!-- Column: RESEARCHING -->
+      <div class="kanban-column flex flex-col gap-3 min-w-[280px]" data-status="researching">
+        <div class="flex items-center justify-between px-2">
+          <h3 class="font-label-sm text-label-sm text-tertiary tracking-widest uppercase">Researching</h3>
+          <span class="material-symbols-outlined text-outline cursor-pointer hover:text-on-surface">more_horiz</span>
+        </div>
+        <div class="flex-1 flex flex-col gap-3 bg-surface-container-low/40 p-2 border border-outline-variant" id="column-researching">
+          <!-- Cards populated by JS -->
+        </div>
+      </div>
+
+      <!-- Column: BACKTESTING -->
+      <div class="kanban-column flex flex-col gap-3 min-w-[280px]" data-status="backtesting">
+        <div class="flex items-center justify-between px-2">
+          <h3 class="font-label-sm text-label-sm text-on-surface-variant tracking-widest uppercase">Backtesting</h3>
+          <span class="material-symbols-outlined text-outline cursor-pointer hover:text-on-surface">more_horiz</span>
+        </div>
+        <div class="flex-1 flex flex-col gap-3 bg-surface-container-low/40 p-2 border border-outline-variant" id="column-backtesting">
+          <!-- Cards populated by JS -->
+        </div>
+      </div>
+
+      <!-- Column: VALIDATED -->
+      <div class="kanban-column flex flex-col gap-3 min-w-[280px]" data-status="validated">
+        <div class="flex items-center justify-between px-2">
+          <h3 class="font-label-sm text-label-sm text-primary-fixed-dim tracking-widest uppercase">Validated</h3>
+          <span class="material-symbols-outlined text-outline cursor-pointer hover:text-on-surface">more_horiz</span>
+        </div>
+        <div class="flex-1 flex flex-col gap-3 bg-surface-container-low/40 p-2 border border-primary/20" id="column-validated">
+          <!-- Cards populated by JS -->
+        </div>
+      </div>
+
+      <!-- Column: DEPLOYED -->
+      <div class="kanban-column flex flex-col gap-3 min-w-[280px]" data-status="deployed">
+        <div class="flex items-center justify-between px-2">
+          <h3 class="font-label-sm text-label-sm text-on-surface-variant tracking-widest uppercase">Deployed</h3>
+          <span class="material-symbols-outlined text-outline cursor-pointer hover:text-on-surface">more_horiz</span>
+        </div>
+        <div class="flex-1 flex flex-col gap-3 bg-surface-container-low/40 p-2 border border-outline-variant" id="column-deployed">
+          <!-- Cards populated by JS -->
+        </div>
+      </div>
+
+      <!-- Column: REJECTED (Hidden by default) -->
+      <div class="kanban-column flex flex-col gap-3 min-w-[280px] hidden" data-status="rejected" id="rejectedColumn">
+        <div class="flex items-center justify-between px-2">
+          <h3 class="font-label-sm text-label-sm text-error tracking-widest uppercase">Rejected</h3>
+          <span class="material-symbols-outlined text-outline cursor-pointer hover:text-on-surface">more_horiz</span>
+        </div>
+        <div class="flex-1 flex flex-col gap-3 bg-surface-container-low/40 p-2 border border-dashed border-error" id="column-rejected">
+          <!-- Cards populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Hypothesis Modal -->
+<div id="newHypothesisModal" class="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm hidden">
+  <div class="bg-surface-container border border-outline-variant rounded-none w-full max-w-2xl mx-4 shadow-2xl">
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center px-6 py-4 border-b border-outline-variant">
+      <h2 class="text-headline-md font-headline-md text-on-surface">Create New Hypothesis</h2>
+      <button id="closeModalBtn" class="text-outline-variant hover:text-on-surface transition-colors">
+        <span class="material-symbols-outlined text-[24px]">close</span>
+      </button>
+    </div>
+    <!-- Modal Body -->
+    <div class="px-6 py-6 space-y-6 max-h-[70vh] overflow-y-auto">
+      <div>
+        <label for="hypoTitle" class="block font-label-sm text-label-sm text-on-surface-variant mb-2">Title <span class="text-error">*</span></label>
+        <input type="text" id="hypoTitle" class="w-full bg-surface-container-low border border-outline-variant px-4 py-2 text-body-md text-on-surface focus:ring-primary focus:border-primary" placeholder="Enter hypothesis title">
+      </div>
+      <div>
+        <label for="hypoDescription" class="block font-label-sm text-label-sm text-on-surface-variant mb-2">Description</label>
+        <textarea id="hypoDescription" rows="4" class="w-full bg-surface-container-low border border-outline-variant px-4 py-2 text-body-md text-on-surface focus:ring-primary focus:border-primary" placeholder="Describe the hypothesis, market anomaly, or research idea..."></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-6">
+        <div>
+          <label for="hypoSymbol" class="block font-label-sm text-label-sm text-on-surface-variant mb-2">Symbol / Asset</label>
+          <input type="text" id="hypoSymbol" class="w-full bg-surface-container-low border border-outline-variant px-4 py-2 text-body-md text-on-surface focus:ring-primary focus:border-primary" placeholder="e.g., AAPL, EURUSD, BTCUSD">
+        </div>
+        <div>
+          <label for="hypoTimeframe" class="block font-label-sm text-label-sm text-on-surface-variant mb-2">Timeframe</label>
+          <select id="hypoTimeframe" class="w-full bg-surface-container-low border border-outline-variant px-4 py-2 text-body-md text-on-surface focus:ring-primary">
+            <option value="">Select timeframe</option>
+            <option value="M1">M1 (1 minute)</option>
+            <option value="M5">M5 (5 minutes)</option>
+            <option value="M15">M15 (15 minutes)</option>
+            <option value="M30">M30 (30 minutes)</option>
+            <option value="H1">H1 (1 hour)</option>
+            <option value="H4">H4 (4 hours)</option>
+            <option value="D1">D1 (Daily)</option>
+            <option value="W1">W1 (Weekly)</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label for="hypoStatus" class="block font-label-sm text-label-sm text-on-surface-variant mb-2">Initial Status</label>
+        <select id="hypoStatus" class="w-full bg-surface-container-low border border-outline-variant px-4 py-2 text-body-md text-on-surface focus:ring-primary">
+          <option value="draft">Draft</option>
+          <option value="researching">Researching</option>
+          <option value="backtesting">Backtesting</option>
+          <option value="validated">Validated</option>
+        </select>
+      </div>
+    </div>
+    <!-- Modal Footer -->
+    <div class="flex justify-end gap-3 px-6 py-4 border-t border-outline-variant bg-surface-container-low">
+      <button id="cancelHypoBtn" class="px-6 py-2 bg-surface-container border border-outline-variant text-on-surface font-label-sm text-label-sm hover:bg-surface-variant transition-all">
+        Cancel
+      </button>
+      <button id="saveHypoBtn" class="px-6 py-2 bg-primary-container text-on-primary-container font-label-sm text-label-sm font-bold border border-primary-container hover:shadow-[0_0_10px_rgba(0,229,255,0.4)] transition-all">
+        Save Hypothesis
+      </button>
+    </div>
+  </div>
+</div>
+    <!-- Floating Global Status Overlay -->
+    <div class="fixed bottom-6 right-6 z-40">
+      <div class="bg-surface-container border border-outline-variant p-4 shadow-2xl flex items-center gap-6">
+        <div class="flex items-center gap-2 pr-4 border-r border-outline-variant">
+          <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+          <span class="font-label-sm text-[10px] text-outline tracking-wider uppercase">Engine Live</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-label-sm text-[9px] text-outline-variant uppercase">Latency</span>
+          <span class="font-data-md text-data-md text-primary">12ms</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-label-sm text-[9px] text-outline-variant uppercase">CPU Load</span>
+          <span class="font-data-md text-data-md text-on-surface">14.2%</span>
+        </div>
+      </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="module" src="/static/v3/pages/hypotheses.js"></script>
+{% endblock %}

@@ -71,16 +71,30 @@ async function apiFetch(endpoint, options = {}) {
 
   // Handle other error statuses
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+    let errorDetail = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errJson = await response.json();
+      errorDetail = errJson.detail || JSON.stringify(errJson);
+    } catch (e) {
+      // Keep default error detail if JSON parsing fails
+    }
+    console.error('apiFetch error:', errorDetail);
+    alert(`Error: ${response.status} ${response.statusText}`);
+    throw new Error(errorDetail);
   }
 
-  // Return JSON or empty response
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    return response.json();
+  // Handle 204 No Content
+  if (response.status === 204) {
+    return null;
   }
-  return response.text();
+
+  // Always attempt to parse JSON
+  try {
+    return await response.json();
+  } catch (e) {
+    console.error('Invalid JSON response:', e);
+    throw e;
+  }
 }
 
 /**

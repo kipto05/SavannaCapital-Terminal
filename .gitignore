@@ -63,3 +63,4 @@ uploads/
 
 # Claude agent config
 .claude/
+*.md

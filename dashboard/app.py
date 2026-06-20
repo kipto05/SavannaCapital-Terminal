@@ -31,6 +31,7 @@ from db.models import (
     AccountSnapshot,
     BacktestRun,
     Hypothesis,
+    HypothesisStatus,
     MLModel,
     OHLCVBar,
     PlatformSetting,
@@ -335,14 +336,23 @@ def api_hypotheses(status: str | None = None, current_user: User = Depends(_get_
         q = q.filter(Hypothesis.status == status)
     return [h.to_dict() for h in q.order_by(Hypothesis.created_at.desc()).all()]
 
-@app.post("/api/quant/hypotheses")
+@app.post("/api/quant/hypotheses", status_code=201)
 def api_hypothesis_create(body: dict, current_user: User = Depends(_get_current_user), db: Session = Depends(get_db)):
+    # Validate required fields
+    title = body.get("title", "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail={"error": "Title is required"})
+    # Validate status
+    raw_status = body.get("status", HypothesisStatus.DRAFT.value)
+    valid_statuses = [e.value for e in HypothesisStatus]
+    if raw_status not in valid_statuses:
+        raise HTTPException(status_code=400, detail={"error": f"Invalid status: {raw_status}"})
     h = Hypothesis(
-        title=body.get("title", ""),
+        title=title,
         description=body.get("description"),
         symbol=body.get("symbol"),
         timeframe=body.get("timeframe"),
-        status=body.get("status", "draft"),
+        status=raw_status,
     )
     db.add(h)
     db.flush()
@@ -355,6 +365,11 @@ def api_hypothesis_update(hypothesis_id: str, body: dict, current_user: User = D
         raise HTTPException(404, "Hypothesis not found")
     for field in ("title", "description", "symbol", "timeframe", "status"):
         if field in body:
+            if field == "status":
+                raw_status = body[field]
+                valid_statuses = [e.value for e in HypothesisStatus]
+                if raw_status not in valid_statuses:
+                    raise HTTPException(status_code=400, detail={"error": f"Invalid status: {raw_status}"})
             setattr(h, field, body[field])
     db.flush()
     return {"id": str(h.id), "status": h.status}
@@ -1155,6 +1170,24 @@ def optimization(request: Request):
 @app.get("/hypotheses", response_class=HTMLResponse)
 def hypotheses_page(request: Request):
     return _render_page("hypotheses", "Hypotheses", "hypotheses", request)
+
+@app.get("/v3/hypotheses", response_class=HTMLResponse)
+def hypotheses_v3(request: Request):
+    tpl = _get_templates()
+    token = ""
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    return tpl.TemplateResponse(
+        request,
+        "v3/pages/hypotheses.html",
+        {
+            "title": "Hypotheses",
+            "active": "hypotheses",
+            "page_title": "Hypotheses",
+            "jwt_token": token,
+        },
+    )
 
 @app.get("/research", response_class=HTMLResponse)
 def research(request: Request):
